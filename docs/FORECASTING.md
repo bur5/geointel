@@ -1,0 +1,7 @@
+# Forecasting contract
+
+Forecasts are explicit question/horizon/category assessments, not generic “war risk.” Every completed run contains exactly one assessment each for interstate armed conflict, internal armed conflict, one-sided violence, and major political violence/instability. Each records confidence, evidence for/against, unknowns, resolution criteria and material change conditions. Numeric ranges are optional and may only be emitted when justified by calibrated evidence or an identified model; unavailable data produces an unquantified assessment.
+
+Evidence is an observed provider artifact. Events are separately normalized real-world claims and may require independent confirmations. Indicators are observed/derived variables. Scenarios are possible developments. Forecasts are time-bounded judgments. Database forecast updates are rejected; revision means a new run/version, preserving history.
+
+The offline provider demonstrates epistemic restraint rather than a Spain conclusion. Production calibration should add historical base rates, scoring rules (Brier/log score), resolution adjudication and backtesting. Horizons remain generic (early warning through structural scenarios), though v0.0.1 exercises 12 months. Red Team checks unsupported claims, gaps, alternatives, base-rate neglect, sensationalism, duplication, unjustified precision, contradiction and false-positive escalation stories; synthesis records critiques it incorporated.
