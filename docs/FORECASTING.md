@@ -24,3 +24,18 @@ validate a model, and agreement does not create a numeric GEOINTEL probability. 
 Red Team checks predictive-as-fact errors, exact/cross-source duplication, geographic and horizon
 mismatch, stale/sparse events, fatality uncertainty, causal overclaiming, sensationalism, and
 low-base-rate false positives. No source has override weight.
+
+## Strategic interpretation boundary (v0.0.4)
+
+A strategic claim is an attributed proposition; a historical case separates factual summary from
+interpretation notes; a lens output is model-generated strategic interpretation. None is an
+observation, calibrated model output, base rate, causal law, or probability. The Kissinger lens
+uses only retrieved claims and emits claim IDs/provenance, applicability, limitations,
+counterarguments, low confidence, unsupported assumptions, and analogy mismatches. It cannot add a
+probability. With no relevant claims it explicitly says the lens is not informative.
+
+Red Team now checks authority/famous-author bias, selective retrieval, cherry-picked or mismatched
+analogy, retrospective determinism, theory-as-fact, theory overriding current evidence,
+unsupported causation, missing alternative theories, outdated assumptions, false precision, and
+sensationalism. The Spain control remains conservative: literature or analogy alone supplies no
+escalation evidence.

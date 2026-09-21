@@ -55,6 +55,10 @@ class OfflineModel:
                     "Absence of retrieved evidence is not evidence of absence.",
                     "Offline mode uses no current-events feed.",
                 ],
+                strategic_context=[
+                    f"{item['lens_name']} output is an interpretation, not evidence."
+                    for item in payload.get("strategic_context", [])
+                ],
             )
         elif output_type is ForecastOutput:
             assessments = []
@@ -127,6 +131,50 @@ class OfflineModel:
                     "Event classifications alone do not establish motive or causation."
                 ]
                 if recent_events
+                else [],
+                authority_bias=[
+                    "A famous author or named lens has no authority to override empirical evidence."
+                ]
+                if payload.get("strategic_context")
+                else [],
+                analogy_misuse=[
+                    "Historical analogy alone cannot justify escalation; applicability and "
+                    "mismatch must be explicit."
+                ]
+                if payload.get("strategic_context")
+                else [],
+                theory_override_concerns=[
+                    "Strategic theory is attributed interpretation, not a fact, causal law, or "
+                    "probability."
+                ]
+                if payload.get("strategic_context")
+                else [],
+                selective_retrieval_concerns=[
+                    "Deterministic retrieval may omit relevant claims; review exclusions and "
+                    "provenance."
+                ]
+                if payload.get("strategic_context")
+                else [],
+                missing_alternative_theories=[
+                    "The Kissinger lens may be uninformative; compare an alternative theoretical "
+                    "lens."
+                ]
+                if payload.get("strategic_context")
+                else [],
+                retrospective_determinism=[
+                    "Do not read a known historical outcome as inevitable or transferable."
+                ]
+                if payload.get("strategic_context")
+                else [],
+                confirmation_bias=[
+                    "Seek claims and present evidence that could disconfirm the preferred frame."
+                ]
+                if payload.get("strategic_context")
+                else [],
+                outdated_geopolitical_assumptions=[
+                    "Historical assumptions about actors and order require current validation."
+                ]
+                if payload.get("strategic_context")
                 else [],
             )
         elif output_type is SynthesisOutput:

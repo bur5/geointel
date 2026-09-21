@@ -105,6 +105,9 @@ def present(run: AnalysisRun) -> AnalysisResponse:
         red_team_output=run.red_team_output,
         synthesis_output=run.synthesis_output,
         collection_metadata=run.collection_metadata,
+        strategic_context=[
+            item.output | {"status": item.status} for item in run.strategic_analyses
+        ],
         forecast_ids=[forecast.id for forecast in run.forecasts],
     )
 
@@ -124,7 +127,11 @@ def get_analysis(analysis_id: UUID, session: SessionDependency) -> AnalysisRespo
     run = session.scalar(
         select(AnalysisRun)
         .where(AnalysisRun.id == analysis_id)
-        .options(selectinload(AnalysisRun.location), selectinload(AnalysisRun.forecasts))
+        .options(
+            selectinload(AnalysisRun.location),
+            selectinload(AnalysisRun.forecasts),
+            selectinload(AnalysisRun.strategic_analyses),
+        )
     )
     if not run:
         raise HTTPException(status_code=404, detail="Analysis run not found")

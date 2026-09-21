@@ -28,3 +28,18 @@ run collection time; failures remain isolated.
 The 90-day classification is metadata, not a risk algorithm. No geographic roll-up, predictive
 ensemble, causal inference, or corroboration occurs. Provider IDs support conservative exact
 within-collection deduplication; cross-source resolution is explicitly deferred.
+
+## v0.0.4 strategic-knowledge layer
+
+Strategic knowledge is a separate domain: `KnowledgeWork` → `KnowledgeSection` → attributed
+`StrategicClaim`, with reusable `StrategicConcept` and separately structured `HistoricalCase`
+records. Many-to-many tables retain claim/concept/case relationships. None inherits from or is
+persisted as `Evidence`, `Event`, or `ForecastSignal`.
+
+The pipeline retrieves bounded structured claims, invokes registered `StrategicLens`
+implementations, and passes their outputs under `strategic_context`, separate from
+`historical_evidence`, `recent_events`, and `predictive_signals`. `StrategicAnalysis` records bind
+lens name/version, retrieved claim and case IDs, retrieval provenance, output, limitations, status,
+and timestamp to an `AnalysisRun`. Lens errors are recorded as non-fatal and cannot bypass Analyst,
+Forecaster, mandatory Red Team, or synthesis. `LensRegistry` permits additional theories without
+pipeline changes; the neutral alternative is only an extensibility demonstration.

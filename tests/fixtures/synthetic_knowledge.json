@@ -1,0 +1,44 @@
+{
+  "schema_version": "geointel-knowledge-v1",
+  "work": {
+    "id": "synthetic-kissinger-work", "title": "Synthetic Strategic Notes",
+    "author": "Henry Kissinger", "publication_year": 2000, "language": "en",
+    "source_type": "operator_paraphrase", "source_provenance": {"fixture": "synthetic", "not_a_book_excerpt": true},
+    "copyright_status": "synthetic-test-content", "metadata": {"test_only": true}
+  },
+  "sections": [{
+    "id": "equilibrium", "title": "Synthetic equilibrium section", "ordering": 1,
+    "locator": "synthetic:1", "summary": "A short original test summary, not source text.",
+    "provenance": {"fixture": "synthetic"}
+  }],
+  "concepts": [
+    {"slug": "balance-of-power", "name": "balance of power", "description": "Distribution and interaction of capabilities.", "provenance": {"fixture": "synthetic"}},
+    {"slug": "diplomatic-flexibility", "name": "diplomatic flexibility", "description": "Availability of negotiated adjustment.", "provenance": {"fixture": "synthetic"}}
+  ],
+  "historical_cases": [{
+    "id": "synthetic-crisis", "name": "Synthetic Crisis", "actors": ["Actor A", "Actor B"],
+    "geography": ["Testland"], "factual_summary": "Fictional actors entered and then ended a crisis.",
+    "outcome": "The fictional crisis ended.",
+    "interpretation_notes": ["The analogy is deliberately synthetic and cannot establish causation."],
+    "source_provenance": {"fixture": "synthetic"}, "concept_slugs": ["diplomatic-flexibility"]
+  }],
+  "claims": [
+    {
+      "id": "kissinger-equilibrium-001", "section_id": "equilibrium", "attributed_author": "Henry Kissinger",
+      "text": "This synthetic paraphrase attributes the view that stable arrangements may depend on both equilibrium and accepted order.",
+      "locator": "synthetic:1", "claim_type": "interpretive", "extraction_confidence": "high",
+      "concept_slugs": ["balance-of-power"], "case_ids": [],
+      "limitations": ["This attributed proposition is not an empirical law."],
+      "counterexamples": ["Stable outcomes may arise through institutions or domestic constraints."],
+      "provenance": {"fixture": "synthetic", "paraphrase": true}, "ingestion_metadata": {"test_only": true}
+    },
+    {
+      "id": "kissinger-diplomacy-001", "section_id": "equilibrium", "attributed_author": "Henry Kissinger",
+      "text": "This synthetic paraphrase treats diplomatic flexibility as a question to examine during changing alignments.",
+      "locator": "synthetic:2", "claim_type": "methodological", "extraction_confidence": "medium",
+      "concept_slugs": ["diplomatic-flexibility"], "case_ids": ["synthetic-crisis"],
+      "limitations": ["The fictional case is not evidence about a current conflict."], "counterexamples": [],
+      "provenance": {"fixture": "synthetic", "paraphrase": true}, "ingestion_metadata": {"test_only": true}
+    }
+  ]
+}
