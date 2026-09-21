@@ -48,6 +48,37 @@ class NormalizedEvidence(BaseModel):
     provenance: dict = Field(default_factory=dict)
 
 
+class NormalizedOperationalEvent(BaseModel):
+    """An observed/reported event record; never a predictive model output."""
+
+    provider: str = "ACLED"
+    source_record_id: str
+    event_date: datetime
+    event_type: str
+    sub_event_type: str | None = None
+    country: str
+    admin1: str | None = None
+    admin2: str | None = None
+    admin3: str | None = None
+    locality: str | None = None
+    latitude: float | None = Field(default=None, ge=-90, le=90)
+    longitude: float | None = Field(default=None, ge=-180, le=180)
+    actors: list[str] = Field(default_factory=list)
+    associated_actors: list[str] = Field(default_factory=list)
+    fatalities: int | None = Field(default=None, ge=0)
+    notes: str | None = None
+    source_description: str | None = None
+    source_scale: str | None = None
+    disorder_type: str | None = None
+    updated_at: datetime | None = None
+    retrieved_at: datetime
+    source_url: str | None = None
+    alignment_status: str = "aligned"
+    alignment_notes: list[str] = Field(default_factory=list)
+    temporal_classification: str = "recent_operational"
+    provenance: dict = Field(default_factory=dict)
+
+
 class NormalizedForecastSignal(BaseModel):
     """A provider model output; deliberately not observed Evidence or an Event."""
 
@@ -95,6 +126,8 @@ class RiskAssessment(BaseModel):
 
 class AnalystOutput(BaseModel):
     observed_evidence: list[str]
+    historical_evidence: list[str] = Field(default_factory=list)
+    recent_events: list[str] = Field(default_factory=list)
     predictive_signals: list[str] = Field(default_factory=list)
     source_disagreements: list[str] = Field(default_factory=list)
     missing_sources: list[str] = Field(default_factory=list)
@@ -128,6 +161,10 @@ class RedTeamOutput(BaseModel):
     predictive_signal_concerns: list[str] = Field(default_factory=list)
     geographic_mismatches: list[str] = Field(default_factory=list)
     horizon_mismatches: list[str] = Field(default_factory=list)
+    stale_event_concerns: list[str] = Field(default_factory=list)
+    sparse_coverage_concerns: list[str] = Field(default_factory=list)
+    fatality_uncertainty: list[str] = Field(default_factory=list)
+    causal_claim_concerns: list[str] = Field(default_factory=list)
 
 
 class SynthesisOutput(BaseModel):

@@ -1,8 +1,12 @@
 from typing import Protocol
 
-from geointel.domain.schemas import NormalizedEvidence, NormalizedForecastSignal
+from geointel.domain.schemas import (
+    NormalizedEvidence,
+    NormalizedForecastSignal,
+    NormalizedOperationalEvent,
+)
 
-NormalizedRecord = NormalizedEvidence | NormalizedForecastSignal
+NormalizedRecord = NormalizedEvidence | NormalizedForecastSignal | NormalizedOperationalEvent
 
 
 class EvidenceConnector(Protocol):

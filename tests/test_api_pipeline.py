@@ -16,7 +16,7 @@ EXPECTED_TYPES = {item.value for item in ConflictType}
 def test_health(client):
     response = client.get("/health")
     assert response.status_code == 200
-    assert response.json() == {"status": "ok", "version": "0.0.2"}
+    assert response.json() == {"status": "ok", "version": "0.0.3"}
 
 
 def test_request_validation(client):
@@ -46,31 +46,19 @@ def test_spain_pipeline_persistence_retrieval_and_red_team(client, session):
         finding for findings in data["red_team_output"].values() for finding in findings
     }
     assert red_findings <= set(data["synthesis_output"]["incorporated_critiques"])
-    assert data["collection_metadata"] == {
-        "connector_count": 2,
-        "evidence_count": 0,
-        "forecast_signal_count": 0,
-        "connector_failures": [],
-        "connector_outcomes": [
-            {
-                "connector": "UCDP",
-                "attempted": False,
-                "status": "disabled",
-                "succeeded": False,
-                "record_count": 0,
-                "failure_reason": None,
-            },
-            {
-                "connector": "VIEWS",
-                "attempted": False,
-                "status": "disabled",
-                "succeeded": False,
-                "record_count": 0,
-                "failure_reason": None,
-            },
-        ],
-        "external_collection_succeeded": False,
-    }
+    metadata = data["collection_metadata"]
+    assert metadata["connector_count"] == 4
+    assert metadata["evidence_count"] == 0
+    assert metadata["recent_event_count"] == 0
+    assert metadata["forecast_signal_count"] == 0
+    assert [x["connector"] for x in metadata["connector_outcomes"]] == [
+        "UCDP",
+        "VIEWS",
+        "ACLED",
+        "CAST",
+    ]
+    assert all(x["status"] == "disabled" for x in metadata["connector_outcomes"])
+    assert metadata["external_collection_succeeded"] is False
     assert {item["conflict_type"] for item in data["synthesis_output"]["assessments"]} == (
         EXPECTED_TYPES
     )

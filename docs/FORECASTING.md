@@ -11,6 +11,16 @@ The semantic boundaries are mandatory:
 - **Scenario** is a possible development.
 - **Forecast** is GEOINTEL's time-bounded judgment and is immutable.
 
-Reasoning receives observed evidence, VIEWS predictive signals, connector outcomes, missing sources, and alignment disagreements in separate fields. v0.0.2 does not average, calibrate, aggregate, or weight them. The Red Team explicitly challenges unsupported VIEWS signals, history/model inconsistency, insufficient data, unjustified extrapolation, geographic/horizon mismatch, and mistaking model output for fact. Synthesis must name every incorporated critique.
+Reasoning receives observed evidence, VIEWS predictive signals, connector outcomes, missing sources, and alignment disagreements in separate fields. v0.0.3 does not average, calibrate, aggregate, or weight them. The Red Team explicitly challenges unsupported VIEWS signals, history/model inconsistency, insufficient data, unjustified extrapolation, geographic/horizon mismatch, and mistaking model output for fact. Synthesis must name every incorporated critique.
 
 The deterministic offline provider demonstrates epistemic restraint rather than a Spain conclusion. With no validated base rates or live inputs it emits four low-confidence unquantified assessments. Production work still needs calibration, resolution adjudication, Brier/log scoring, and backtesting.
+
+## Operational safeguards (v0.0.3)
+
+Analyst payloads distinguish UCDP historical evidence, ACLED recent operational reports, and
+VIEWS/CAST predictive signals. Dates, provider-native values, target periods, horizons, and
+alignment notes remain visible. A model prediction is never evidence, an ACLED report does not
+validate a model, and agreement does not create a numeric GEOINTEL probability. The deterministic
+Red Team checks predictive-as-fact errors, exact/cross-source duplication, geographic and horizon
+mismatch, stale/sparse events, fatality uncertainty, causal overclaiming, sensationalism, and
+low-base-rate false positives. No source has override weight.

@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from geointel.connectors.base import DisabledConnector, EvidenceConnector
 from geointel.domain.models import (
     AnalysisRun,
+    Event,
     Evidence,
     Forecast,
     ForecastSignal,
@@ -19,13 +20,14 @@ from geointel.domain.schemas import (
     ForecastOutput,
     NormalizedEvidence,
     NormalizedForecastSignal,
+    NormalizedOperationalEvent,
     RedTeamOutput,
     SynthesisOutput,
 )
 from geointel.providers.base import ModelRouter
 
 logger = logging.getLogger(__name__)
-PIPELINE_VERSION = "0.0.2"
+PIPELINE_VERSION = "0.0.3"
 
 
 class AnalysisPipeline:
@@ -63,10 +65,12 @@ class AnalysisPipeline:
         self.session.flush()
         evidence: list[NormalizedEvidence] = []
         signals: list[NormalizedForecastSignal] = []
+        events: list[NormalizedOperationalEvent] = []
         connector_errors = []
         outcomes = []
         for connector in self.connectors:
             connector_name = getattr(connector, "connector_name", type(connector).__name__)
+            collected_at = datetime.now(UTC).isoformat()
             if isinstance(connector, DisabledConnector):
                 outcomes.append(
                     {
@@ -76,19 +80,27 @@ class AnalysisPipeline:
                         "succeeded": False,
                         "record_count": 0,
                         "failure_reason": None,
+                        "collection_timestamp": collected_at,
                     }
                 )
                 continue
             try:
                 records = connector.collect(request.location, request.horizon_months)
                 if not all(
-                    isinstance(item, (NormalizedEvidence, NormalizedForecastSignal))
+                    isinstance(
+                        item,
+                        (NormalizedEvidence, NormalizedForecastSignal, NormalizedOperationalEvent),
+                    )
                     for item in records
                 ):
                     raise TypeError("connector returned an unsupported normalized record type")
+                records = self._deduplicate(records, self._record_key)
                 evidence.extend(item for item in records if isinstance(item, NormalizedEvidence))
                 signals.extend(
                     item for item in records if isinstance(item, NormalizedForecastSignal)
+                )
+                events.extend(
+                    item for item in records if isinstance(item, NormalizedOperationalEvent)
                 )
                 outcomes.append(
                     {
@@ -98,6 +110,7 @@ class AnalysisPipeline:
                         "succeeded": True,
                         "record_count": len(records),
                         "failure_reason": None,
+                        "collection_timestamp": collected_at,
                     }
                 )
             except Exception as exc:
@@ -115,8 +128,12 @@ class AnalysisPipeline:
                         "succeeded": False,
                         "record_count": 0,
                         "failure_reason": safe_error,
+                        "collection_timestamp": collected_at,
                     }
                 )
+        evidence = self._deduplicate(evidence, self._record_key)
+        signals = self._deduplicate(signals, self._record_key)
+        events = self._deduplicate(events, self._record_key)
         for item in evidence:
             source = self.session.scalar(select(Source).where(Source.name == item.source_name))
             if not source:
@@ -141,6 +158,27 @@ class AnalysisPipeline:
                     retrieved_at=item.retrieved_at,
                     reliability=item.reliability.value,
                     provenance=item.provenance,
+                )
+            )
+        for item in events:
+            source = self.session.scalar(select(Source).where(Source.name == item.provider))
+            if not source:
+                source = Source(
+                    name=item.provider, source_type="operational_events", reliability="reported"
+                )
+                self.session.add(source)
+                self.session.flush()
+            self.session.add(
+                Event(
+                    analysis_run_id=run.id,
+                    source_id=source.id,
+                    source_record_id=item.source_record_id,
+                    location_id=location.id,
+                    event_type=item.event_type,
+                    occurred_at=item.event_date,
+                    description=item.notes or f"{item.event_type} reported in {item.country}",
+                    confidence="reported",
+                    provenance=item.model_dump(mode="json"),
                 )
             )
         for item in signals:
@@ -173,17 +211,21 @@ class AnalysisPipeline:
             "connector_count": len(self.connectors),
             "evidence_count": len(evidence),
             "forecast_signal_count": len(signals),
+            "recent_event_count": len(events),
             "connector_failures": connector_errors,
             "connector_outcomes": outcomes,
             "external_collection_succeeded": any(item["succeeded"] for item in outcomes),
+            "collected_at": datetime.now(UTC).isoformat(),
         }
         payload = {
             "request": request.model_dump(),
             "observed_evidence": [x.model_dump(mode="json") for x in evidence],
+            "historical_evidence": [x.model_dump(mode="json") for x in evidence],
+            "recent_events": [x.model_dump(mode="json") for x in events],
             # Compatibility alias for structured providers implemented against v0.0.1.
             "evidence": [x.model_dump(mode="json") for x in evidence],
             "predictive_signals": [x.model_dump(mode="json") for x in signals],
-            "source_disagreements": self._alignment_disagreements(signals),
+            "source_disagreements": self._alignment_disagreements(signals, events),
             "collection_metadata": run.collection_metadata,
             "connector_errors": connector_errors,
         }
@@ -241,5 +283,31 @@ class AnalysisPipeline:
         return message[:500] or type(exc).__name__
 
     @staticmethod
-    def _alignment_disagreements(signals: list[NormalizedForecastSignal]) -> list[str]:
-        return [note for signal in signals for note in signal.alignment_notes]
+    def _alignment_disagreements(signals, events) -> list[str]:
+        notes = [note for item in [*signals, *events] for note in item.alignment_notes]
+        providers = {signal.provider for signal in signals}
+        if {"VIEWS", "CAST"} <= providers:
+            notes.append(
+                "VIEWS/CAST comparison is unresolved: provider-native targets and scales are "
+                "retained without ensemble weighting"
+            )
+        if events and signals:
+            notes.append(
+                "ACLED/model relationship is unresolved: event reports neither validate nor "
+                "override predictive signals"
+            )
+        return notes
+
+    @staticmethod
+    def _deduplicate(records, key):
+        unique = {}
+        for record in records:
+            unique.setdefault(key(record), record)
+        return list(unique.values())
+
+    @staticmethod
+    def _record_key(record):
+        if isinstance(record, NormalizedEvidence):
+            # Records without provider identity are kept distinct rather than guessed equal.
+            return ("evidence", record.source_name, record.source_record_id or id(record))
+        return (type(record).__name__, record.provider, record.source_record_id)

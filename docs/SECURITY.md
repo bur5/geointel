@@ -8,5 +8,10 @@ VIEWS and UCDP payloads are untrusted data only: connector records are length/sc
 constrained, are never executed, and grant no tools or code-writing authority. Connector errors
 stored in collection metadata are bounded; endpoint credentials must never be embedded in URLs.
 
-Do not deploy v0.0.2 as-is. Report vulnerabilities privately to repository maintainers without
+Do not deploy v0.0.3 as-is. Report vulnerabilities privately to repository maintainers without
 including live credentials or personal data.
+
+ACLED/CAST adapter payloads receive the same hostile-input treatment: strict envelopes and field
+lengths, bounded record/response sizes, bounded transient retries, sanitized persisted errors,
+and no execution authority. Their current adapters intentionally implement no guessed credential
+transport. Operators must review official access terms before adding authentication.

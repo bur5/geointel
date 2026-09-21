@@ -1,6 +1,6 @@
 # Architecture decision record
 
-## v0.0.2 modular monolith
+## v0.0.3 modular monolith
 
 The modular monolith retains a single transaction for an analysis and its four forecasts. Transport (`api`), domain persistence/schemas, external `connectors`, structured-model `providers`, and `pipeline` orchestration remain replaceable boundaries.
 
@@ -12,6 +12,19 @@ Collection is failure-isolated and records a structured outcome for every config
 
 ## Ensemble and alignment boundary
 
-v0.0.2 provides no numeric ensemble. It makes source/model disagreement visible without inventing weighting. Country, geographic unit, requested horizon, provider horizon, issue date, and target period are retained. Country-level matching is accepted; non-country resolution, location mismatch, or horizon mismatch is flagged and passed to reasoning. No grid/subnational/monthly aggregation occurs because authoritative semantics have not been established.
+v0.0.3 provides no numeric ensemble. It makes source/model disagreement visible without inventing weighting. Country, geographic unit, requested horizon, provider horizon, issue date, and target period are retained. Country-level matching is accepted; non-country resolution, location mismatch, or horizon mismatch is flagged and passed to reasoning. No grid/subnational/monthly aggregation occurs because authoritative semantics have not been established.
 
 Future connectors and specialist agents remain out of scope. Research/data connectors only return validated untrusted data; they have no execution, code-writing, secret, database-delete, or deployment authority.
+
+## v0.0.3 operational layer
+
+`NormalizedOperationalEvent` is the ACLED-only observed/reporting boundary and is persisted to an
+`Event` linked to its `AnalysisRun`, `Source`, and provider record identifier (migration 0004).
+`NormalizedForecastSignal` remains the boundary for both VIEWS and CAST. Reasoning receives
+`historical_evidence`, `recent_events`, and `predictive_signals` separately, while the legacy
+`evidence` alias remains available. Collection outcomes cover all four connectors and include a
+run collection time; failures remain isolated.
+
+The 90-day classification is metadata, not a risk algorithm. No geographic roll-up, predictive
+ensemble, causal inference, or corroboration occurs. Provider IDs support conservative exact
+within-collection deduplication; cross-source resolution is explicitly deferred.

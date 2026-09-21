@@ -10,7 +10,9 @@ from sqlalchemy.orm import Session, selectinload
 
 from geointel import __version__
 from geointel.config import get_settings
+from geointel.connectors.acled import ACLEDConnector
 from geointel.connectors.base import DisabledConnector, EvidenceConnector
+from geointel.connectors.cast import CASTConnector
 from geointel.connectors.ucdp import UCDPConnector
 from geointel.connectors.views import VIEWSConnector
 from geointel.domain.database import get_session
@@ -65,6 +67,26 @@ def connectors() -> list[EvidenceConnector]:
         )
         if settings.views_enabled
         else DisabledConnector("VIEWS")
+    )
+    result.append(
+        ACLEDConnector(
+            settings.acled_base_url,
+            settings.acled_endpoint_path,
+            settings.acled_timeout_seconds,
+            settings.acled_max_retries,
+        )
+        if settings.acled_enabled
+        else DisabledConnector("ACLED")
+    )
+    result.append(
+        CASTConnector(
+            settings.cast_base_url,
+            settings.cast_endpoint_path,
+            settings.cast_timeout_seconds,
+            settings.cast_max_retries,
+        )
+        if settings.cast_enabled
+        else DisabledConnector("CAST")
     )
     return result
 
