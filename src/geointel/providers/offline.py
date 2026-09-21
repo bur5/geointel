@@ -23,13 +23,20 @@ class OfflineModel:
     def generate(self, role: str, payload: dict, output_type: type[T]) -> T:
         evidence = payload.get("evidence", [])
         signals = payload.get("predictive_signals", [])
+        recent_events = payload.get("recent_events", [])
         metadata = payload.get("collection_metadata", {})
         if output_type is AnalystOutput:
             result = AnalystOutput(
                 observed_evidence=[e["summary"] for e in evidence],
+                historical_evidence=[e["summary"] for e in evidence],
+                recent_events=[
+                    f"ACLED reported {item['event_type']} on {item['event_date']} "
+                    f"({item['alignment_status']}); report is not independently verified."
+                    for item in recent_events
+                ],
                 predictive_signals=[
                     (
-                        f"VIEWS model output {item['source_record_id']} for "
+                        f"{item['provider']} model output {item['source_record_id']} for "
                         f"{item['target_variable']} ({item['alignment_status']}); "
                         "prediction retained in the source record without reinterpretation."
                     )
@@ -91,14 +98,36 @@ class OfflineModel:
                 ],
                 predictive_signal_concerns=(
                     [
-                        "VIEWS output is a predictive model signal, not observed factual evidence; "
+                        "VIEWS/CAST output is predictive, not observed factual evidence; "
                         "do not convert its value into a GEOINTEL probability."
                     ]
                     if signals
-                    else ["No VIEWS predictive signal was available."]
+                    else ["No VIEWS or CAST predictive signal was available."]
                 ),
+                duplicated_evidence=[
+                    "Exact source identifiers are deduplicated; similar cross-source reports "
+                    "remain unresolved and must not be counted as independent confirmation."
+                ]
+                if recent_events
+                else [],
                 geographic_mismatches=[x for x in mismatch_notes if "geographic" in x],
                 horizon_mismatches=[x for x in mismatch_notes if "horizon" in x],
+                stale_event_concerns=[x for x in mismatch_notes if "stale event" in x],
+                sparse_coverage_concerns=[
+                    "Sparse operational coverage cannot establish absence or a trend."
+                ]
+                if len(recent_events) < 2
+                else [],
+                fatality_uncertainty=[
+                    "Reported ACLED fatalities must not be treated as perfectly precise."
+                ]
+                if recent_events
+                else [],
+                causal_claim_concerns=[
+                    "Event classifications alone do not establish motive or causation."
+                ]
+                if recent_events
+                else [],
             )
         elif output_type is SynthesisOutput:
             critique = payload["red_team"]

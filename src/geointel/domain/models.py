@@ -65,6 +65,7 @@ class AnalysisRun(Base, UUIDMixin, TimestampMixin):
     forecasts: Mapped[list["Forecast"]] = relationship(back_populates="analysis_run")
     evidence: Mapped[list["Evidence"]] = relationship(back_populates="analysis_run")
     forecast_signals: Mapped[list["ForecastSignal"]] = relationship(back_populates="analysis_run")
+    events: Mapped[list["Event"]] = relationship(back_populates="analysis_run")
 
 
 class Evidence(Base, UUIDMixin, TimestampMixin):
@@ -86,12 +87,16 @@ class Evidence(Base, UUIDMixin, TimestampMixin):
 
 class Event(Base, UUIDMixin, TimestampMixin):
     __tablename__ = "events"
+    analysis_run_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("analysis_runs.id"))
+    source_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("sources.id"))
+    source_record_id: Mapped[str | None] = mapped_column(String(200))
     location_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("locations.id"))
     event_type: Mapped[str] = mapped_column(String(50))
     occurred_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     description: Mapped[str] = mapped_column(Text)
     confidence: Mapped[str] = mapped_column(String(20))
     provenance: Mapped[dict] = mapped_column(JSON)
+    analysis_run: Mapped[AnalysisRun | None] = relationship(back_populates="events")
 
 
 class Indicator(Base, UUIDMixin, TimestampMixin):

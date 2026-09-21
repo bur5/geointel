@@ -8,7 +8,7 @@ UCDP supplies historical/conflict evidence. Its endpoint is intentionally operat
 
 ## VIEWS
 
-VIEWS contributes independent machine-learning forecast signals. Network access in the implementation environment did not permit authoritative endpoint verification, so v0.0.2 deliberately ships no claimed public endpoint and no real/offline forecast values. Tests use deterministic records labelled synthetic.
+VIEWS contributes independent machine-learning forecast signals. Network access in the implementation environment did not permit authoritative endpoint verification, so v0.0.3 deliberately ships no claimed public endpoint and no real/offline forecast values. Tests use deterministic records labelled synthetic.
 
 An enabled deployment must provide a verified adapter endpoint. The internal `geointel-views-adapter-v1` JSON contract is an implementation boundary, **not a claim that VIEWS publishes this schema**:
 
@@ -19,3 +19,41 @@ An enabled deployment must provide a verified adapter endpoint. The internal `ge
 The adapter must map official documented fields without inferring semantics. GEOINTEL stores record/model identity, geography, dates/horizon, target, prediction, units/scale, retrieval time/URL, schema marker, and alignment results. It does not call a prediction a probability unless the provider's documented unit says so—and even then it remains a provider signal, not a GEOINTEL probability.
 
 Location mismatch, non-country resolution, and horizon mismatch are surfaced. Values are retained without aggregation. Live enablement requires human verification of current VIEWS documentation and licensing plus a reviewed field mapping; secrets, if later required, must use environment variables and must never enter provenance or logs.
+
+## ACLED operational events (v0.0.3)
+
+ACLED is observed/reported operational event input, not a forecast. Live official access was not
+verified in the implementation environment, so the connector is disabled and accepts only an
+operator-reviewed adapter. `geointel-acled-adapter-v1` is an internal contract—not a representation
+of an official ACLED endpoint or schema. Its strict envelope is `{"events": [...]}`. Records use
+`event_id`, `event_date`, `event_type`, and `country`, with optional `sub_event_type`, `admin1`–
+`admin3`, `location`, coordinates, `actor1`/`actor2`, associated actors, `fatalities`, `notes`,
+`source`, `source_scale`, `disorder_type`, and `timestamp`. Raw validated adapter metadata,
+retrieval URL/time, source ID, and uncertainty markers are retained. Fatalities are reported
+values and are not asserted to be perfectly precise.
+
+Responses are capped at 5 MB and 10,000 records; timeouts and retries are bounded, and only
+408/429/5xx and transport errors retry. Exact repeated provider IDs are retained once per
+collection. Similar events and syndicated cross-source reports are not merged.
+
+## CAST predictive signals (v0.0.3)
+
+CAST is a short-term predictive source and always uses `ForecastSignal`, never `Event`. Because no
+authoritative live contract was verified, its operator adapter uses the same internal field shape
+shown for VIEWS above under the distinct `geointel-cast-adapter-v1` schema and `CAST` provider.
+This reuse is a GEOINTEL adapter convention, not a claim that CAST and VIEWS publish equal schemas.
+Predictions retain provider-native units and scale and are never called probabilities unless a
+future reviewed source contract explicitly supplies that meaning.
+
+Both new connectors are disabled by default. Current documentation, access/authentication,
+licensing, pagination, official fields, and any credentials require human verification before
+live use. Credentials must remain environment-only and must not appear in URLs, provenance,
+errors, or logs.
+
+## Alignment and disagreement
+
+ACLED records from zero through 90 days before retrieval are `current_window`; older ones are
+`historical`, and future dates are temporal mismatches. This documented inclusive threshold only
+organizes context. Country mismatches, non-country predictive units, and requested/provider
+horizon differences are surfaced as disagreements without aggregation. Reasoning preserves each
+source independently; there is no ensemble weighting or automatic corroboration.

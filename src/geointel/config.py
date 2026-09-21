@@ -23,17 +23,59 @@ class Settings(BaseSettings):
     views_endpoint_path: str | None = None
     views_timeout_seconds: float = 10.0
     views_max_retries: int = 2
+    acled_enabled: bool = False
+    acled_base_url: str = ""
+    acled_endpoint_path: str | None = None
+    acled_timeout_seconds: float = 10.0
+    acled_max_retries: int = 2
+    cast_enabled: bool = False
+    cast_base_url: str = ""
+    cast_endpoint_path: str | None = None
+    cast_timeout_seconds: float = 10.0
+    cast_max_retries: int = 2
     log_level: str = "INFO"
 
     @model_validator(mode="after")
     def validate_connectors(self):
-        if self.ucdp_timeout <= 0 or self.views_timeout_seconds <= 0:
+        if (
+            min(
+                self.ucdp_timeout,
+                self.views_timeout_seconds,
+                self.acled_timeout_seconds,
+                self.cast_timeout_seconds,
+            )
+            <= 0
+        ):
             raise ValueError("connector timeouts must be greater than zero")
-        if self.ucdp_retries < 0 or self.views_max_retries < 0:
+        if (
+            min(
+                self.ucdp_retries,
+                self.views_max_retries,
+                self.acled_max_retries,
+                self.cast_max_retries,
+            )
+            < 0
+        ):
             raise ValueError("connector retries must not be negative")
         if self.views_enabled and (not self.views_base_url or not self.views_endpoint_path):
             raise ValueError(
                 "VIEWS_BASE_URL and VIEWS_ENDPOINT_PATH are required when VIEWS_ENABLED=true"
+            )
+        if self.acled_enabled and (
+            not self.acled_base_url.strip()
+            or not self.acled_endpoint_path
+            or not self.acled_endpoint_path.strip()
+        ):
+            raise ValueError(
+                "ACLED_BASE_URL and ACLED_ENDPOINT_PATH are required when ACLED_ENABLED=true"
+            )
+        if self.cast_enabled and (
+            not self.cast_base_url.strip()
+            or not self.cast_endpoint_path
+            or not self.cast_endpoint_path.strip()
+        ):
+            raise ValueError(
+                "CAST_BASE_URL and CAST_ENDPOINT_PATH are required when CAST_ENABLED=true"
             )
         return self
 

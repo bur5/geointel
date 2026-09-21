@@ -1,0 +1,180 @@
+import time
+from collections.abc import Callable
+from datetime import UTC, datetime, timedelta
+from typing import Any
+
+import httpx
+from pydantic import BaseModel, Field, ValidationError
+
+from geointel.domain.schemas import NormalizedOperationalEvent
+
+
+class ACLEDError(RuntimeError):
+    pass
+
+
+class ACLEDRawEvent(BaseModel):
+    """GEOINTEL adapter contract; not a claim about the upstream ACLED API schema."""
+
+    event_id: str | int
+    event_date: datetime
+    event_type: str = Field(max_length=100)
+    sub_event_type: str | None = Field(default=None, max_length=120)
+    country: str = Field(max_length=120)
+    admin1: str | None = Field(default=None, max_length=160)
+    admin2: str | None = Field(default=None, max_length=160)
+    admin3: str | None = Field(default=None, max_length=160)
+    location: str | None = Field(default=None, max_length=200)
+    latitude: float | None = Field(default=None, ge=-90, le=90)
+    longitude: float | None = Field(default=None, ge=-180, le=180)
+    actor1: str | None = Field(default=None, max_length=300)
+    actor2: str | None = Field(default=None, max_length=300)
+    assoc_actor_1: str | None = Field(default=None, max_length=300)
+    assoc_actor_2: str | None = Field(default=None, max_length=300)
+    fatalities: int | None = Field(default=None, ge=0)
+    notes: str | None = Field(default=None, max_length=10_000)
+    source: str | None = Field(default=None, max_length=1000)
+    source_scale: str | None = Field(default=None, max_length=120)
+    disorder_type: str | None = Field(default=None, max_length=120)
+    timestamp: datetime | None = None
+
+
+class ACLEDConnector:
+    """Fetch observed event reports from an operator-verified ACLED adapter."""
+
+    connector_name = "ACLED"
+
+    def __init__(
+        self,
+        base_url: str,
+        endpoint_path: str | None,
+        timeout: float = 10,
+        retries: int = 2,
+        client: httpx.Client | None = None,
+        sleep: Callable[[float], None] = time.sleep,
+    ):
+        if timeout <= 0:
+            raise ValueError("timeout must be greater than zero")
+        if retries < 0:
+            raise ValueError("retries must not be negative")
+        if endpoint_path and not base_url.strip():
+            raise ValueError("base_url is required when endpoint_path is configured")
+        self.base_url, self.endpoint_path = base_url.rstrip("/"), endpoint_path
+        self.timeout, self.retries, self._client, self._sleep = timeout, retries, client, sleep
+
+    def collect(self, location: str, horizon_months: int = 12) -> list[NormalizedOperationalEvent]:
+        if not self.endpoint_path:
+            raise ACLEDError("ACLED verified adapter endpoint is not configured")
+        if self._client is not None:
+            return self._collect(self._client, location)
+        with httpx.Client(timeout=self.timeout) as client:
+            return self._collect(client, location)
+
+    def _collect(self, client: httpx.Client, location: str) -> list[NormalizedOperationalEvent]:
+        url = f"{self.base_url}/{self.endpoint_path.lstrip('/')}"
+        last: Exception | None = None
+        attempts = 0
+        for attempt in range(self.retries + 1):
+            attempts = attempt + 1
+            try:
+                response = client.get(url, params={"location": location}, timeout=self.timeout)
+                if self._transient(response.status_code):
+                    raise httpx.HTTPStatusError(
+                        "transient ACLED response", request=response.request, response=response
+                    )
+                response.raise_for_status()
+                if len(response.content) > 5_000_000:
+                    raise ValueError("ACLED adapter response exceeds 5 MB")
+                records = self._records(response.json())
+                deduplicated: dict[str, NormalizedOperationalEvent] = {}
+                for raw in records:
+                    item = self.normalize(raw, location, str(response.request.url))
+                    deduplicated.setdefault(item.source_record_id, item)
+                return list(deduplicated.values())
+            except (httpx.TransportError, httpx.HTTPStatusError) as exc:
+                last = exc
+                if isinstance(exc, httpx.HTTPStatusError) and not self._transient(
+                    exc.response.status_code
+                ):
+                    break
+                if attempt < self.retries:
+                    self._sleep(0.05 * (2**attempt))
+            except (ValueError, ValidationError, TypeError) as exc:
+                last = exc
+                break
+        raise ACLEDError(f"ACLED retrieval failed after {attempts} attempts: {last}") from last
+
+    @staticmethod
+    def _transient(status: int) -> bool:
+        return status in {408, 429} or status >= 500
+
+    @staticmethod
+    def _records(payload: Any) -> list[dict]:
+        if not isinstance(payload, dict) or set(payload) != {"events"}:
+            raise ValueError("ACLED adapter response must contain only an events list")
+        records = payload["events"]
+        if not isinstance(records, list) or not all(isinstance(x, dict) for x in records):
+            raise ValueError("ACLED adapter events must be a list of objects")
+        if len(records) > 10_000:
+            raise ValueError("ACLED adapter response exceeds 10000 records")
+        return records
+
+    def normalize(
+        self, raw: dict, requested_location: str, retrieval_url: str | None = None
+    ) -> NormalizedOperationalEvent:
+        record = ACLEDRawEvent.model_validate(raw)
+        record_id = str(record.event_id)
+        if len(record_id) > 200:
+            raise ValueError("ACLED event id exceeds 200 characters")
+        notes = []
+        if record.country.casefold() != requested_location.casefold():
+            notes.append(
+                f"geographic mismatch: requested {requested_location}, received {record.country}"
+            )
+        actors = [x for x in (record.actor1, record.actor2) if x]
+        associated = [x for x in (record.assoc_actor_1, record.assoc_actor_2) if x]
+        retrieved_at = datetime.now(UTC)
+        event_date = record.event_date
+        if event_date.tzinfo is None:
+            event_date = event_date.replace(tzinfo=UTC)
+        age = retrieved_at - event_date
+        temporal = "current_window" if timedelta(0) <= age <= timedelta(days=90) else "historical"
+        if age > timedelta(days=90):
+            notes.append("stale event: event date is outside the documented 0-90 day window")
+        elif age < timedelta(0):
+            notes.append("temporal mismatch: event date is later than retrieval time")
+        return NormalizedOperationalEvent(
+            source_record_id=record_id,
+            event_date=record.event_date,
+            event_type=record.event_type,
+            sub_event_type=record.sub_event_type,
+            country=record.country,
+            admin1=record.admin1,
+            admin2=record.admin2,
+            admin3=record.admin3,
+            locality=record.location,
+            latitude=record.latitude,
+            longitude=record.longitude,
+            actors=actors,
+            associated_actors=associated,
+            fatalities=record.fatalities,
+            notes=record.notes,
+            source_description=record.source,
+            source_scale=record.source_scale,
+            disorder_type=record.disorder_type,
+            updated_at=record.timestamp,
+            retrieved_at=retrieved_at,
+            source_url=retrieval_url,
+            alignment_status="mismatch" if notes else "aligned",
+            alignment_notes=notes,
+            temporal_classification=temporal,
+            provenance={
+                "provider": "ACLED",
+                "record_id": record_id,
+                "retrieval_url": retrieval_url,
+                "schema": "geointel-acled-adapter-v1",
+                "observed_report_not_prediction": True,
+                "fatalities_are_reported_not_precise": True,
+                "raw_adapter_record": record.model_dump(mode="json"),
+            },
+        )
