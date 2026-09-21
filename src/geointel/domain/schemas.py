@@ -1,7 +1,9 @@
 from datetime import datetime
 from enum import StrEnum
 from uuid import UUID
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+
 
 class ConflictType(StrEnum):
     INTERSTATE = "interstate_armed_conflict"
@@ -9,15 +11,28 @@ class ConflictType(StrEnum):
     ONE_SIDED = "one_sided_violence"
     POLITICAL = "major_political_violence"
 
+
 class Confidence(StrEnum):
     LOW = "low"
     MEDIUM = "medium"
     HIGH = "high"
 
+
 class AnalysisRequest(BaseModel):
     location: str = Field(min_length=2, max_length=120)
     question: str = Field(min_length=20, max_length=2000)
     horizon_months: int = Field(ge=1, le=120)
+
+    @field_validator("location", "question", mode="before")
+    @classmethod
+    def reject_blank_text(cls, value: object) -> object:
+        if not isinstance(value, str):
+            return value
+        value = value.strip()
+        if not value:
+            raise ValueError("must not be blank")
+        return value
+
 
 class NormalizedEvidence(BaseModel):
     source_name: str
@@ -31,6 +46,7 @@ class NormalizedEvidence(BaseModel):
     geographic_scope: str
     reliability: Confidence = Confidence.MEDIUM
     provenance: dict = Field(default_factory=dict)
+
 
 class RiskAssessment(BaseModel):
     conflict_type: ConflictType
@@ -52,10 +68,12 @@ class RiskAssessment(BaseModel):
             raise ValueError("probability_low must not exceed probability_high")
         return self
 
+
 class AnalystOutput(BaseModel):
     observed_evidence: list[str]
     historical_base_rate_notes: list[str]
     assumptions: list[str]
+
 
 class ForecastOutput(BaseModel):
     assessments: list[RiskAssessment]
@@ -69,6 +87,7 @@ class ForecastOutput(BaseModel):
             raise ValueError("assessments must contain each conflict type exactly once")
         return self
 
+
 class RedTeamOutput(BaseModel):
     unsupported_claims: list[str] = Field(default_factory=list)
     missing_evidence: list[str] = Field(default_factory=list)
@@ -80,11 +99,57 @@ class RedTeamOutput(BaseModel):
     contradictions: list[str] = Field(default_factory=list)
     false_positive_risks: list[str] = Field(default_factory=list)
 
+
 class SynthesisOutput(BaseModel):
     summary: str
     assessments: list[RiskAssessment]
     incorporated_critiques: list[str]
     decision_support_notice: str
+
+    @model_validator(mode="after")
+    def complete_taxonomy(self):
+        expected = set(ConflictType)
+        actual = {item.conflict_type for item in self.assessments}
+        if actual != expected or len(actual) != len(self.assessments):
+            raise ValueError("assessments must contain each conflict type exactly once")
+        return self
+
+    def validate_red_team_incorporation(self, red_team: RedTeamOutput) -> None:
+        findings = {
+            finding
+            for values in red_team.model_dump().values()
+            for finding in values
+            if finding.strip()
+        }
+        incorporated = {finding.strip() for finding in self.incorporated_critiques}
+        missing = findings - incorporated
+        if missing:
+            raise ValueError(
+                "synthesis did not incorporate all non-empty Red Team findings: "
+                + "; ".join(sorted(missing))
+            )
+
+
+class ForecastResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    analysis_run_id: UUID
+    conflict_type: ConflictType
+    question: str
+    horizon_months: int
+    version: int
+    probability_low: float | None
+    probability_high: float | None
+    confidence: Confidence
+    rationale: str
+    evidence_for: list[str]
+    evidence_against: list[str]
+    unknowns: list[str]
+    resolution_criteria: list[str]
+    change_conditions: list[str]
+    created_at: datetime
+
 
 class AnalysisResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -99,4 +164,5 @@ class AnalysisResponse(BaseModel):
     analyst_output: dict | None
     red_team_output: dict | None
     synthesis_output: dict | None
+    collection_metadata: dict
     forecast_ids: list[UUID] = Field(default_factory=list)

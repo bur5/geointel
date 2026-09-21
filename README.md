@@ -58,3 +58,29 @@ The shipped offline provider produces four low-confidence, unquantified assessme
 - `POST /analysis` is synchronous. Add authorization and rate limiting before exposure to untrusted networks.
 - UCDP's endpoint is intentionally not guessed. Live use requires confirmation of current provider documentation, endpoint implementation, and possibly `UCDP_ACCESS_TOKEN`; failures must remain non-fatal to the wider pipeline.
 - SQLite is supported only for development/tests; production persistence target is PostgreSQL. Geographic WKT is a migration bridge, not spatial querying.
+
+## Verification
+
+Install the development dependencies before running the complete local verification suite:
+
+```bash
+python -m pip install -e '.[dev]'
+ruff check .
+ruff format --check .
+python -m compileall -q src tests migrations
+DATABASE_URL=sqlite:///./migration-check.db alembic upgrade head
+pytest
+```
+
+To reproduce the CI startup probe, migrate an empty database, start Uvicorn, and request
+`GET http://127.0.0.1:8000/health`. GitHub Actions runs these checks without secrets on Python
+3.11 and 3.12. The CI migration and startup checks use SQLite; Docker Compose remains the
+PostgreSQL 16 integration path.
+
+## Optional UCDP connector configuration
+
+UCDP collection is disabled by default. Enabling it requires an explicitly documented endpoint
+path in `UCDP_ENDPOINT_PATH`; GEOINTEL never guesses one. `UCDP_TIMEOUT` must be positive and
+`UCDP_RETRIES` non-negative. Transient network errors, HTTP 408/429, and server errors are retried;
+permanent client errors and invalid response envelopes fail immediately. Connector failures are
+non-fatal and are recorded in each analysis run's collection metadata.
