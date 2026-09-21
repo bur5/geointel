@@ -22,9 +22,25 @@ class OfflineModel:
 
     def generate(self, role: str, payload: dict, output_type: type[T]) -> T:
         evidence = payload.get("evidence", [])
+        signals = payload.get("predictive_signals", [])
+        metadata = payload.get("collection_metadata", {})
         if output_type is AnalystOutput:
             result = AnalystOutput(
                 observed_evidence=[e["summary"] for e in evidence],
+                predictive_signals=[
+                    (
+                        f"VIEWS model output {item['source_record_id']} for "
+                        f"{item['target_variable']} ({item['alignment_status']}); "
+                        "prediction retained in the source record without reinterpretation."
+                    )
+                    for item in signals
+                ],
+                source_disagreements=payload.get("source_disagreements", []),
+                missing_sources=[
+                    item["connector"]
+                    for item in metadata.get("connector_outcomes", [])
+                    if not item["succeeded"]
+                ],
                 historical_base_rate_notes=[
                     "No validated historical base-rate dataset was available in offline mode."
                 ],
@@ -64,6 +80,7 @@ class OfflineModel:
                 ),
             )
         elif output_type is RedTeamOutput:
+            mismatch_notes = payload.get("source_disagreements", [])
             result = RedTeamOutput(
                 missing_evidence=["No live current-events or validated base-rate dataset."],
                 unjustified_precision=[
@@ -72,6 +89,16 @@ class OfflineModel:
                 false_positive_risks=[
                     "Political tension must not be conflated with organized violence."
                 ],
+                predictive_signal_concerns=(
+                    [
+                        "VIEWS output is a predictive model signal, not observed factual evidence; "
+                        "do not convert its value into a GEOINTEL probability."
+                    ]
+                    if signals
+                    else ["No VIEWS predictive signal was available."]
+                ),
+                geographic_mismatches=[x for x in mismatch_notes if "geographic" in x],
+                horizon_mismatches=[x for x in mismatch_notes if "horizon" in x],
             )
         elif output_type is SynthesisOutput:
             critique = payload["red_team"]
@@ -83,9 +110,12 @@ class OfflineModel:
                 assessments=[
                     RiskAssessment.model_validate(x) for x in payload["forecast"]["assessments"]
                 ],
-                incorporated_critiques=critique["missing_evidence"]
-                + critique["unjustified_precision"]
-                + critique["false_positive_risks"],
+                incorporated_critiques=[
+                    finding
+                    for findings in critique.values()
+                    for finding in findings
+                    if finding.strip()
+                ],
                 decision_support_notice=(
                     "This output supports human judgment; it is not a verified intelligence "
                     "product or decision."

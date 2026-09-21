@@ -4,20 +4,28 @@ from datetime import UTC, datetime
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from geointel.connectors.base import EvidenceConnector
-from geointel.domain.models import AnalysisRun, Evidence, Forecast, Location, Source
+from geointel.connectors.base import DisabledConnector, EvidenceConnector
+from geointel.domain.models import (
+    AnalysisRun,
+    Evidence,
+    Forecast,
+    ForecastSignal,
+    Location,
+    Source,
+)
 from geointel.domain.schemas import (
     AnalysisRequest,
     AnalystOutput,
     ForecastOutput,
     NormalizedEvidence,
+    NormalizedForecastSignal,
     RedTeamOutput,
     SynthesisOutput,
 )
 from geointel.providers.base import ModelRouter
 
 logger = logging.getLogger(__name__)
-PIPELINE_VERSION = "0.0.1"
+PIPELINE_VERSION = "0.0.2"
 
 
 class AnalysisPipeline:
@@ -53,19 +61,63 @@ class AnalysisPipeline:
         )
         self.session.add(run)
         self.session.flush()
-        normalized: list[NormalizedEvidence] = []
+        evidence: list[NormalizedEvidence] = []
+        signals: list[NormalizedForecastSignal] = []
         connector_errors = []
+        outcomes = []
         for connector in self.connectors:
-            connector_name = type(connector).__name__
+            connector_name = getattr(connector, "connector_name", type(connector).__name__)
+            if isinstance(connector, DisabledConnector):
+                outcomes.append(
+                    {
+                        "connector": connector_name,
+                        "attempted": False,
+                        "status": "disabled",
+                        "succeeded": False,
+                        "record_count": 0,
+                        "failure_reason": None,
+                    }
+                )
+                continue
             try:
-                normalized.extend(connector.collect(request.location))
+                records = connector.collect(request.location, request.horizon_months)
+                if not all(
+                    isinstance(item, (NormalizedEvidence, NormalizedForecastSignal))
+                    for item in records
+                ):
+                    raise TypeError("connector returned an unsupported normalized record type")
+                evidence.extend(item for item in records if isinstance(item, NormalizedEvidence))
+                signals.extend(
+                    item for item in records if isinstance(item, NormalizedForecastSignal)
+                )
+                outcomes.append(
+                    {
+                        "connector": connector_name,
+                        "attempted": True,
+                        "status": "succeeded",
+                        "succeeded": True,
+                        "record_count": len(records),
+                        "failure_reason": None,
+                    }
+                )
             except Exception as exc:
+                safe_error = self._safe_error(exc)
                 logger.warning(
                     "evidence_connector_failed",
-                    extra={"connector": connector_name, "error": str(exc)},
+                    extra={"connector": connector_name, "error": safe_error},
                 )
-                connector_errors.append({"connector": connector_name, "error": str(exc)})
-        for item in normalized:
+                connector_errors.append({"connector": connector_name, "error": safe_error})
+                outcomes.append(
+                    {
+                        "connector": connector_name,
+                        "attempted": True,
+                        "status": "failed",
+                        "succeeded": False,
+                        "record_count": 0,
+                        "failure_reason": safe_error,
+                    }
+                )
+        for item in evidence:
             source = self.session.scalar(select(Source).where(Source.name == item.source_name))
             if not source:
                 source = Source(
@@ -91,14 +143,48 @@ class AnalysisPipeline:
                     provenance=item.provenance,
                 )
             )
+        for item in signals:
+            self.session.add(
+                ForecastSignal(
+                    analysis_run_id=run.id,
+                    location_id=location.id,
+                    provider=item.provider,
+                    source_record_id=item.source_record_id,
+                    model_name=item.model_name,
+                    model_version=item.model_version,
+                    geographic_unit=item.geographic_unit,
+                    source_location=item.location,
+                    issue_date=item.issue_date,
+                    target_start=item.target_start,
+                    target_end=item.target_end,
+                    horizon_months=item.horizon_months,
+                    target_variable=item.target_variable,
+                    prediction=item.prediction,
+                    unit=item.unit,
+                    scale=item.scale,
+                    retrieved_at=item.retrieved_at,
+                    source_url=item.source_url,
+                    alignment_status=item.alignment_status,
+                    alignment_notes=item.alignment_notes,
+                    provenance=item.provenance,
+                )
+            )
         run.collection_metadata = {
             "connector_count": len(self.connectors),
-            "evidence_count": len(normalized),
+            "evidence_count": len(evidence),
+            "forecast_signal_count": len(signals),
             "connector_failures": connector_errors,
+            "connector_outcomes": outcomes,
+            "external_collection_succeeded": any(item["succeeded"] for item in outcomes),
         }
         payload = {
             "request": request.model_dump(),
-            "evidence": [x.model_dump(mode="json") for x in normalized],
+            "observed_evidence": [x.model_dump(mode="json") for x in evidence],
+            # Compatibility alias for structured providers implemented against v0.0.1.
+            "evidence": [x.model_dump(mode="json") for x in evidence],
+            "predictive_signals": [x.model_dump(mode="json") for x in signals],
+            "source_disagreements": self._alignment_disagreements(signals),
+            "collection_metadata": run.collection_metadata,
             "connector_errors": connector_errors,
         }
         analyst = self.router.for_role("reasoning").generate("analyst", payload, AnalystOutput)
@@ -148,3 +234,12 @@ class AnalysisPipeline:
         self.session.commit()
         self.session.refresh(run)
         return run
+
+    @staticmethod
+    def _safe_error(exc: Exception) -> str:
+        message = " ".join(str(exc).split())
+        return message[:500] or type(exc).__name__
+
+    @staticmethod
+    def _alignment_disagreements(signals: list[NormalizedForecastSignal]) -> list[str]:
+        return [note for signal in signals for note in signal.alignment_notes]

@@ -1,46 +1,35 @@
-# GEOINTEL v0.0.1
+# GEOINTEL v0.0.2
 
-GEOINTEL is a personal geopolitical decision-support and conflict early-warning foundation. This release proves a reproducible vertical slice: evidence collection → analyst → four-category forecast → mandatory red team → synthesis → immutable persistence → API retrieval. It does **not** claim to be verified intelligence or provide personal relocation advice.
+GEOINTEL is a geopolitical decision-support and conflict early-warning foundation. v0.0.2 keeps the reproducible v0.0.1 pipeline—collection → Analyst → four-category Forecaster → mandatory Red Team → synthesis → immutable persistence—and adds VIEWS model forecasts as an independent predictive input. It is not verified intelligence and does not provide personal relocation advice.
 
 ## What is included
 
-- FastAPI endpoints: `GET /health`, `POST /analysis`, `GET /analysis/{id}`, `GET /forecasts`, `GET /forecasts/{id}`.
-- SQLAlchemy domain model for locations, sources, evidence, events, indicators, scenarios, forecasts, and analysis runs; Alembic migration; PostgreSQL runtime.
-- A bounded, configurable UCDP adapter with normalization, retries, timeouts, provenance and explicit failures. No undocumented endpoint is assumed.
-- An AI-independent `ModelRouter` and deterministic offline provider. Offline output refuses invented probabilities and clearly marks missing live evidence.
-- Four distinct conflict categories and a mandatory red-team/synthesis stage.
+- Backwards-compatible FastAPI endpoints: `GET /health`, `POST /analysis`, `GET /analysis/{id}`, `GET /forecasts`, and `GET /forecasts/{id}`.
+- Independent UCDP historical-evidence and VIEWS predictive-signal connectors, each with bounded retries, timeouts, validation, provenance, and per-connector outcomes.
+- A dedicated `forecast_signals` representation: VIEWS output is never stored as an observed Event or silently promoted to a GEOINTEL probability.
+- Deterministic offline reasoning, explicit missing-source and alignment limitations, four conflict categories, mandatory Red Team review, and append-only forecasts.
+- SQLite unit/integration tests plus an actual PostgreSQL 16 migration and persistence path in CI.
 
-## Architecture
+## Configuration and local run
 
-The code is a modular monolith under `src/geointel`: `api` is transport, `domain` owns schemas/persistence, `connectors` isolates external data, `providers` abstracts structured models, and `pipeline` orchestrates the run. See [architecture](docs/ARCHITECTURE.md), [forecasting](docs/FORECASTING.md), [sources](docs/SOURCES.md), [agent rules](docs/AGENT_RULES.md), and [security](docs/SECURITY.md).
-
-## Requirements and configuration
-
-Python 3.11+ and, for normal operation, PostgreSQL 16+. Copy `.env.example` to `.env` and fill only required values. `DATABASE_URL` is the only value needed for PostgreSQL. Never commit `.env`. UCDP remains disabled until its current documented endpoint/access requirements are configured in an integration implementation; its base URL/version/token variables reserve a safe configuration path. No model API credential is required in v0.0.1.
-
-## Run locally
+Python 3.11+ and PostgreSQL 16+ are the intended runtime. Copy `.env.example` to `.env`, set `DATABASE_URL`, then:
 
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e '.[dev]'
-cp .env.example .env
-# Set DATABASE_URL=postgresql+psycopg://USER:PASSWORD@HOST:5432/DB in .env
 alembic upgrade head
 uvicorn geointel.api.app:app --reload
 ```
 
-Run tests with `pytest`; lint with `ruff check .`. Tests use in-memory SQLite and no network/API keys.
+Both connectors are disabled by default. UCDP uses `UCDP_ENABLED`, `UCDP_BASE_URL`, `UCDP_API_VERSION`, `UCDP_ENDPOINT_PATH`, `UCDP_ACCESS_TOKEN`, `UCDP_TIMEOUT`, and `UCDP_RETRIES`. VIEWS uses `VIEWS_ENABLED`, `VIEWS_BASE_URL`, `VIEWS_ENDPOINT_PATH`, `VIEWS_TIMEOUT_SECONDS`, and `VIEWS_MAX_RETRIES`. Enabling VIEWS requires both URL fields. Values are environment configuration, never credentials in source control.
 
-## Run with Docker
+### VIEWS live-access status
 
-```bash
-docker compose up --build
-curl http://localhost:8000/health
-```
+No authoritative live VIEWS endpoint/response contract could be verified from this development environment. GEOINTEL therefore **does not ship or guess one**. `VIEWS_ENDPOINT_PATH` must identify an operator-supplied, verified adapter that returns the documented internal `{"forecasts": [...]}` contract in `docs/SOURCES.md`. Tests use records explicitly named synthetic. To enable live ingestion, a human must verify current VIEWS documentation/licensing, implement or validate an adapter mapping each official field to that contract, and configure its URL. There is no bundled offline VIEWS value.
 
-Compose applies migrations before serving. Its database password is deliberately local-development-only; replace it outside an isolated workstation.
+A VIEWS outage is isolated: UCDP data remains usable, and vice versa. If both are unavailable, deterministic offline output explicitly reports missing sources and remains unquantified. `collection_metadata.connector_outcomes` reports attempted/disabled/succeeded/failed status, record count, and a bounded safe failure reason.
 
-## Spain control analysis
+## Spain control case
 
 ```bash
 curl -sS http://localhost:8000/analysis -H 'content-type: application/json' -d '{
@@ -50,21 +39,11 @@ curl -sS http://localhost:8000/analysis -H 'content-type: application/json' -d '
 }'
 ```
 
-The shipped offline provider produces four low-confidence, unquantified assessments because it has no current evidence or calibrated base rates. This is intentional anti-fabrication behavior, not a substantive Spain forecast. Each invocation creates a new analysis run and new forecasts.
-
-## Known limitations / credentials still required
-
-- No live LLM, current-news, calibrated base-rate, PostGIS, pgvector, authentication, job queue, monitoring/alerts, UI, strategic-library RAG, voice, or exit-risk module.
-- `POST /analysis` is synchronous. Add authorization and rate limiting before exposure to untrusted networks.
-- UCDP's endpoint is intentionally not guessed. Live use requires confirmation of current provider documentation, endpoint implementation, and possibly `UCDP_ACCESS_TOKEN`; failures must remain non-fatal to the wider pipeline.
-- SQLite is supported only for development/tests; production persistence target is PostgreSQL. Geographic WKT is a migration bridge, not spatial querying.
+Spain is an anti-catastrophizing control, not a hard-coded conclusion. Repeated requests create distinct runs and retain prior forecasts.
 
 ## Verification
 
-Install the development dependencies before running the complete local verification suite:
-
 ```bash
-python -m pip install -e '.[dev]'
 ruff check .
 ruff format --check .
 python -m compileall -q src tests migrations
@@ -72,15 +51,10 @@ DATABASE_URL=sqlite:///./migration-check.db alembic upgrade head
 pytest
 ```
 
-To reproduce the CI startup probe, migrate an empty database, start Uvicorn, and request
-`GET http://127.0.0.1:8000/health`. GitHub Actions runs these checks without secrets on Python
-3.11 and 3.12. The CI migration and startup checks use SQLite; Docker Compose remains the
-PostgreSQL 16 integration path.
+GitHub Actions runs these checks on Python 3.11 and 3.12, performs startup/health probes, and separately migrates PostgreSQL 16 and verifies connection, repeated persistence, and forecast immutability.
 
-## Optional UCDP connector configuration
+## Known limitations
 
-UCDP collection is disabled by default. Enabling it requires an explicitly documented endpoint
-path in `UCDP_ENDPOINT_PATH`; GEOINTEL never guesses one. `UCDP_TIMEOUT` must be positive and
-`UCDP_RETRIES` non-negative. Transient network errors, HTTP 408/429, and server errors are retried;
-permanent client errors and invalid response envelopes fail immediately. Connector failures are
-non-fatal and are recorded in each analysis run's collection metadata.
+There is no verified direct live VIEWS integration, official VIEWS aggregation algorithm, or ensemble weighting in v0.0.2. Subnational/grid or mismatched-horizon signals are retained and flagged, never silently aggregated. Provider-native predictions retain their stated unit/scale and are not reinterpreted. There is also no live LLM/news feed, authentication, rate limiting, PostGIS, calibration/backtesting, UI, alerting, or deployment automation. `POST /analysis` remains synchronous; do not expose it to untrusted networks as-is.
+
+See [architecture](docs/ARCHITECTURE.md), [forecasting](docs/FORECASTING.md), [sources](docs/SOURCES.md), [agent rules](docs/AGENT_RULES.md), and [security](docs/SECURITY.md).

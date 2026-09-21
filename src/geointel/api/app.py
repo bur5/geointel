@@ -10,7 +10,9 @@ from sqlalchemy.orm import Session, selectinload
 
 from geointel import __version__
 from geointel.config import get_settings
+from geointel.connectors.base import DisabledConnector, EvidenceConnector
 from geointel.connectors.ucdp import UCDPConnector
+from geointel.connectors.views import VIEWSConnector
 from geointel.domain.database import get_session
 from geointel.domain.models import AnalysisRun, Forecast
 from geointel.domain.schemas import AnalysisRequest, AnalysisResponse, ForecastResponse
@@ -39,11 +41,10 @@ def router() -> ModelRouter:
     return ModelRouter(model, model, model)
 
 
-def connectors() -> list[UCDPConnector]:
+def connectors() -> list[EvidenceConnector]:
     settings = get_settings()
-    if not settings.ucdp_enabled:
-        return []
-    return [
+    result: list[EvidenceConnector] = []
+    result.append(
         UCDPConnector(
             base_url=settings.ucdp_base_url,
             api_version=settings.ucdp_api_version,
@@ -52,7 +53,20 @@ def connectors() -> list[UCDPConnector]:
             timeout=settings.ucdp_timeout,
             retries=settings.ucdp_retries,
         )
-    ]
+        if settings.ucdp_enabled
+        else DisabledConnector("UCDP")
+    )
+    result.append(
+        VIEWSConnector(
+            base_url=settings.views_base_url,
+            endpoint_path=settings.views_endpoint_path,
+            timeout=settings.views_timeout_seconds,
+            retries=settings.views_max_retries,
+        )
+        if settings.views_enabled
+        else DisabledConnector("VIEWS")
+    )
+    return result
 
 
 def present(run: AnalysisRun) -> AnalysisResponse:

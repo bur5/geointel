@@ -2,7 +2,7 @@ from uuid import uuid4
 
 import pytest
 
-from geointel.domain.models import AnalysisRun, Evidence, Forecast
+from geointel.domain.models import AnalysisRun, Evidence, Forecast, ForecastSignal
 from geointel.domain.schemas import ConflictType
 
 QUESTION = (
@@ -16,7 +16,7 @@ EXPECTED_TYPES = {item.value for item in ConflictType}
 def test_health(client):
     response = client.get("/health")
     assert response.status_code == 200
-    assert response.json() == {"status": "ok", "version": "0.0.1"}
+    assert response.json() == {"status": "ok", "version": "0.0.2"}
 
 
 def test_request_validation(client):
@@ -47,9 +47,29 @@ def test_spain_pipeline_persistence_retrieval_and_red_team(client, session):
     }
     assert red_findings <= set(data["synthesis_output"]["incorporated_critiques"])
     assert data["collection_metadata"] == {
-        "connector_count": 0,
+        "connector_count": 2,
         "evidence_count": 0,
+        "forecast_signal_count": 0,
         "connector_failures": [],
+        "connector_outcomes": [
+            {
+                "connector": "UCDP",
+                "attempted": False,
+                "status": "disabled",
+                "succeeded": False,
+                "record_count": 0,
+                "failure_reason": None,
+            },
+            {
+                "connector": "VIEWS",
+                "attempted": False,
+                "status": "disabled",
+                "succeeded": False,
+                "record_count": 0,
+                "failure_reason": None,
+            },
+        ],
+        "external_collection_succeeded": False,
     }
     assert {item["conflict_type"] for item in data["synthesis_output"]["assessments"]} == (
         EXPECTED_TYPES
@@ -92,7 +112,9 @@ def test_repeated_spain_analyses_preserve_forecast_history(client, session):
 
 def test_connector_outage_is_nonfatal_and_recorded(client, monkeypatch, session):
     class BrokenConnector:
-        def collect(self, location):
+        connector_name = "Broken"
+
+        def collect(self, location, horizon_months):
             raise RuntimeError("upstream unavailable")
 
     monkeypatch.setattr("geointel.api.app.connectors", lambda: [BrokenConnector()])
@@ -102,9 +124,11 @@ def test_connector_outage_is_nonfatal_and_recorded(client, monkeypatch, session)
     metadata = response.json()["collection_metadata"]
     assert metadata["evidence_count"] == 0
     assert metadata["connector_failures"] == [
-        {"connector": "BrokenConnector", "error": "upstream unavailable"}
+        {"connector": "Broken", "error": "upstream unavailable"}
     ]
+    assert metadata["connector_outcomes"][0]["status"] == "failed"
     assert session.query(Evidence).count() == 0
+    assert session.query(ForecastSignal).count() == 0
 
 
 def test_pipeline_failure_rolls_back_all_partial_persistence(session):
