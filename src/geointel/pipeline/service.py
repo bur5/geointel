@@ -13,6 +13,7 @@ from geointel.domain.models import (
     ForecastSignal,
     Location,
     Source,
+    StrategicAnalysis,
 )
 from geointel.domain.schemas import (
     AnalysisRequest,
@@ -24,10 +25,12 @@ from geointel.domain.schemas import (
     RedTeamOutput,
     SynthesisOutput,
 )
+from geointel.knowledge.lenses import KissingerLens, LensRegistry
+from geointel.knowledge.retrieval import KnowledgeQuery, LexicalKnowledgeRetriever
 from geointel.providers.base import ModelRouter
 
 logger = logging.getLogger(__name__)
-PIPELINE_VERSION = "0.0.3"
+PIPELINE_VERSION = "0.0.4"
 
 
 class AnalysisPipeline:
@@ -36,8 +39,12 @@ class AnalysisPipeline:
         session: Session,
         router: ModelRouter,
         connectors: list[EvidenceConnector] | None = None,
+        retriever=None,
+        lens_registry: LensRegistry | None = None,
     ):
         self.session, self.router, self.connectors = session, router, connectors or []
+        self.retriever = retriever or LexicalKnowledgeRetriever(session)
+        self.lens_registry = lens_registry or LensRegistry([KissingerLens()])
 
     def run(self, request: AnalysisRequest) -> AnalysisRun:
         try:
@@ -217,6 +224,12 @@ class AnalysisPipeline:
             "external_collection_succeeded": any(item["succeeded"] for item in outcomes),
             "collected_at": datetime.now(UTC).isoformat(),
         }
+        strategic_context = self._strategic_analysis(run, request, evidence, events, signals)
+        # Reassign JSON after retrieval queries may have autoflushed the run.
+        run.collection_metadata = {
+            **run.collection_metadata,
+            "strategic_analysis_count": len(strategic_context),
+        }
         payload = {
             "request": request.model_dump(),
             "observed_evidence": [x.model_dump(mode="json") for x in evidence],
@@ -228,6 +241,8 @@ class AnalysisPipeline:
             "source_disagreements": self._alignment_disagreements(signals, events),
             "collection_metadata": run.collection_metadata,
             "connector_errors": connector_errors,
+            # Untrusted attributed interpretations stay separate from all empirical inputs.
+            "strategic_context": strategic_context,
         }
         analyst = self.router.for_role("reasoning").generate("analyst", payload, AnalystOutput)
         forecast = self.router.for_role("reasoning").generate(
@@ -276,6 +291,68 @@ class AnalysisPipeline:
         self.session.commit()
         self.session.refresh(run)
         return run
+
+    def _strategic_analysis(self, run, request, evidence, events, signals) -> list[dict]:
+        from geointel.domain.schemas import StrategicLensContext
+
+        context = StrategicLensContext(
+            location=request.location,
+            question=request.question,
+            horizon_months=request.horizon_months,
+            historical_evidence=[x.model_dump(mode="json") for x in evidence],
+            recent_events=[x.model_dump(mode="json") for x in events],
+            predictive_signals=[x.model_dump(mode="json") for x in signals],
+        )
+        outputs = []
+        for lens in self.lens_registry.all():
+            retrieved = []
+            try:
+                retrieved = self.retriever.retrieve(
+                    KnowledgeQuery(
+                        geography=(request.location,),
+                        strategic_question=request.question,
+                        lens=lens.name,
+                    )
+                )
+                output = lens.analyze(context, retrieved)
+                serialized = output.model_dump(mode="json")
+                status = "completed"
+                limitations = output.limitations
+            except Exception as exc:
+                serialized = {
+                    "lens_name": lens.name,
+                    "lens_version": lens.version,
+                    "epistemic_status": "strategic_interpretation_not_empirical_evidence",
+                    "error": self._safe_error(exc),
+                }
+                status = "failed_nonfatal"
+                limitations = [
+                    "Strategic lens failed; raw evidence and forecasting continued unchanged."
+                ]
+            self.session.add(
+                StrategicAnalysis(
+                    analysis_run_id=run.id,
+                    lens_name=lens.name,
+                    lens_version=lens.version,
+                    retrieved_claim_ids=[x.claim_id for x in retrieved],
+                    retrieved_case_ids=sorted(
+                        {case for x in retrieved for case in x.historical_case_ids}
+                    ),
+                    retrieval_provenance=[
+                        {
+                            "claim_id": x.claim_id,
+                            "provenance": x.provenance,
+                            "retrieval_reasons": x.retrieval_reasons,
+                        }
+                        for x in retrieved
+                    ],
+                    output=serialized,
+                    limitations=limitations,
+                    status=status,
+                )
+            )
+            outputs.append({"status": status, **serialized})
+        return outputs
 
     @staticmethod
     def _safe_error(exc: Exception) -> str:

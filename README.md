@@ -1,6 +1,6 @@
-# GEOINTEL v0.0.3
+# GEOINTEL v0.0.4
 
-GEOINTEL is a geopolitical decision-support and conflict early-warning foundation. v0.0.3 keeps the reproducible v0.0.1 pipeline—collection → Analyst → four-category Forecaster → mandatory Red Team → synthesis → immutable persistence—and adds VIEWS model forecasts as an independent predictive input. It is not verified intelligence and does not provide personal relocation advice.
+GEOINTEL is a geopolitical decision-support and conflict early-warning foundation. v0.0.4 preserves the UCDP/ACLED/VIEWS/CAST pipeline—collection → strategic retrieval/lenses → Analyst → four-category Forecaster → mandatory Red Team → synthesis → immutable persistence—and adds an auditable strategic-knowledge layer. It is not verified intelligence and does not provide personal relocation advice.
 
 ## What is included
 
@@ -9,6 +9,7 @@ GEOINTEL is a geopolitical decision-support and conflict early-warning foundatio
 - A dedicated `forecast_signals` representation: VIEWS output is never stored as an observed Event or silently promoted to a GEOINTEL probability.
 - Deterministic offline reasoning, explicit missing-source and alignment limitations, four conflict categories, mandatory Red Team review, and append-only forecasts.
 - SQLite unit/integration tests plus an actual PostgreSQL 16 migration and persistence path in CI.
+- A separate, attributed strategic-knowledge library with bounded JSON ingestion, deterministic lexical/structured retrieval, an auditable generic lens interface, and a restrained Kissinger lens. Strategic claims and lens interpretations are never evidence, events, predictive signals, or probabilities.
 
 ## Configuration and local run
 
@@ -81,3 +82,8 @@ retrieval time through the preceding 90 days; older records are `historical` and
 records are mismatches. Geographic and forecast-horizon mismatches are surfaced, not aggregated.
 Exact provider-ID duplicates are removed within a collection. Similar or cross-source reports are
 not merged; entity resolution remains future work. There is no automatic ensemble weighting.
+
+
+## v0.0.4 strategic knowledge
+
+Operator-provided, copyright-safe structured JSON can represent works, sections, attributed claims, reusable concepts, and historical cases. GEOINTEL never downloads books. Retrieval is deterministic lexical/structured matching (not semantic or embedding search), and every result retains claim/work/author provenance and retrieval reasons. The Kissinger lens asks questions about equilibrium, durable interests, commitments, order, revision, and off-ramps, but has no authority over empirical inputs. Lens failure and an empty library are non-fatal. See [strategic knowledge](docs/STRATEGIC_KNOWLEDGE.md).

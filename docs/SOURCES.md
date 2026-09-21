@@ -57,3 +57,15 @@ ACLED records from zero through 90 days before retrieval are `current_window`; o
 organizes context. Country mismatches, non-country predictive units, and requested/provider
 horizon differences are surfaced as disagreements without aggregation. Reasoning preserves each
 source independently; there is no ensemble weighting or automatic corroboration.
+
+## Operator-provided strategic knowledge (v0.0.4)
+
+This is an analytical source class, not a current-data connector. GEOINTEL accepts only local,
+operator-provided `geointel-knowledge-v1` JSON through the controlled ingestion interface. It does
+not fetch, scrape, or bundle books. Required work/section/claim/case provenance and explicit author
+attribution survive retrieval. Fixtures are short original synthetic paraphrases, not excerpts.
+Operators are responsible for lawful access, copyright, licensing, and accurate bibliography.
+
+Retrieval uses deterministic concept, author/lens, historical-case, actor/geography, conflict-term,
+and question-token matching with stable ordering. This is lexical/structured retrieval, not
+semantic embeddings. Vector retrieval may later implement the same provenance-bearing abstraction.
