@@ -1,0 +1,22 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: geointel
+      POSTGRES_USER: geointel
+      POSTGRES_PASSWORD: geointel_dev_only
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U geointel"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    volumes: ["postgres_data:/var/lib/postgresql/data"]
+  api:
+    build: .
+    environment:
+      DATABASE_URL: postgresql+psycopg://geointel:geointel_dev_only@db:5432/geointel
+    ports: ["8000:8000"]
+    depends_on:
+      db: {condition: service_healthy}
+    command: ["sh", "-c", "alembic upgrade head && uvicorn geointel.api.app:app --host 0.0.0.0 --port 8000"]
+volumes: {postgres_data: {}}
