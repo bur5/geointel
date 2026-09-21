@@ -1,7 +1,21 @@
 # Source and connector policy
 
-A Source identifies a provider; Evidence is the retrieved artifact plus retrieval/publication/event dates, geography, reliability and provenance. Evidence never becomes a confirmed Event merely because it was published. Connector failures are bounded, logged and exposed to analysis context rather than crashing the full collection process.
+Connectors validate untrusted data, use bounded retries/timeouts, retain provenance, and cannot execute retrieved content. Failures are stored as bounded safe messages and do not abort otherwise valid analysis. Each run reports per-connector attempted, status, success, normalized-record count, and failure reason; disabled connectors are explicit and all-source failure never masquerades as live intelligence.
 
-UCDP is the initial adapter. Base URL/version, timeout, retries and authorization are configurable; raw records are validated and normalized. Because API behavior can change, v0.0.1 refuses to invent an endpoint. Confirm current UCDP documentation and licensing before supplying an endpoint.
+## UCDP
 
-Planned adapters include ACLED, CAST, VIEWS, SIPRI, World Bank, IMF, OECD, Eurostat, UN WPP/UNHCR/IOM DTM/UN DESA, WGI, V-Dem, Freedom House, UNODC, GTD, GDELT, governments, ministries, embassies, aviation/border authorities and licensed Reuters/AP/AFP access. Each must honor terms, robots/access controls and licensing; never circumvent restrictions. Independent confirmation and per-source reliability are future priorities.
+UCDP supplies historical/conflict evidence. Its endpoint is intentionally operator-configured rather than guessed. Confirm current documentation, access terms, schema, and licensing before enabling it. A UCDP artifact is Evidence, not automatically an Event.
+
+## VIEWS
+
+VIEWS contributes independent machine-learning forecast signals. Network access in the implementation environment did not permit authoritative endpoint verification, so v0.0.2 deliberately ships no claimed public endpoint and no real/offline forecast values. Tests use deterministic records labelled synthetic.
+
+An enabled deployment must provide a verified adapter endpoint. The internal `geointel-views-adapter-v1` JSON contract is an implementation boundary, **not a claim that VIEWS publishes this schema**:
+
+```json
+{"forecasts":[{"id":"provider record id","model":"model name","model_version":"version or null","geographic_unit":"country/grid/etc","location":"provider location","issue_date":"ISO-8601","target_start":"ISO-8601","target_end":"ISO-8601","horizon_months":12,"target_variable":"provider target","prediction":0.0,"unit":"provider-declared unit or null","scale":"provider-declared scale or null"}]}
+```
+
+The adapter must map official documented fields without inferring semantics. GEOINTEL stores record/model identity, geography, dates/horizon, target, prediction, units/scale, retrieval time/URL, schema marker, and alignment results. It does not call a prediction a probability unless the provider's documented unit says so—and even then it remains a provider signal, not a GEOINTEL probability.
+
+Location mismatch, non-country resolution, and horizon mismatch are surfaced. Values are retained without aggregation. Live enablement requires human verification of current VIEWS documentation and licensing plus a reviewed field mapping; secrets, if later required, must use environment variables and must never enter provenance or logs.

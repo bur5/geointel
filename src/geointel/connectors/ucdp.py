@@ -26,6 +26,8 @@ class UCDPRawRecord(BaseModel):
 class UCDPConnector:
     """Adapter for an explicitly configured UCDP-compatible endpoint."""
 
+    connector_name = "UCDP"
+
     def __init__(
         self,
         base_url: str,
@@ -50,7 +52,7 @@ class UCDPConnector:
         self._client = client
         self._sleep = sleep
 
-    def collect(self, location: str) -> list[NormalizedEvidence]:
+    def collect(self, location: str, horizon_months: int = 12) -> list[NormalizedEvidence]:
         if not self.endpoint_path:
             raise UCDPError(
                 "UCDP endpoint path is not configured; consult current UCDP API documentation"

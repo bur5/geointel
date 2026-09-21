@@ -64,6 +64,7 @@ class AnalysisRun(Base, UUIDMixin, TimestampMixin):
     location: Mapped[Location] = relationship()
     forecasts: Mapped[list["Forecast"]] = relationship(back_populates="analysis_run")
     evidence: Mapped[list["Evidence"]] = relationship(back_populates="analysis_run")
+    forecast_signals: Mapped[list["ForecastSignal"]] = relationship(back_populates="analysis_run")
 
 
 class Evidence(Base, UUIDMixin, TimestampMixin):
@@ -101,6 +102,34 @@ class Indicator(Base, UUIDMixin, TimestampMixin):
     unit: Mapped[str | None] = mapped_column(String(40))
     observed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     provenance: Mapped[dict] = mapped_column(JSON)
+
+
+class ForecastSignal(Base, UUIDMixin, TimestampMixin):
+    """External predictive output, separate from observed evidence and GEOINTEL forecasts."""
+
+    __tablename__ = "forecast_signals"
+    analysis_run_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("analysis_runs.id"))
+    location_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("locations.id"))
+    provider: Mapped[str] = mapped_column(String(120))
+    source_record_id: Mapped[str] = mapped_column(String(200))
+    model_name: Mapped[str] = mapped_column(String(150))
+    model_version: Mapped[str | None] = mapped_column(String(100))
+    geographic_unit: Mapped[str] = mapped_column(String(80))
+    source_location: Mapped[str] = mapped_column(String(200))
+    issue_date: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    target_start: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    target_end: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    horizon_months: Mapped[int | None] = mapped_column(Integer)
+    target_variable: Mapped[str] = mapped_column(String(200))
+    prediction: Mapped[float] = mapped_column(Float)
+    unit: Mapped[str | None] = mapped_column(String(80))
+    scale: Mapped[str | None] = mapped_column(String(120))
+    retrieved_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    source_url: Mapped[str | None] = mapped_column(Text)
+    alignment_status: Mapped[str] = mapped_column(String(30))
+    alignment_notes: Mapped[list] = mapped_column(JSON)
+    provenance: Mapped[dict] = mapped_column(JSON)
+    analysis_run: Mapped[AnalysisRun] = relationship(back_populates="forecast_signals")
 
 
 class Scenario(Base, UUIDMixin, TimestampMixin):

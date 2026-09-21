@@ -1,7 +1,19 @@
 from typing import Protocol
 
-from geointel.domain.schemas import NormalizedEvidence
+from geointel.domain.schemas import NormalizedEvidence, NormalizedForecastSignal
+
+NormalizedRecord = NormalizedEvidence | NormalizedForecastSignal
 
 
 class EvidenceConnector(Protocol):
-    def collect(self, location: str) -> list[NormalizedEvidence]: ...
+    connector_name: str
+
+    def collect(self, location: str, horizon_months: int) -> list[NormalizedRecord]: ...
+
+
+class DisabledConnector:
+    def __init__(self, connector_name: str):
+        self.connector_name = connector_name
+
+    def collect(self, location: str, horizon_months: int) -> list[NormalizedRecord]:
+        return []

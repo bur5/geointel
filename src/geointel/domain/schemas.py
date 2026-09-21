@@ -48,6 +48,30 @@ class NormalizedEvidence(BaseModel):
     provenance: dict = Field(default_factory=dict)
 
 
+class NormalizedForecastSignal(BaseModel):
+    """A provider model output; deliberately not observed Evidence or an Event."""
+
+    provider: str = "VIEWS"
+    source_record_id: str
+    model_name: str
+    model_version: str | None = None
+    geographic_unit: str
+    location: str
+    issue_date: datetime
+    target_start: datetime
+    target_end: datetime
+    horizon_months: int | None = Field(default=None, ge=1)
+    target_variable: str
+    prediction: float
+    unit: str | None = None
+    scale: str | None = None
+    retrieved_at: datetime
+    source_url: str | None = None
+    alignment_status: str = "aligned"
+    alignment_notes: list[str] = Field(default_factory=list)
+    provenance: dict = Field(default_factory=dict)
+
+
 class RiskAssessment(BaseModel):
     conflict_type: ConflictType
     probability_low: float | None = Field(default=None, ge=0, le=1)
@@ -71,6 +95,9 @@ class RiskAssessment(BaseModel):
 
 class AnalystOutput(BaseModel):
     observed_evidence: list[str]
+    predictive_signals: list[str] = Field(default_factory=list)
+    source_disagreements: list[str] = Field(default_factory=list)
+    missing_sources: list[str] = Field(default_factory=list)
     historical_base_rate_notes: list[str]
     assumptions: list[str]
 
@@ -98,6 +125,9 @@ class RedTeamOutput(BaseModel):
     unjustified_precision: list[str] = Field(default_factory=list)
     contradictions: list[str] = Field(default_factory=list)
     false_positive_risks: list[str] = Field(default_factory=list)
+    predictive_signal_concerns: list[str] = Field(default_factory=list)
+    geographic_mismatches: list[str] = Field(default_factory=list)
+    horizon_mismatches: list[str] = Field(default_factory=list)
 
 
 class SynthesisOutput(BaseModel):

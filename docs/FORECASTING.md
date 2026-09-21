@@ -1,7 +1,16 @@
 # Forecasting contract
 
-Forecasts are explicit question/horizon/category assessments, not generic “war risk.” Every completed run contains exactly one assessment each for interstate armed conflict, internal armed conflict, one-sided violence, and major political violence/instability. Each records confidence, evidence for/against, unknowns, resolution criteria and material change conditions. Numeric ranges are optional and may only be emitted when justified by calibrated evidence or an identified model; unavailable data produces an unquantified assessment.
+Every completed run contains exactly one assessment for interstate armed conflict, internal armed conflict, one-sided violence, and major political violence. Each contains confidence, evidence for/against, unknowns, resolution criteria, and material-change conditions. Numeric ranges are optional and require calibrated justification; merely receiving a numeric VIEWS prediction never creates a GEOINTEL probability.
 
-Evidence is an observed provider artifact. Events are separately normalized real-world claims and may require independent confirmations. Indicators are observed/derived variables. Scenarios are possible developments. Forecasts are time-bounded judgments. Database forecast updates are rejected; revision means a new run/version, preserving history.
+The semantic boundaries are mandatory:
 
-The offline provider demonstrates epistemic restraint rather than a Spain conclusion. Production calibration should add historical base rates, scoring rules (Brier/log score), resolution adjudication and backtesting. Horizons remain generic (early warning through structural scenarios), though v0.0.1 exercises 12 months. Red Team checks unsupported claims, gaps, alternatives, base-rate neglect, sensationalism, duplication, unjustified precision, contradiction and false-positive escalation stories; synthesis records critiques it incorporated.
+- **Evidence** is a retrieved historical/observed provider artifact.
+- **Event** is a separately normalized real-world claim and is never auto-created by a connector.
+- **Forecast signal** is an external model output with provider-native semantics.
+- **Indicator** is an observed or derived variable.
+- **Scenario** is a possible development.
+- **Forecast** is GEOINTEL's time-bounded judgment and is immutable.
+
+Reasoning receives observed evidence, VIEWS predictive signals, connector outcomes, missing sources, and alignment disagreements in separate fields. v0.0.2 does not average, calibrate, aggregate, or weight them. The Red Team explicitly challenges unsupported VIEWS signals, history/model inconsistency, insufficient data, unjustified extrapolation, geographic/horizon mismatch, and mistaking model output for fact. Synthesis must name every incorporated critique.
+
+The deterministic offline provider demonstrates epistemic restraint rather than a Spain conclusion. With no validated base rates or live inputs it emits four low-confidence unquantified assessments. Production work still needs calibration, resolution adjudication, Brier/log scoring, and backtesting.
