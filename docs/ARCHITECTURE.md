@@ -55,3 +55,10 @@ Monitoring is a separate orchestration/audit domain (`Watchlist`, `WatchlistTarg
 It uses explicit comparable-run rules and structured snapshots, not prose diffs. Migration 0007 is
 additive. Source health remains separate from geopolitical state, and alerts retain guardrails,
 provenance, deduplication keys, and non-destructive lifecycle history. See [monitoring](MONITORING.md).
+
+## v0.1.1 provider hardening
+
+The operational provider registry, explicit adapter-only verification state, strict normalization,
+secret-safe bounded transport, failure taxonomy, and partial collection audit are specified in
+[PROVIDERS.md](PROVIDERS.md). Provider health remains operational metadata, not evidence; no
+unverified upstream API behavior may be inferred.

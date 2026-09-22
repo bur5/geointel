@@ -51,3 +51,10 @@ immutable four-category forecast set, then compares only structured state from a
 run. Baselines, prose-only differences, strategic interpretation alone, isolated/duplicate events,
 and a single source outage cannot independently produce a material security alert. Mandatory Red
 Team findings are retained as alert counterevidence. See [monitoring](MONITORING.md).
+
+## v0.1.1 provider hardening
+
+The operational provider registry, explicit adapter-only verification state, strict normalization,
+secret-safe bounded transport, failure taxonomy, and partial collection audit are specified in
+[PROVIDERS.md](PROVIDERS.md). Provider health remains operational metadata, not evidence; no
+unverified upstream API behavior may be inferred.

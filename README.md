@@ -120,3 +120,13 @@ python -m geointel.monitoring list-alerts
 Migration 0007 adds monitoring tables and indexes without modifying prior migrations. Tests remain
 offline. There is deliberately no live scheduler, notification provider, political ranking, or
 decision automation. See [monitoring](docs/MONITORING.md).
+
+## v0.1.1 live-data hardening
+
+All four providers now have an explicit secret-free capability registry and integration mode.
+They remain disabled by default and operator-adapter-only because authoritative contracts could
+not be accessed from this environment; no endpoint, authentication, pagination, or field semantic
+was guessed. Shared utilities add HTTPS/SSRF validation, redirect refusal, bounded JSON transport,
+retry/rate-limit failure taxonomy, sanitization, collection audits, and loop-safe pagination.
+Use `python -m geointel.providers capabilities` or read-only `GET /providers`; neither performs live
+collection. See [provider operations](docs/PROVIDERS.md).

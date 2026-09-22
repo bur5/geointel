@@ -21,6 +21,7 @@ from geointel.domain.schemas import AnalysisRequest, AnalysisResponse, ForecastR
 from geointel.pipeline.service import AnalysisPipeline
 from geointel.providers.base import ModelRouter
 from geointel.providers.offline import OfflineModel
+from geointel.providers.registry import public_capabilities
 
 logging.basicConfig(
     level=get_settings().log_level,
@@ -115,6 +116,12 @@ def present(run: AnalysisRun) -> AnalysisResponse:
 @app.get("/health")
 def health() -> dict[str, str]:
     return {"status": "ok", "version": __version__}
+
+
+@app.get("/providers")
+def provider_capabilities() -> list[dict]:
+    """Operational metadata only; configuration secrets are never represented."""
+    return public_capabilities(get_settings())
 
 
 @app.post("/analysis", response_model=AnalysisResponse, status_code=status.HTTP_201_CREATED)

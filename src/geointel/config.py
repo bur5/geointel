@@ -3,6 +3,8 @@ from functools import lru_cache
 from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from geointel.providers.runtime import validate_provider_url
+
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
@@ -33,6 +35,10 @@ class Settings(BaseSettings):
     cast_endpoint_path: str | None = None
     cast_timeout_seconds: float = 10.0
     cast_max_retries: int = 2
+    provider_allow_private_networks: bool = False
+    provider_max_pages: int = 10
+    provider_max_records: int = 10_000
+    provider_max_response_bytes: int = 5_000_000
     log_level: str = "INFO"
 
     @model_validator(mode="after")
@@ -57,6 +63,12 @@ class Settings(BaseSettings):
             < 0
         ):
             raise ValueError("connector retries must not be negative")
+        if not 1 <= self.provider_max_pages <= 100:
+            raise ValueError("PROVIDER_MAX_PAGES must be between 1 and 100")
+        if not 1 <= self.provider_max_records <= 100_000:
+            raise ValueError("PROVIDER_MAX_RECORDS must be between 1 and 100000")
+        if not 1 <= self.provider_max_response_bytes <= 20_000_000:
+            raise ValueError("PROVIDER_MAX_RESPONSE_BYTES must be between 1 and 20000000")
         if self.views_enabled and (not self.views_base_url or not self.views_endpoint_path):
             raise ValueError(
                 "VIEWS_BASE_URL and VIEWS_ENDPOINT_PATH are required when VIEWS_ENABLED=true"
@@ -77,6 +89,17 @@ class Settings(BaseSettings):
             raise ValueError(
                 "CAST_BASE_URL and CAST_ENDPOINT_PATH are required when CAST_ENABLED=true"
             )
+        for name, enabled, url in (
+            ("UCDP", self.ucdp_enabled, self.ucdp_base_url),
+            ("VIEWS", self.views_enabled, self.views_base_url),
+            ("ACLED", self.acled_enabled, self.acled_base_url),
+            ("CAST", self.cast_enabled, self.cast_base_url),
+        ):
+            if enabled:
+                try:
+                    validate_provider_url(url, allow_private=self.provider_allow_private_networks)
+                except ValueError as exc:
+                    raise ValueError(f"unsafe {name} provider URL: {exc}") from exc
         return self
 
 
