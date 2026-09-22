@@ -43,3 +43,7 @@ lens name/version, retrieved claim and case IDs, retrieval provenance, output, l
 and timestamp to an `AnalysisRun`. Lens errors are recorded as non-fatal and cannot bypass Analyst,
 Forecaster, mandatory Red Team, or synthesis. `LensRegistry` permits additional theories without
 pipeline changes; the neutral alternative is only an extensibility demonstration.
+
+## v0.0.5 validation layer
+
+Validation is a meta-evaluation domain, separate from Event, Evidence, ForecastSignal, Forecast, and StrategicAnalysis. A versioned static suite is loaded as strict data, then `ValidationRunner` dependency-injects synthetic connectors and `OfflineModel` into the unchanged normal analysis pipeline. It persists the resulting `AnalysisRun`, followed by a linked `ValidationRun` and one auditable `ValidationResult` per behavioral assertion. Migration 0006 is additive. The per-run source matrix preserves availability, missing/failure, staleness, and mismatch without treating absence as negative evidence. Results are never collapsed into a risk score or country ranking. See [validation](VALIDATION.md).

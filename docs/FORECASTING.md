@@ -39,3 +39,7 @@ analogy, retrospective determinism, theory-as-fact, theory overriding current ev
 unsupported causation, missing alternative theories, outdated assumptions, false precision, and
 sensationalism. The Spain control remains conservative: literature or analogy alone supplies no
 escalation evidence.
+
+## Validation contract (v0.0.5)
+
+Synthetic validation exercises this same forecasting contract with `OfflineModel`; it does not substitute a validation-only forecaster. Assertions inspect category completeness, unquantified output, uncertainty, immutable persistence, evidence/signal/strategy separation, disagreement, and Red Team restraint. No case specifies an expected direction or risk label, and strategic language cannot create a forecast probability. Metamorphic fixtures change one source condition while preserving these epistemic boundaries. See [validation](VALIDATION.md).

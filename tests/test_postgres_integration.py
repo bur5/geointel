@@ -134,3 +134,19 @@ def test_postgres_strategic_knowledge_relationships_and_analysis_audit():
         )
         assert audit.retrieved_claim_ids
         assert audit.retrieval_provenance
+
+
+@pytest.mark.skipif(not os.getenv("POSTGRES_TEST_URL"), reason="PostgreSQL service unavailable")
+def test_postgres_validation_audit_linkage_and_repeated_history():
+    from geointel.domain.models import ValidationResult, ValidationRun
+    from geointel.validation.runner import ValidationRunner
+
+    engine = create_engine(os.environ["POSTGRES_TEST_URL"])
+    with Session(engine, expire_on_commit=False) as session:
+        first = ValidationRunner(session).run(case_id="spain")["cases"][0]
+        second = ValidationRunner(session).run(case_id="spain")["cases"][0]
+        assert first["validation_run_id"] != second["validation_run_id"]
+        rows = list(session.scalars(select(ValidationRun).where(ValidationRun.case_id == "spain")))
+        assert len(rows) >= 2
+        assert all(row.analysis_run_id for row in rows)
+        assert session.query(ValidationResult).count() >= 2 * 20

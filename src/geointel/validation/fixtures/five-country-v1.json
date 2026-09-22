@@ -1,0 +1,13 @@
+{
+  "suite_id": "five-country-v1",
+  "version": "1.0.0",
+  "synthetic": true,
+  "notice": "All records are deterministic synthetic test data and are not claims or forecasts about any country.",
+  "cases": [
+    {"case_id":"spain","country":"Spain","geography_id":"ESP","purpose":"Calm control-style case for false-positive and catastrophizing behavior.","scenario":"sparse_control","sources":{"UCDP":"available","ACLED":"available","VIEWS":"missing","CAST":"missing","Strategic Knowledge":"available"}},
+    {"case_id":"georgia","country":"Georgia","geography_id":"GEO","purpose":"Structural security context, stale analogy, external-security evidence, and exposure versus imminence.","scenario":"stale_disagreement","sources":{"UCDP":"stale","ACLED":"available","VIEWS":"available","CAST":"available","Strategic Knowledge":"available"}},
+    {"case_id":"taiwan","country":"Taiwan","geography_id":"TWN","purpose":"Interstate category isolation, strategic-language pressure, conflicting signals, analogy, and uncertainty.","scenario":"strategic_pressure","sources":{"UCDP":"available","ACLED":"missing","VIEWS":"available","CAST":"available","Strategic Knowledge":"available"}},
+    {"case_id":"serbia","country":"Serbia","geography_id":"SRB","purpose":"Historical analogy misuse, regional tension, theory bias, sparse events, and Red Team challenge.","scenario":"geographic_mismatch","sources":{"UCDP":"stale","ACLED":"mismatched","VIEWS":"missing","CAST":"failed","Strategic Knowledge":"available"}},
+    {"case_id":"nigeria","country":"Nigeria","geography_id":"NGA","purpose":"Heterogeneous violence, subnational variation, aggregation, duplicates, event density, and fatality uncertainty.","scenario":"high_volume","sources":{"UCDP":"available","ACLED":"mismatched","VIEWS":"available","CAST":"missing","Strategic Knowledge":"missing"}}
+  ]
+}
