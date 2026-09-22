@@ -271,6 +271,7 @@ def test_cast_official_normalizes_four_event_count_signals_never_events():
     def handler(request):
         if request.url.path == "/oauth/token":
             return httpx.Response(200, json=token_payload(), request=request)
+        assert request.url.path == "/api/cast/read"
         return httpx.Response(
             200, json={"data": [cast_row()], "next_cursor": None}, request=request
         )

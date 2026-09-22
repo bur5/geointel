@@ -88,7 +88,7 @@ class CASTConnector(VIEWSConnector):
         def fetch(cursor):
             nonlocal retrieval_url
             payload, retrieval_url, _ = self.transport.get_json(
-                f"{self.base_url}/cast/",
+                f"{self.base_url}/cast/read",
                 params={"country": location, "cursor": "0" if cursor is None else cursor},
                 headers={
                     "Authorization": f"Bearer {self.oauth.access_token()}",
