@@ -29,6 +29,10 @@ jobs:
         env:
           DATABASE_URL: sqlite:///./validation-smoke.db
         run: python -m geointel.validation run five-country-v1 --case spain --json
+      - name: Offline monitoring smoke test
+        env:
+          DATABASE_URL: sqlite:///./monitoring-smoke.db
+        run: pytest tests/test_monitoring.py -q
       - name: Start application and check health
         env:
           DATABASE_URL: sqlite:///./startup-check.db

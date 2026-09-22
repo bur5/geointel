@@ -37,3 +37,14 @@ retain structured IDs rather than trust generated citations, and enforce the sam
 Validation accepts only an allowlisted packaged suite under a strict, extra-forbidden schema and a 100 KB limit. It does not accept a user-controlled path, fetch URLs, execute fixture metadata, dynamically import modules, render templates, or call live connectors/LLMs. Fixture strings remain data and cannot modify system instructions or grant tools. Generated records carry synthetic provenance. Failures are bounded through the existing safe-error path, and fixture provider failures remain non-fatal.
 
 The CLI writes only ordinary analysis and validation audit rows to the explicitly configured database; it has no deployment, deletion, secret, or production-elevation authority. Operators must apply least-privilege database credentials and must not point development validation at production. Static fixtures contain no credentials. These controls do not make the unauthenticated application suitable for public exposure.
+
+## Monitoring threat model (v0.1.0)
+
+Watchlist names/descriptions, stable IDs, questions, and metadata are bounded inert data. Metadata
+is JSON capped at 10 KB; strings are length/NUL checked; target type and cadence are allowlisted;
+SQLAlchemy parameterization prevents configuration from becoming SQL; the CLI accepts UUIDs and
+fixed commands and has no file/path, shell, template, dynamic-import, tool, secret, or deployment
+authority. Alert text is also inert output. Offline monitoring tests instantiate no live clients.
+The CLI inherits the configured database privileges, so operators must use least privilege. There
+is no authentication, authorization, daemon, notification channel, or production hardening in this
+release.

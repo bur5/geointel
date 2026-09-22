@@ -54,3 +54,12 @@ Add a bounded static data file, a strict allowlisted loader entry, stable case I
 ## Limitations
 
 This release is property testing with synthetic inputs, not calibration, historical backtesting, current intelligence, source-quality adjudication, or evidence that real-world forecasts are accurate. The deterministic model is intentionally unquantified. Assertion implementation itself requires review, and a passing suite cannot establish completeness, absence of bias, or production readiness.
+
+## Monitoring validation (v0.1.0)
+
+Sequential monitoring properties live in a separate deterministic test suite rather than changing
+`five-country-v1`: they require baseline-to-transition comparisons and persisted alert lifecycle
+state, whereas five-country validation remains a one-run behavioral suite. The monitoring suite
+covers no-baseline/identical/duplicate alert behavior, strategic-only and outage restraint,
+provenance/counterevidence, deduplication, resolution, and repeated synthetic Spain control runs.
+Both suites use the normal pipeline and `OfflineModel` without network access.

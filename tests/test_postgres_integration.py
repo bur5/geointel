@@ -150,3 +150,59 @@ def test_postgres_validation_audit_linkage_and_repeated_history():
         assert len(rows) >= 2
         assert all(row.analysis_run_id for row in rows)
         assert session.query(ValidationResult).count() >= 2 * 20
+
+
+@pytest.mark.skipif(not os.getenv("POSTGRES_TEST_URL"), reason="PostgreSQL service unavailable")
+def test_postgres_monitoring_linkage_alert_dedupe_and_resolution():
+    from uuid import uuid4
+
+    from geointel.domain.models import Alert, DetectedChange, MonitoringRun
+    from geointel.monitoring import AlertEngine, MonitoringService
+
+    engine = create_engine(os.environ["POSTGRES_TEST_URL"])
+    model = OfflineModel()
+    with Session(engine, expire_on_commit=False) as session:
+        service = MonitoringService(
+            session, lambda: AnalysisPipeline(session, ModelRouter(model, model, model))
+        )
+        token = uuid4().hex
+        target = service.add_target(
+            service.create_watchlist(f"Synthetic PostgreSQL {token}"),
+            f"SYN-{token}",
+            f"Synthetic {token}",
+        )
+        baseline = service.run_target(target)
+        repeated = service.run_target(target)
+        assert (
+            baseline.analysis_run_id
+            and repeated.previous_analysis_run_id == baseline.analysis_run_id
+        )
+        change = DetectedChange(
+            monitoring_run_id=repeated.id,
+            change_type="forecast_change",
+            previous_state={"value": "synthetic-before"},
+            current_state={"value": "synthetic-after"},
+            affected_categories=["major_political_violence"],
+            source_references=["synthetic:test"],
+            severity="material",
+            material=True,
+            explanation="Synthetic structured transition.",
+            provenance={"synthetic_fixture": True},
+        )
+        session.add(change)
+        session.flush()
+        engine_alerts = AlertEngine()
+        first = engine_alerts.evaluate(
+            session, target, repeated, [change], {}, repeated.source_availability
+        )
+        session.flush()
+        duplicate = engine_alerts.evaluate(
+            session, target, repeated, [change], {}, repeated.source_availability
+        )
+        assert first.id == duplicate.id
+        engine_alerts.resolve(session, first)
+        session.commit()
+        assert session.scalar(select(Alert).where(Alert.id == first.id)).status == "resolved"
+        assert session.scalar(
+            select(MonitoringRun).where(MonitoringRun.id == repeated.id)
+        ).analysis_run_id

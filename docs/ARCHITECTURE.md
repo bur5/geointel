@@ -47,3 +47,11 @@ pipeline changes; the neutral alternative is only an extensibility demonstration
 ## v0.0.5 validation layer
 
 Validation is a meta-evaluation domain, separate from Event, Evidence, ForecastSignal, Forecast, and StrategicAnalysis. A versioned static suite is loaded as strict data, then `ValidationRunner` dependency-injects synthetic connectors and `OfflineModel` into the unchanged normal analysis pipeline. It persists the resulting `AnalysisRun`, followed by a linked `ValidationRun` and one auditable `ValidationResult` per behavioral assertion. Migration 0006 is additive. The per-run source matrix preserves availability, missing/failure, staleness, and mismatch without treating absence as negative evidence. Results are never collapsed into a risk score or country ranking. See [validation](VALIDATION.md).
+
+## v0.1.0 monitoring layer
+
+Monitoring is a separate orchestration/audit domain (`Watchlist`, `WatchlistTarget`,
+`MonitoringRun`, `DetectedChange`, `Alert`) layered over the unchanged normal analysis pipeline.
+It uses explicit comparable-run rules and structured snapshots, not prose diffs. Migration 0007 is
+additive. Source health remains separate from geopolitical state, and alerts retain guardrails,
+provenance, deduplication keys, and non-destructive lifecycle history. See [monitoring](MONITORING.md).

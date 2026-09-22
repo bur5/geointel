@@ -30,7 +30,7 @@ from geointel.knowledge.retrieval import KnowledgeQuery, LexicalKnowledgeRetriev
 from geointel.providers.base import ModelRouter
 
 logger = logging.getLogger(__name__)
-PIPELINE_VERSION = "0.0.5"
+PIPELINE_VERSION = "0.1.0"
 
 
 class AnalysisPipeline:
