@@ -43,3 +43,11 @@ escalation evidence.
 ## Validation contract (v0.0.5)
 
 Synthetic validation exercises this same forecasting contract with `OfflineModel`; it does not substitute a validation-only forecaster. Assertions inspect category completeness, unquantified output, uncertainty, immutable persistence, evidence/signal/strategy separation, disagreement, and Red Team restraint. No case specifies an expected direction or risk label, and strategic language cannot create a forecast probability. Metamorphic fixtures change one source condition while preserving these epistemic boundaries. See [validation](VALIDATION.md).
+
+## Monitoring contract (v0.1.0)
+
+An alert is neither an additional forecast nor a revision. Monitoring creates a new ordinary,
+immutable four-category forecast set, then compares only structured state from a compatible prior
+run. Baselines, prose-only differences, strategic interpretation alone, isolated/duplicate events,
+and a single source outage cannot independently produce a material security alert. Mandatory Red
+Team findings are retained as alert counterevidence. See [monitoring](MONITORING.md).

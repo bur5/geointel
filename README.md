@@ -1,6 +1,6 @@
-# GEOINTEL v0.0.5
+# GEOINTEL v0.1.0
 
-GEOINTEL is a geopolitical decision-support and conflict early-warning foundation. v0.0.5 preserves the UCDP/ACLED/VIEWS/CAST pipeline—collection → strategic retrieval/lenses → Analyst → four-category Forecaster → mandatory Red Team → synthesis → immutable persistence—and adds an auditable strategic-knowledge layer. It is not verified intelligence and does not provide personal relocation advice.
+GEOINTEL is a geopolitical decision-support and conflict early-warning foundation. v0.1.0 preserves the UCDP/ACLED/VIEWS/CAST pipeline—collection → strategic retrieval/lenses → Analyst → four-category Forecaster → mandatory Red Team → synthesis → immutable persistence—and adds an auditable strategic-knowledge layer. It is not verified intelligence and does not provide personal relocation advice.
 
 ## What is included
 
@@ -99,3 +99,24 @@ python -m geointel.validation run five-country-v1 --json
 ```
 
 Assertions cover taxonomy, provenance, epistemic separation, missing/failing inputs, disagreement, stale/geographic mismatch, uncertainty, mandatory bias-aware Red Team review, immutable/repeated history, deterministic structure, deduplication boundaries, and false-positive restraint. Output provides pass/fail/error/not-applicable counts but no single score. See [validation](docs/VALIDATION.md).
+
+
+## v0.1.0 monitoring and alerts
+
+Watchlists and country targets now drive repeatable UTC cadence evaluation through the normal
+`AnalysisPipeline`. Every attempt, comparable-run decision, structured detected change, and alert
+decision is auditable. First runs establish non-alerting baselines; deterministic materiality, Red
+Team guardrails, source-health separation, SHA-256 deduplication, and open/resolved history prevent
+alert spam and avoid treating outage, theory, or isolated events as escalation.
+
+```bash
+python -m geointel.monitoring create-watchlist "Operations"
+python -m geointel.monitoring add-target WATCHLIST_UUID ISO-ID "Display name"
+python -m geointel.monitoring run-target TARGET_UUID
+python -m geointel.monitoring run-due
+python -m geointel.monitoring list-alerts
+```
+
+Migration 0007 adds monitoring tables and indexes without modifying prior migrations. Tests remain
+offline. There is deliberately no live scheduler, notification provider, political ranking, or
+decision automation. See [monitoring](docs/MONITORING.md).
