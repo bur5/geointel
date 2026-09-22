@@ -1,103 +1,125 @@
-# Provider operations (v0.1.1)
+# Provider operations (v0.1.2)
 
-Provider configuration and health are operational metadata, never geopolitical evidence. No
-provider is enabled by default and no connector falls back to a guessed endpoint.
+Provider responses are **untrusted data**. Provider configuration, authentication, health, and
+failures are operational metadata; they are never geopolitical evidence or escalation signals.
+No live provider is enabled by default and CI performs no live request.
 
-| Provider | Role | Live mode | Verification status | Auth | CI mode |
-|---|---|---|---|---|---|
-| UCDP | observed/historical conflict evidence | operator adapter | OPERATOR_ADAPTER_REQUIRED | adapter/operator must verify | fixture |
-| ACLED | observed/reported operational events | operator adapter | OPERATOR_ADAPTER_REQUIRED | adapter/operator must verify | fixture |
-| VIEWS | predictive model output | operator adapter | OPERATOR_ADAPTER_REQUIRED | unknown; operator must verify | fixture |
-| CAST | predictive model output | operator adapter | OPERATOR_ADAPTER_REQUIRED | unknown; operator must verify | fixture |
+| Provider | Epistemic role | Available live mode | Contract status | Authentication |
+|---|---|---|---|---|
+| UCDP GED | observed/historical evidence | `OFFICIAL_API` | **VERIFIED** | UCDP access token header |
+| ACLED Event | observed/reported events | `OFFICIAL_API` | **VERIFIED** | ACLED OAuth bearer token |
+| ACLED CAST | predictive monthly event counts | `OFFICIAL_API` | **VERIFIED** | shared ACLED OAuth client |
+| VIEWS | predictive model output | `OPERATOR_ADAPTER` | **OPERATOR_ADAPTER_REQUIRED** | adapter-defined |
 
-## Verification record
+`OFFICIAL_API`, `OPERATOR_ADAPTER`, `FIXTURE`, and `DISABLED` remain the exact integration-mode
+set. `GET /providers` and `python -m geointel.providers status` report mode, configured/enabled
+state, authentication configured (boolean only), verification, last collection state, and official
+documentation links without exposing credential values.
 
-On 2026-09-22 this environment attempted authoritative-document discovery, but the network search
-service returned HTTP 401. Consequently **no direct live API contract was verified or
-implemented**. These official starting references are recorded for human review, not represented
-as verified contracts:
+## UCDP GED official API
 
-* UCDP: <https://ucdp.uu.se/apidocs/> and <https://ucdp.uu.se/downloads/>
-* ACLED: <https://acleddata.com/acleddatanew/wp-content/uploads/dlm_uploads/2023/06/ACLED-API-Documentation.pdf>
-* VIEWS: <https://viewsforecasting.org/>
-* CAST: <https://www.giga-hamburg.de/en/research-and-transfer/projects/cast-conflict-forecasting>
+Authoritative contract: <https://ucdp.uu.se/apidocs/>. GEOINTEL uses the official HTTPS API host,
+`gedevents` resource, explicit dataset version path, `x-ucdp-access-token` header, and documented
+`pagesize`/`page` parameters. It stops at `TotalPages`; malformed or changing page counts, duplicate
+IDs, quota/auth errors, schema failures, response bounds, maximum pages, and maximum records are
+audited. The default currently verified GED version is `26.1`, but `UCDP_DATASET_VERSION` is
+explicitly configurable and is preserved in each record's provenance. GED records remain
+observed/historical evidence and never become forecasts.
 
-A human must review current documentation, access terms, licensing, authentication, field
-semantics, versions, pagination, and rate limits before connecting an adapter. Do not point these
-settings at an upstream service unless its responses have deliberately been mapped to the internal
-schema.
+Request an API token from UCDP under its current access process, store it in the deployment secret
+manager, then configure (values shown are placeholders):
 
-## Explicit modes and registry
+```dotenv
+UCDP_MODE=official_api
+UCDP_ACCESS_TOKEN=<secret supplied by UCDP>
+UCDP_DATASET_VERSION=26.1
+```
 
-Modes are `OFFICIAL_API`, `OPERATOR_ADAPTER`, `FIXTURE`, and `DISABLED`. The current runtime uses
-only `OPERATOR_ADAPTER` (when explicitly configured) and `DISABLED`; fixture mode is reserved for
-offline test inputs. `GET /providers` and `python -m geointel.providers capabilities` expose the
-secret-free registry. `status` is an alias for the same safe snapshot. `check PROVIDER` validates
-configuration state only and never contacts a provider or starts collection.
+The token is header-only. It is not placed in URLs, logs, provenance, database fields, registry
+output, or diagnostics. The documented quota is 5,000 requests/day; `429` is classified as
+`RATE_LIMITED`, not as evidence.
 
-The registry records connector/schema versions, documentation status and references, epistemic
-role, configuration/enabled state, verified geography/temporal capabilities (empty when unknown),
-pagination/rate-limit knowledge, and bounded health text. Dependency fields are empty rather than
-inventing provider independence or common upstream sources.
+## ACLED Event official API and OAuth
 
-## Configuration and network policy
+Authoritative references: [getting started](https://acleddata.com/api-documentation/getting-started),
+[Event endpoint](https://acleddata.com/api-documentation/acled-endpoint), and
+[API elements/pagination](https://acleddata.com/api-documentation/elements-acleds-api).
+GEOINTEL obtains an in-memory OAuth token from `https://acleddata.com/oauth/token` using the
+documented password flow (`grant_type=password`, `client_id=acled`, `scope=authenticated`). It
+caches the access token, tracks expiry, and uses the refresh token while valid. Neither token nor
+the username/password is persisted or represented in provenance.
 
-Existing provider variables remain compatible. Enabling a provider requires its configured base
-URL and endpoint path. Shared bounds are `PROVIDER_MAX_PAGES` (default 10),
-`PROVIDER_MAX_RECORDS` (10000), and `PROVIDER_MAX_RESPONSE_BYTES` (5000000). HTTPS absolute URLs
-without embedded credentials are required. Loopback, link-local, private, reserved, and metadata
-IP addresses are rejected by default. `PROVIDER_ALLOW_PRIVATE_NETWORKS=true` is the explicit opt-in
-for a controlled internal adapter; it does not permit `file://`, embedded credentials, or HTTP.
-DNS rebinding must additionally be controlled at deployment egress/firewall level.
+Obtain a myACLED account/API entitlement through ACLED, then configure secrets:
 
-Credentials, if an operator adapter needs them, must be supplied through environment/secret
-management. They are never registry fields or persisted configuration. URLs are sanitized before
-provenance retention; query keys resembling tokens, keys, signatures, or credentials are redacted.
-Authorization/cookie-like mapping values and exception text are bounded and redacted.
+```dotenv
+ACLED_MODE=official_api
+ACLED_USERNAME=<myACLED account email>
+ACLED_PASSWORD=<secret>
+```
 
-## Hardened transport
+Events are fetched as JSON from `https://acleddata.com/api/acled/read`. Cursor pagination starts at
+`0`, consumes `next_cursor`, stops on `null`, and safely aborts on repetition, malformed cursors,
+page/record limits, or partial failure. Exact `event_id_cnty` identity is preserved; only exact IDs
+are deduplicated. Dates, event/sub-event types, actors, administrative geography, coordinates,
+source metadata, and fatalities are retained. Fatalities remain provider-reported estimates, not
+certainty.
 
-`HardenedTransport` provides bounded connect/read behavior, at most five configured retries,
-deterministic exponential backoff, bounded `Retry-After`, explicit 429/5xx/auth categories, JSON
-content-type checks, response-size limits, TLS-backed HTTPS validation, and no redirects. Disabling
-redirects prevents redirect-to-private-host attacks. Tests inject `httpx.MockTransport`; CI has no
-network or credential dependency. Authentication/authorization failures are never retried.
-Compressed-response safety is enforced by the decoded response byte bound; operators should also
-bound ingress at their adapter/reverse proxy.
+**October 1, 2026 transition:** ACLED documents that standard pagination will be deprecated for
+non-monadic requests on that date. This connector already uses cursor pagination and does not
+supply `page`, so it is compatible with that transition.
 
-## Schema and collection boundary
+## CAST official API
 
-The internal adapter schemas are strict (`extra=forbid`). UCDP records normalize only into
-historical `NormalizedEvidence`; ACLED records into reported `NormalizedOperationalEvent`; VIEWS
-and CAST into distinct `NormalizedForecastSignal` records. Prediction values retain native unit
-and scale and are never relabeled probabilities. Geographic/horizon mismatch is disclosed, not
-aggregated or transformed. Provider event/issue/update and retrieval timestamps occupy distinct
-fields; unknown recency remains unknown.
+Authoritative contract: <https://acleddata.com/api-documentation/cast-endpoint>. CAST uses the same
+in-memory ACLED OAuth and hardened transport but separate normalization. `country`, `admin1`,
+forecast month/year, provider timestamp, and separate `total`, `battles`, `erv`, and `vac` targets
+are normalized only into `ForecastSignal` values. The unit is exactly `forecast_event_count`; a
+value of `4` is neither 4%, probability `0.04`, nor a risk score. Observed columns are retained only
+inside clearly named `observed_context` provenance and never substituted for forecast values.
+Configure `CAST_MODE=official_api` plus the same ACLED secrets. ACLED Event and CAST remain
+epistemically and structurally distinct despite their shared authentication infrastructure.
 
-Raw metadata is the validated model only, recursively depth/item bounded and secret-sanitized.
-Long text has field-level limits. Exact provider IDs deduplicate deterministically; there is no
-fuzzy or cross-source deduplication.
+## VIEWS investigation result
 
-The reusable cursor collector applies only to an explicitly documented operator-adapter cursor
-contract. It stops on an empty page, absent cursor, repeated/malformed cursor, maximum pages, or
-maximum records. `CollectionAudit` reports request/page/received/accepted/rejected/duplicate
-counts, truncation, bounded rejection reasons, rate limiting, categorized failure, and `PARTIAL`
-status while retaining valid earlier records. No undocumented upstream pagination parameter is
-inferred.
+The official entry points reviewed were <https://viewsforecasting.org/data>,
+<https://viewsforecasting.org/source-code/>, and <https://viewsforecasting.org/user-guide/>. They
+establish that VIEWS publishes country/subnational predictive products and REST API access, but the
+exact current endpoint paths, request parameters, authentication, pagination, and response schema
+could not be independently retrieved in this environment (the web research service returned HTTP
+401). GEOINTEL therefore does **not** guess a direct contract or mark VIEWS `OFFICIAL_API`.
+VIEWS retains the strict operator-adapter schema and predictive-only semantics. Processed VIEWS
+inputs must never replace authoritative original-source data.
 
-## Provider limitations
+## Explicit live connectivity diagnostics
 
-* **UCDP:** observed/historical only. The legacy adapter schema is strict; the configured dataset
-  version is preserved. Direct upstream query and pagination semantics remain unverified.
-* **ACLED:** reported events only. Fatalities are explicitly reported estimates, not perfect ground
-  truth. Direct authentication, licensing, fields, pagination, and limits remain unverified.
-* **VIEWS:** predictive only. Model/version, issue and target dates, geography, horizon, target,
-  prediction, unit, and scale are mandatory adapter semantics. No conversion or aggregation occurs.
-* **CAST:** predictive only and semantically separate from VIEWS despite shared mechanics. Direct
-  machine access and provider semantics remain unverified.
+These commands are the only operator-triggered connectivity probes:
 
-Provider failures flow through collection/source-health metadata to reasoning and monitoring
-guardrails. They are not events, evidence, detected geopolitical changes, or escalation alerts.
-No migration 0008 is needed: v0.1.0 `AnalysisRun.collection_metadata` already stores the bounded
-per-run audit without semantic overload, while the registry is configuration-derived and must not
-persist credentials.
+```console
+python -m geointel.providers check-live UCDP
+python -m geointel.providers check-live ACLED
+python -m geointel.providers check-live CAST
+python -m geointel.providers check-live VIEWS
+```
+
+A probe is disabled unless its provider is explicitly enabled. It is bounded to one page, one
+accepted record, and 1 MB, validates authentication/connectivity/envelope schema, creates no
+analysis or alert, persists nothing, and emits a sanitized failure category. CI never invokes it.
+For VIEWS it checks only the configured operator adapter; it is not a claim of official API support.
+
+## Security and failure boundaries
+
+`HardenedTransport` requires credential-free absolute HTTPS URLs, rejects local/private/link-local
+addresses unless an operator explicitly opts into a controlled private adapter, bounds timeouts,
+retries and decoded response bytes, requires JSON, sanitizes URLs/errors, and disables redirects.
+Thus an official host cannot redirect the client to an internal address. Deployment egress controls
+must still mitigate DNS rebinding.
+
+OAuth form secrets and bearer/UCDP headers are used only at request time. Passwords, access tokens,
+refresh tokens, UCDP tokens, cookies, and authorization headers are absent from provenance and the
+database. Provider error bodies are not surfaced. Fixture/provider text cannot execute
+instructions: it remains validated, bounded, attributed data. Partial pages retain valid records
+and operational audit metadata; outage, OAuth failure, quota exhaustion, and unavailable forecast
+sources never become an observed event or escalation.
+
+No migration `0008` is required. Existing analysis collection metadata records connector outcomes,
+and live records already have provenance storage. Migrations `0001`–`0007` remain unchanged.

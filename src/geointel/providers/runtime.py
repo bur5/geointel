@@ -252,6 +252,73 @@ class HardenedTransport:
             if owned:
                 client.close()
 
+    def post_form_json(
+        self,
+        url: str,
+        *,
+        data: dict[str, str],
+    ) -> tuple[Any, str, int]:
+        """POST a bounded form and return JSON without ever retaining form secrets."""
+        validate_provider_url(url, allow_private=self.allow_private)
+        owned = self.client is None
+        client = self.client or httpx.Client(
+            timeout=httpx.Timeout(self.timeout), follow_redirects=False
+        )
+        try:
+            for attempt in range(self.retries + 1):
+                try:
+                    response = client.post(url, data=data, timeout=self.timeout)
+                    if response.is_redirect:
+                        raise TransportError(
+                            FailureCategory.INVALID_RESPONSE, "provider redirects are forbidden"
+                        )
+                    if response.status_code in {400, 401}:
+                        raise TransportError(
+                            FailureCategory.AUTHENTICATION_ERROR,
+                            f"provider authentication failed (HTTP {response.status_code})",
+                        )
+                    if response.status_code == 403:
+                        raise TransportError(
+                            FailureCategory.AUTHORIZATION_ERROR,
+                            "provider authorization failed (HTTP 403)",
+                        )
+                    retryable = response.status_code in {408, 429} or response.status_code >= 500
+                    if retryable and attempt < self.retries:
+                        self.sleep(min(2.0, 0.05 * (2**attempt)))
+                        continue
+                    if response.status_code == 429:
+                        raise TransportError(FailureCategory.RATE_LIMITED, "provider rate limited")
+                    if response.status_code >= 500:
+                        raise TransportError(
+                            FailureCategory.PROVIDER_5XX,
+                            f"provider returned HTTP {response.status_code}",
+                        )
+                    if response.status_code >= 400:
+                        raise TransportError(
+                            FailureCategory.INVALID_RESPONSE,
+                            f"provider returned HTTP {response.status_code}",
+                        )
+                    if len(response.content) > self.max_bytes:
+                        raise TransportError(
+                            FailureCategory.PAYLOAD_TOO_LARGE, "provider response is too large"
+                        )
+                    try:
+                        return response.json(), sanitize_url(str(response.request.url)), attempt + 1
+                    except ValueError as exc:
+                        raise TransportError(
+                            FailureCategory.INVALID_RESPONSE, "provider returned malformed JSON"
+                        ) from exc
+                except httpx.TimeoutException as exc:
+                    if attempt == self.retries:
+                        raise TransportError(FailureCategory.TIMEOUT, str(exc)) from exc
+                except httpx.TransportError as exc:
+                    if attempt == self.retries:
+                        raise TransportError(FailureCategory.NETWORK_ERROR, str(exc)) from exc
+            raise TransportError(FailureCategory.UNKNOWN, "bounded transport exhausted")
+        finally:
+            if owned:
+                client.close()
+
 
 def paginate(
     fetch: Callable[[str | None], tuple[list[dict[str, Any]], str | None]],

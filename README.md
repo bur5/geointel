@@ -1,4 +1,4 @@
-# GEOINTEL v0.1.0
+# GEOINTEL v0.1.2
 
 GEOINTEL is a geopolitical decision-support and conflict early-warning foundation. v0.1.0 preserves the UCDP/ACLED/VIEWS/CAST pipeline—collection → strategic retrieval/lenses → Analyst → four-category Forecaster → mandatory Red Team → synthesis → immutable persistence—and adds an auditable strategic-knowledge layer. It is not verified intelligence and does not provide personal relocation advice.
 
@@ -22,7 +22,11 @@ alembic upgrade head
 uvicorn geointel.api.app:app --reload
 ```
 
-All four connectors are disabled by default. UCDP uses `UCDP_ENABLED`, `UCDP_BASE_URL`, `UCDP_API_VERSION`, `UCDP_ENDPOINT_PATH`, `UCDP_ACCESS_TOKEN`, `UCDP_TIMEOUT`, and `UCDP_RETRIES`. VIEWS uses `VIEWS_ENABLED`, `VIEWS_BASE_URL`, `VIEWS_ENDPOINT_PATH`, `VIEWS_TIMEOUT_SECONDS`, and `VIEWS_MAX_RETRIES`. Enabling VIEWS requires both URL fields. Values are environment configuration, never credentials in source control.
+All four connectors are disabled by default. Set `UCDP_MODE=official_api` with a UCDP token and
+explicit dataset version for official GED access. Set `ACLED_MODE=official_api` and/or
+`CAST_MODE=official_api` with myACLED username/password secrets for official Event/CAST access.
+VIEWS remains operator-adapter-only. Values are environment configuration and credentials belong
+only in deployment secret management, never source control. See [provider operations](docs/PROVIDERS.md).
 
 ### VIEWS live-access status
 
@@ -130,3 +134,13 @@ was guessed. Shared utilities add HTTPS/SSRF validation, redirect refusal, bound
 retry/rate-limit failure taxonomy, sanitization, collection audits, and loop-safe pagination.
 Use `python -m geointel.providers capabilities` or read-only `GET /providers`; neither performs live
 collection. See [provider operations](docs/PROVIDERS.md).
+
+## v0.1.2 verified live providers
+
+UCDP GED, ACLED Event, and ACLED CAST now provide opt-in official API modes with mocked contract
+tests. UCDP uses its versioned `gedevents` contract and token header. ACLED and CAST share an
+in-memory OAuth client and hardened transport while retaining separate Event and ForecastSignal
+normalization. ACLED Event uses cursor pagination in advance of the October 1, 2026 transition;
+CAST values remain monthly event counts, never probabilities. VIEWS remains adapter-only because
+its exact current technical contract could not be independently retrieved. Explicit bounded
+connectivity probes are available through `python -m geointel.providers check-live PROVIDER`.
