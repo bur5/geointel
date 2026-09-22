@@ -48,3 +48,10 @@ authority. Alert text is also inert output. Offline monitoring tests instantiate
 The CLI inherits the configured database privileges, so operators must use least privilege. There
 is no authentication, authorization, daemon, notification channel, or production hardening in this
 release.
+
+## v0.1.1 provider hardening
+
+The operational provider registry, explicit adapter-only verification state, strict normalization,
+secret-safe bounded transport, failure taxonomy, and partial collection audit are specified in
+[PROVIDERS.md](PROVIDERS.md). Provider health remains operational metadata, not evidence; no
+unverified upstream API behavior may be inferred.

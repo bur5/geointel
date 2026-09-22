@@ -28,3 +28,10 @@ rankings, or evacuation advice. Require a comparable non-baseline run, structure
 explicit materiality; disclose missing/disagreeing sources and Red Team counterevidence. Strategic
 literature alone, duplicate or isolated events, and provider outage artifacts cannot silently
 become conflict escalation.
+
+## v0.1.1 provider hardening
+
+The operational provider registry, explicit adapter-only verification state, strict normalization,
+secret-safe bounded transport, failure taxonomy, and partial collection audit are specified in
+[PROVIDERS.md](PROVIDERS.md). Provider health remains operational metadata, not evidence; no
+unverified upstream API behavior may be inferred.

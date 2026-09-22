@@ -69,3 +69,10 @@ Operators are responsible for lawful access, copyright, licensing, and accurate 
 Retrieval uses deterministic concept, author/lens, historical-case, actor/geography, conflict-term,
 and question-token matching with stable ordering. This is lexical/structured retrieval, not
 semantic embeddings. Vector retrieval may later implement the same provenance-bearing abstraction.
+
+## v0.1.1 provider hardening
+
+The operational provider registry, explicit adapter-only verification state, strict normalization,
+secret-safe bounded transport, failure taxonomy, and partial collection audit are specified in
+[PROVIDERS.md](PROVIDERS.md). Provider health remains operational metadata, not evidence; no
+unverified upstream API behavior may be inferred.

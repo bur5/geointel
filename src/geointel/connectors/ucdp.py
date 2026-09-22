@@ -4,9 +4,10 @@ from datetime import UTC, datetime
 from typing import Any
 
 import httpx
-from pydantic import BaseModel, Field, ValidationError
+from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from geointel.domain.schemas import Confidence, NormalizedEvidence
+from geointel.providers.runtime import sanitize_mapping, sanitize_url
 
 
 class UCDPError(RuntimeError):
@@ -14,6 +15,7 @@ class UCDPError(RuntimeError):
 
 
 class UCDPRawRecord(BaseModel):
+    model_config = ConfigDict(extra="forbid")
     id: int | str
     country: str
     date_start: datetime | None = None
@@ -137,7 +139,7 @@ class UCDPConnector:
                 "country": record.country,
                 "date_end": record.date_end.isoformat() if record.date_end else None,
                 "type_of_violence": record.type_of_violence,
-                "source_article": record.source_article,
-                "retrieval_url": retrieval_url,
+                "source_article": sanitize_mapping(record.source_article),
+                "retrieval_url": sanitize_url(retrieval_url) if retrieval_url else None,
             },
         )

@@ -28,6 +28,7 @@ from geointel.domain.schemas import (
 from geointel.knowledge.lenses import KissingerLens, LensRegistry
 from geointel.knowledge.retrieval import KnowledgeQuery, LexicalKnowledgeRetriever
 from geointel.providers.base import ModelRouter
+from geointel.providers.runtime import sanitize_text
 
 logger = logging.getLogger(__name__)
 PIPELINE_VERSION = "0.1.0"
@@ -356,8 +357,8 @@ class AnalysisPipeline:
 
     @staticmethod
     def _safe_error(exc: Exception) -> str:
-        message = " ".join(str(exc).split())
-        return message[:500] or type(exc).__name__
+        message = sanitize_text(" ".join(str(exc).split()), 500)
+        return message or type(exc).__name__
 
     @staticmethod
     def _alignment_disagreements(signals, events) -> list[str]:

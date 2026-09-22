@@ -4,9 +4,10 @@ from datetime import UTC, datetime
 from typing import Any
 
 import httpx
-from pydantic import BaseModel, Field, ValidationError
+from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from geointel.domain.schemas import NormalizedForecastSignal
+from geointel.providers.runtime import sanitize_mapping, sanitize_url
 
 
 class VIEWSError(RuntimeError):
@@ -159,7 +160,7 @@ class VIEWSConnector:
             unit=record.unit,
             scale=record.scale,
             retrieved_at=datetime.now(UTC),
-            source_url=retrieval_url,
+            source_url=sanitize_url(retrieval_url) if retrieval_url else None,
             alignment_status="mismatch" if notes else "aligned",
             alignment_notes=notes,
             provenance={
@@ -167,9 +168,11 @@ class VIEWSConnector:
                 "record_id": str(record.id),
                 "model": record.model,
                 "model_version": record.model_version,
-                "retrieval_url": retrieval_url,
+                "retrieval_url": sanitize_url(retrieval_url) if retrieval_url else None,
                 "schema": "geointel-views-adapter-v1",
                 "predictive_not_observed": True,
-                "raw_adapter_record": record.model_dump(mode="json"),
+                "raw_adapter_record": sanitize_mapping(record.model_dump(mode="json")),
             },
         )
+
+    model_config = ConfigDict(extra="forbid")

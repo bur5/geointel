@@ -94,3 +94,10 @@ uses the network.
 Known limitations include no production scheduler, delivery provider, authentication/authorization,
 alert acknowledgement workflow, cross-provider entity resolution, calibrated materiality,
 automatic closed-condition inference, or live-data guarantee. Human review remains required.
+
+## v0.1.1 provider hardening
+
+The operational provider registry, explicit adapter-only verification state, strict normalization,
+secret-safe bounded transport, failure taxonomy, and partial collection audit are specified in
+[PROVIDERS.md](PROVIDERS.md). Provider health remains operational metadata, not evidence; no
+unverified upstream API behavior may be inferred.

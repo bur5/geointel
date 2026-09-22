@@ -4,9 +4,10 @@ from datetime import UTC, datetime, timedelta
 from typing import Any
 
 import httpx
-from pydantic import BaseModel, Field, ValidationError
+from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from geointel.domain.schemas import NormalizedOperationalEvent
+from geointel.providers.runtime import sanitize_mapping, sanitize_url
 
 
 class ACLEDError(RuntimeError):
@@ -164,17 +165,19 @@ class ACLEDConnector:
             disorder_type=record.disorder_type,
             updated_at=record.timestamp,
             retrieved_at=retrieved_at,
-            source_url=retrieval_url,
+            source_url=sanitize_url(retrieval_url) if retrieval_url else None,
             alignment_status="mismatch" if notes else "aligned",
             alignment_notes=notes,
             temporal_classification=temporal,
             provenance={
                 "provider": "ACLED",
                 "record_id": record_id,
-                "retrieval_url": retrieval_url,
+                "retrieval_url": sanitize_url(retrieval_url) if retrieval_url else None,
                 "schema": "geointel-acled-adapter-v1",
                 "observed_report_not_prediction": True,
                 "fatalities_are_reported_not_precise": True,
-                "raw_adapter_record": record.model_dump(mode="json"),
+                "raw_adapter_record": sanitize_mapping(record.model_dump(mode="json")),
             },
         )
+
+    model_config = ConfigDict(extra="forbid")
