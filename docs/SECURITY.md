@@ -31,3 +31,9 @@ must establish lawful rights; the test fixture is concise original synthetic con
 marked as such. These controls do not provide authentication, malware scanning, content moderation,
 or legal clearance. A future model-backed deployment must delimit retrieved content as untrusted,
 retain structured IDs rather than trust generated citations, and enforce the same no-tool boundary.
+
+## Validation threat model (v0.0.5)
+
+Validation accepts only an allowlisted packaged suite under a strict, extra-forbidden schema and a 100 KB limit. It does not accept a user-controlled path, fetch URLs, execute fixture metadata, dynamically import modules, render templates, or call live connectors/LLMs. Fixture strings remain data and cannot modify system instructions or grant tools. Generated records carry synthetic provenance. Failures are bounded through the existing safe-error path, and fixture provider failures remain non-fatal.
+
+The CLI writes only ordinary analysis and validation audit rows to the explicitly configured database; it has no deployment, deletion, secret, or production-elevation authority. Operators must apply least-privilege database credentials and must not point development validation at production. Static fixtures contain no credentials. These controls do not make the unauthenticated application suitable for public exposure.

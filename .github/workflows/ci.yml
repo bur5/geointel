@@ -25,6 +25,10 @@ jobs:
           DATABASE_URL: sqlite:///./migration-check.db
         run: alembic upgrade head
       - run: pytest
+      - name: Offline validation smoke test
+        env:
+          DATABASE_URL: sqlite:///./validation-smoke.db
+        run: python -m geointel.validation run five-country-v1 --case spain --json
       - name: Start application and check health
         env:
           DATABASE_URL: sqlite:///./startup-check.db

@@ -93,6 +93,41 @@ class AnalysisRun(Base, UUIDMixin, TimestampMixin):
     strategic_analyses: Mapped[list["StrategicAnalysis"]] = relationship(
         back_populates="analysis_run"
     )
+    validation_runs: Mapped[list["ValidationRun"]] = relationship(back_populates="analysis_run")
+
+
+class ValidationSuiteRecord(Base, UUIDMixin, TimestampMixin):
+    """Identity of a version-controlled validation suite, never a risk product."""
+
+    __tablename__ = "validation_suites"
+    __table_args__ = (UniqueConstraint("suite_id", "version"),)
+    suite_id: Mapped[str] = mapped_column(String(120))
+    version: Mapped[str] = mapped_column(String(50))
+    definition_digest: Mapped[str] = mapped_column(String(64))
+
+
+class ValidationRun(Base, UUIDMixin, TimestampMixin):
+    __tablename__ = "validation_runs"
+    suite_record_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("validation_suites.id"))
+    analysis_run_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("analysis_runs.id"))
+    case_id: Mapped[str] = mapped_column(String(120))
+    status: Mapped[str] = mapped_column(String(30))
+    source_matrix: Mapped[dict] = mapped_column(JSON)
+    implementation_version: Mapped[str] = mapped_column(String(30))
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    analysis_run: Mapped[AnalysisRun] = relationship(back_populates="validation_runs")
+    results: Mapped[list["ValidationResult"]] = relationship(back_populates="validation_run")
+
+
+class ValidationResult(Base, UUIDMixin, TimestampMixin):
+    __tablename__ = "validation_results"
+    validation_run_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("validation_runs.id"))
+    assertion_type: Mapped[str] = mapped_column(String(80))
+    status: Mapped[str] = mapped_column(String(30))
+    explanation: Mapped[str] = mapped_column(Text)
+    relevant_object_ids: Mapped[list] = mapped_column(JSON)
+    implementation_version: Mapped[str] = mapped_column(String(30))
+    validation_run: Mapped[ValidationRun] = relationship(back_populates="results")
 
 
 class KnowledgeWork(Base, UUIDMixin, TimestampMixin):

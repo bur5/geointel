@@ -1,6 +1,6 @@
-# GEOINTEL v0.0.4
+# GEOINTEL v0.0.5
 
-GEOINTEL is a geopolitical decision-support and conflict early-warning foundation. v0.0.4 preserves the UCDP/ACLED/VIEWS/CAST pipeline—collection → strategic retrieval/lenses → Analyst → four-category Forecaster → mandatory Red Team → synthesis → immutable persistence—and adds an auditable strategic-knowledge layer. It is not verified intelligence and does not provide personal relocation advice.
+GEOINTEL is a geopolitical decision-support and conflict early-warning foundation. v0.0.5 preserves the UCDP/ACLED/VIEWS/CAST pipeline—collection → strategic retrieval/lenses → Analyst → four-category Forecaster → mandatory Red Team → synthesis → immutable persistence—and adds an auditable strategic-knowledge layer. It is not verified intelligence and does not provide personal relocation advice.
 
 ## What is included
 
@@ -87,3 +87,15 @@ not merged; entity resolution remains future work. There is no automatic ensembl
 ## v0.0.4 strategic knowledge
 
 Operator-provided, copyright-safe structured JSON can represent works, sections, attributed claims, reusable concepts, and historical cases. GEOINTEL never downloads books. Retrieval is deterministic lexical/structured matching (not semantic or embedding search), and every result retains claim/work/author provenance and retrieval reasons. The Kissinger lens asks questions about equilibrium, durable interests, commitments, order, revision, and off-ramps, but has no authority over empirical inputs. Lens failure and an empty library are non-fatal. See [strategic knowledge](docs/STRATEGIC_KNOWLEDGE.md).
+
+## v0.0.5 five-country validation
+
+GEOINTEL now includes a first-class, offline behavioral validation layer. The versioned `five-country-v1` suite uses deterministic **synthetic** conditions for Spain, Georgia, Taiwan, Serbia, and Nigeria. These cases are heterogeneous tests, **not a risk ranking or real-world forecast**, and encode no required risk labels or political recommendations. Validation runs fixture inputs through the normal pipeline and `OfflineModel`, then persists a linked source matrix and individual assertion results via additive migration 0006.
+
+```bash
+python -m geointel.validation run five-country-v1
+python -m geointel.validation run five-country-v1 --case spain
+python -m geointel.validation run five-country-v1 --json
+```
+
+Assertions cover taxonomy, provenance, epistemic separation, missing/failing inputs, disagreement, stale/geographic mismatch, uncertainty, mandatory bias-aware Red Team review, immutable/repeated history, deterministic structure, deduplication boundaries, and false-positive restraint. Output provides pass/fail/error/not-applicable counts but no single score. See [validation](docs/VALIDATION.md).
