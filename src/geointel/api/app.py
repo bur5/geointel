@@ -9,7 +9,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
 from geointel import __version__
-from geointel.config import get_settings
+from geointel.config import Settings, get_settings
 from geointel.connectors.acled import ACLEDConnector
 from geointel.connectors.base import DisabledConnector, EvidenceConnector
 from geointel.connectors.cast import CASTConnector
@@ -19,9 +19,11 @@ from geointel.domain.database import get_session
 from geointel.domain.models import AnalysisRun, Forecast
 from geointel.domain.schemas import AnalysisRequest, AnalysisResponse, ForecastResponse
 from geointel.pipeline.service import AnalysisPipeline
+from geointel.providers.acled_auth import ACLEDOAuthClient
 from geointel.providers.base import ModelRouter
 from geointel.providers.offline import OfflineModel
 from geointel.providers.registry import public_capabilities
+from geointel.providers.runtime import HardenedTransport
 
 logging.basicConfig(
     level=get_settings().log_level,
@@ -44,17 +46,36 @@ def router() -> ModelRouter:
     return ModelRouter(model, model, model)
 
 
-def connectors() -> list[EvidenceConnector]:
-    settings = get_settings()
+def connectors(settings: Settings | None = None) -> list[EvidenceConnector]:
+    settings = settings or get_settings()
     result: list[EvidenceConnector] = []
+    acled_transport = HardenedTransport(
+        timeout=min(settings.acled_timeout_seconds, settings.cast_timeout_seconds),
+        retries=max(settings.acled_max_retries, settings.cast_max_retries),
+        max_bytes=settings.provider_max_response_bytes,
+    )
+    oauth = (
+        ACLEDOAuthClient(
+            settings.acled_username or "",
+            settings.acled_password or "",
+            acled_transport,
+            settings.acled_oauth_url,
+        )
+        if settings.acled_username and settings.acled_password
+        else None
+    )
     result.append(
         UCDPConnector(
             base_url=settings.ucdp_base_url,
-            api_version=settings.ucdp_api_version,
+            api_version=settings.ucdp_dataset_version or settings.ucdp_api_version,
             endpoint_path=settings.ucdp_endpoint_path,
             access_token=settings.ucdp_access_token,
             timeout=settings.ucdp_timeout,
             retries=settings.ucdp_retries,
+            official_api=settings.ucdp_mode.casefold() == "official_api",
+            max_pages=settings.provider_max_pages,
+            max_records=settings.provider_max_records,
+            max_bytes=settings.provider_max_response_bytes,
         )
         if settings.ucdp_enabled
         else DisabledConnector("UCDP")
@@ -75,6 +96,11 @@ def connectors() -> list[EvidenceConnector]:
             settings.acled_endpoint_path,
             settings.acled_timeout_seconds,
             settings.acled_max_retries,
+            official_api=settings.acled_mode.casefold() == "official_api",
+            oauth=oauth,
+            transport=acled_transport,
+            max_pages=settings.provider_max_pages,
+            max_records=settings.provider_max_records,
         )
         if settings.acled_enabled
         else DisabledConnector("ACLED")
@@ -85,6 +111,11 @@ def connectors() -> list[EvidenceConnector]:
             settings.cast_endpoint_path,
             settings.cast_timeout_seconds,
             settings.cast_max_retries,
+            official_api=settings.cast_mode.casefold() == "official_api",
+            oauth=oauth,
+            transport=acled_transport,
+            max_pages=settings.provider_max_pages,
+            max_records=settings.provider_max_records,
         )
         if settings.cast_enabled
         else DisabledConnector("CAST")

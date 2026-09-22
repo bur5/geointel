@@ -16,6 +16,7 @@ class ProviderCapability:
     official_documentation: tuple[str, ...]
     documentation_accessed: str
     authentication_required: bool | None
+    authentication_configured: bool
     configured: bool
     enabled: bool
     epistemic_role: str
@@ -27,6 +28,7 @@ class ProviderCapability:
     schema_version: str
     health_status: str
     health_message: str
+    last_collection_status: str = "not_checked"
     upstream_dependencies: tuple[str, ...] = ()
 
     def public(self) -> dict[str, Any]:
@@ -37,83 +39,130 @@ class ProviderCapability:
 
 
 DOCS = {
-    "UCDP": ("https://ucdp.uu.se/apidocs/", "https://ucdp.uu.se/downloads/"),
+    "UCDP": ("https://ucdp.uu.se/apidocs/",),
     "ACLED": (
-        "https://acleddata.com/acleddatanew/wp-content/uploads/dlm_uploads/2023/06/ACLED-API-Documentation.pdf",
+        "https://acleddata.com/acled-api-documentation",
+        "https://acleddata.com/api-documentation/acled-endpoint",
+        "https://acleddata.com/api-documentation/elements-acleds-api",
     ),
-    "VIEWS": ("https://viewsforecasting.org/",),
-    "CAST": (
-        "https://www.giga-hamburg.de/en/research-and-transfer/projects/cast-conflict-forecasting",
+    "CAST": ("https://acleddata.com/api-documentation/cast-endpoint",),
+    "VIEWS": (
+        "https://viewsforecasting.org/data",
+        "https://viewsforecasting.org/source-code/",
+        "https://viewsforecasting.org/user-guide/",
     ),
 }
 
 
+def _mode(enabled: bool, configured: bool, requested: str) -> IntegrationMode:
+    value = requested.casefold()
+    if value == "official_api":
+        return IntegrationMode.OFFICIAL_API
+    if value == "fixture":
+        return IntegrationMode.FIXTURE
+    if value == "operator_adapter" or (enabled and configured):
+        return IntegrationMode.OPERATOR_ADAPTER
+    return IntegrationMode.DISABLED
+
+
 def capabilities(settings: Settings | None = None) -> list[ProviderCapability]:
     settings = settings or Settings()
-    rows = []
+    shared_auth = bool(settings.acled_username and settings.acled_password)
     definitions = {
-        "UCDP": (
-            settings.ucdp_enabled,
-            settings.ucdp_base_url,
-            settings.ucdp_endpoint_path,
-            "observed_historical",
-            "geointel-ucdp-adapter-v1",
-            True,
+        "UCDP": dict(
+            enabled=settings.ucdp_enabled,
+            configured=bool(settings.ucdp_access_token)
+            if settings.ucdp_mode.casefold() == "official_api"
+            else bool(settings.ucdp_endpoint_path),
+            requested=settings.ucdp_mode,
+            auth=bool(settings.ucdp_access_token),
+            role="observed_historical",
+            status=DocumentationStatus.VERIFIED,
+            schema="ucdp-gedevents-official-v1",
+            geo=("country", "event_coordinates"),
+            temporal=("event",),
+            pagination="pagesize/page bounded by TotalPages",
+            rate="5,000 requests/day (provider quota)",
+            page=1000,
+            deps=(),
         ),
-        "ACLED": (
-            settings.acled_enabled,
-            settings.acled_base_url,
-            settings.acled_endpoint_path,
-            "observed_reported_event",
-            "geointel-acled-adapter-v1",
-            None,
+        "ACLED": dict(
+            enabled=settings.acled_enabled,
+            configured=shared_auth
+            if settings.acled_mode.casefold() == "official_api"
+            else bool(settings.acled_endpoint_path),
+            requested=settings.acled_mode,
+            auth=shared_auth,
+            role="observed_reported_event",
+            status=DocumentationStatus.VERIFIED,
+            schema="acled-events-official-v1",
+            geo=("country", "admin1", "admin2", "admin3", "coordinates"),
+            temporal=("event",),
+            pagination="cursor (0, next_cursor, null termination); page mode not used",
+            rate="provider/account policy",
+            page=5000,
+            deps=(),
         ),
-        "VIEWS": (
-            settings.views_enabled,
-            settings.views_base_url,
-            settings.views_endpoint_path,
-            "predictive_model_output",
-            "geointel-views-adapter-v1",
-            None,
+        "CAST": dict(
+            enabled=settings.cast_enabled,
+            configured=shared_auth
+            if settings.cast_mode.casefold() == "official_api"
+            else bool(settings.cast_endpoint_path),
+            requested=settings.cast_mode,
+            auth=shared_auth,
+            role="predictive_event_counts",
+            status=DocumentationStatus.VERIFIED,
+            schema="acled-cast-official-v1",
+            geo=("country", "admin1"),
+            temporal=("monthly",),
+            pagination="bounded cursor when supplied by API",
+            rate="provider/account policy",
+            page=None,
+            deps=("ACLED OAuth",),
         ),
-        "CAST": (
-            settings.cast_enabled,
-            settings.cast_base_url,
-            settings.cast_endpoint_path,
-            "predictive_model_output",
-            "geointel-cast-adapter-v1",
-            None,
+        "VIEWS": dict(
+            enabled=settings.views_enabled,
+            configured=bool(settings.views_base_url and settings.views_endpoint_path),
+            requested="operator_adapter" if settings.views_enabled else "disabled",
+            auth=False,
+            role="predictive_model_output",
+            status=DocumentationStatus.OPERATOR_ADAPTER_REQUIRED,
+            schema="geointel-views-adapter-v1",
+            geo=(),
+            temporal=(),
+            pagination="exact current official technical contract not independently verified",
+            rate="unknown",
+            page=None,
+            deps=(),
         ),
     }
-    for name, (enabled, base, path, role, schema, auth) in definitions.items():
-        configured = bool(base and path)
-        mode = (
-            IntegrationMode.OPERATOR_ADAPTER if enabled and configured else IntegrationMode.DISABLED
-        )
+    rows = []
+    for name, item in definitions.items():
+        mode = _mode(item["enabled"], item["configured"], item["requested"])
         rows.append(
             ProviderCapability(
                 provider=name,
-                connector_version="0.1.1",
+                connector_version="0.1.2",
                 integration_mode=mode,
-                documentation_status=DocumentationStatus.OPERATOR_ADAPTER_REQUIRED,
+                documentation_status=item["status"],
                 official_documentation=DOCS[name],
-                documentation_accessed=(
-                    "2026-09-22 (network access returned 401; contracts not verified)"
-                ),
-                authentication_required=auth,
-                configured=configured,
-                enabled=enabled,
-                epistemic_role=role,
-                geography_levels=(),
-                temporal_resolution=(),
-                pagination="adapter cursor contract only; no upstream contract claimed",
-                rate_limit="unknown; conservative bounded retries",
-                maximum_safe_page_size=None,
-                schema_version=schema,
-                health_status="unknown" if enabled else "disabled",
-                health_message=(
-                    "configured operator adapter; not checked" if enabled else "disabled by default"
-                )[:300],
+                documentation_accessed="2026-09-22",
+                authentication_required=None if name == "VIEWS" else True,
+                authentication_configured=item["auth"],
+                configured=item["configured"],
+                enabled=item["enabled"],
+                epistemic_role=item["role"],
+                geography_levels=item["geo"],
+                temporal_resolution=item["temporal"],
+                pagination=item["pagination"],
+                rate_limit=item["rate"],
+                maximum_safe_page_size=item["page"],
+                schema_version=item["schema"],
+                health_status="unknown" if item["enabled"] else "disabled",
+                health_message="not checked; use explicit check-live"
+                if item["enabled"]
+                else "disabled by default",
+                upstream_dependencies=item["deps"],
             )
         )
     return rows

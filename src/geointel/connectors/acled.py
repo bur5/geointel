@@ -4,10 +4,19 @@ from datetime import UTC, datetime, timedelta
 from typing import Any
 
 import httpx
-from pydantic import BaseModel, ConfigDict, Field, ValidationError
+from pydantic import AliasChoices, BaseModel, ConfigDict, Field, ValidationError, field_validator
 
 from geointel.domain.schemas import NormalizedOperationalEvent
-from geointel.providers.runtime import sanitize_mapping, sanitize_url
+from geointel.providers.acled_auth import ACLEDOAuthClient
+from geointel.providers.runtime import (
+    CollectionAudit,
+    CollectionStatus,
+    HardenedTransport,
+    IntegrationMode,
+    paginate,
+    sanitize_mapping,
+    sanitize_url,
+)
 
 
 class ACLEDError(RuntimeError):
@@ -15,9 +24,7 @@ class ACLEDError(RuntimeError):
 
 
 class ACLEDRawEvent(BaseModel):
-    """GEOINTEL adapter contract; not a claim about the upstream ACLED API schema."""
-
-    event_id: str | int
+    event_id: str | int = Field(validation_alias=AliasChoices("event_id_cnty", "event_id"))
     event_date: datetime
     event_type: str = Field(max_length=100)
     sub_event_type: str | None = Field(default=None, max_length=120)
@@ -39,6 +46,17 @@ class ACLEDRawEvent(BaseModel):
     disorder_type: str | None = Field(default=None, max_length=120)
     timestamp: datetime | None = None
 
+    @field_validator("event_date", mode="before")
+    @classmethod
+    def parse_official_date(cls, value):
+        if isinstance(value, str):
+            for pattern in ("%d %B %Y", "%Y-%m-%d"):
+                try:
+                    return datetime.strptime(value, pattern).replace(tzinfo=UTC)
+                except ValueError:
+                    pass
+        return value
+
 
 class ACLEDConnector:
     """Fetch observed event reports from an operator-verified ACLED adapter."""
@@ -53,6 +71,12 @@ class ACLEDConnector:
         retries: int = 2,
         client: httpx.Client | None = None,
         sleep: Callable[[float], None] = time.sleep,
+        *,
+        official_api: bool = False,
+        oauth: ACLEDOAuthClient | None = None,
+        transport: HardenedTransport | None = None,
+        max_pages: int = 10,
+        max_records: int = 10_000,
     ):
         if timeout <= 0:
             raise ValueError("timeout must be greater than zero")
@@ -62,14 +86,78 @@ class ACLEDConnector:
             raise ValueError("base_url is required when endpoint_path is configured")
         self.base_url, self.endpoint_path = base_url.rstrip("/"), endpoint_path
         self.timeout, self.retries, self._client, self._sleep = timeout, retries, client, sleep
+        self.official_api, self.oauth = official_api, oauth
+        self.transport = transport or HardenedTransport(
+            timeout=timeout, retries=retries, client=client, sleep=sleep
+        )
+        self.max_pages, self.max_records = max_pages, max_records
+        self.last_audit: CollectionAudit | None = None
 
     def collect(self, location: str, horizon_months: int = 12) -> list[NormalizedOperationalEvent]:
+        if self.official_api:
+            return self._collect_official(location)
         if not self.endpoint_path:
             raise ACLEDError("ACLED verified adapter endpoint is not configured")
         if self._client is not None:
             return self._collect(self._client, location)
         with httpx.Client(timeout=self.timeout) as client:
             return self._collect(client, location)
+
+    def _collect_official(self, location: str) -> list[NormalizedOperationalEvent]:
+        if not self.oauth:
+            raise ACLEDError("ACLED OAuth client is not configured")
+        audit = CollectionAudit(
+            "ACLED", "0.1.2", IntegrationMode.OFFICIAL_API, "acled-events-official-v1"
+        )
+        self.last_audit = audit
+        retrieval_urls: dict[str, str] = {}
+
+        def fetch(cursor):
+            token = self.oauth.access_token()
+            payload, request_url, _ = self.transport.get_json(
+                f"{self.base_url}/acled/read",
+                params={
+                    "country": location,
+                    "cursor": "0" if cursor is None else cursor,
+                    "limit": min(self.max_records, 5000),
+                },
+                headers={"Authorization": f"Bearer {token}", "Accept": "application/json"},
+            )
+            if not isinstance(payload, dict) or not isinstance(payload.get("data"), list):
+                raise ValueError("ACLED response schema mismatch")
+            rows = payload["data"]
+            if not all(isinstance(row, dict) for row in rows):
+                raise ValueError("ACLED data contains a non-object")
+            next_cursor = payload.get("next_cursor")
+            if next_cursor is not None and not isinstance(next_cursor, (str, int)):
+                raise ValueError("ACLED next_cursor is malformed")
+            for row in rows:
+                if "event_id_cnty" in row:
+                    retrieval_urls[str(row["event_id_cnty"])] = request_url
+            return rows, None if next_cursor is None else str(next_cursor)
+
+        rows = paginate(
+            fetch,
+            identity=lambda row: str(row["event_id_cnty"]),
+            audit=audit,
+            max_pages=self.max_pages,
+            max_records=self.max_records,
+        )
+        normalized = []
+        for row in rows:
+            try:
+                normalized.append(
+                    self.normalize(row, location, retrieval_urls.get(str(row.get("event_id_cnty"))))
+                )
+            except (ValidationError, ValueError, TypeError) as exc:
+                audit.reject(exc)
+        if audit.rejected and audit.status == CollectionStatus.SUCCEEDED:
+            audit.finish(CollectionStatus.PARTIAL)
+        if not rows and audit.failure_category:
+            error = ACLEDError(f"ACLED collection failed: {audit.failure_reason}")
+            error.category = audit.failure_category
+            raise error
+        return normalized
 
     def _collect(self, client: httpx.Client, location: str) -> list[NormalizedOperationalEvent]:
         url = f"{self.base_url}/{self.endpoint_path.lstrip('/')}"
@@ -173,7 +261,12 @@ class ACLEDConnector:
                 "provider": "ACLED",
                 "record_id": record_id,
                 "retrieval_url": sanitize_url(retrieval_url) if retrieval_url else None,
-                "schema": "geointel-acled-adapter-v1",
+                "schema": (
+                    "geointel-acled-official-v1"
+                    if self.official_api
+                    else "geointel-acled-adapter-v1"
+                ),
+                "endpoint": "acled/read" if self.official_api else "operator-adapter",
                 "observed_report_not_prediction": True,
                 "fatalities_are_reported_not_precise": True,
                 "raw_adapter_record": sanitize_mapping(record.model_dump(mode="json")),

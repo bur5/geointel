@@ -25,8 +25,8 @@ jobs:
           DATABASE_URL: sqlite:///./migration-check.db
         run: alembic upgrade head
       - run: pytest
-      - name: Offline provider contract and security tests
-        run: pytest tests/test_provider_runtime.py tests/test_ucdp.py tests/test_views.py tests/test_acled_cast.py -q
+      - name: Mocked official-provider contract and security tests (no live requests)
+        run: pytest tests/test_provider_runtime.py tests/test_ucdp.py tests/test_views.py tests/test_acled_cast.py tests/test_official_providers.py -q
       - name: Offline validation smoke test
         env:
           DATABASE_URL: sqlite:///./validation-smoke.db
