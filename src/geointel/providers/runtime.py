@@ -35,6 +35,8 @@ class FailureCategory(StrEnum):
     AUTHENTICATION_ERROR = "AUTHENTICATION_ERROR"
     AUTHORIZATION_ERROR = "AUTHORIZATION_ERROR"
     RATE_LIMITED = "RATE_LIMITED"
+    QUOTA_EXHAUSTED = "QUOTA_EXHAUSTED"
+    INVALID_REQUEST = "INVALID_REQUEST"
     TIMEOUT = "TIMEOUT"
     NETWORK_ERROR = "NETWORK_ERROR"
     PROVIDER_5XX = "PROVIDER_5XX"
@@ -157,14 +159,29 @@ class TransportError(RuntimeError):
         *,
         retry_after_seconds: int | None = None,
         request_count: int | None = None,
+        provider_code: str | None = None,
     ):
         self.category = category
         self.retry_after_seconds = retry_after_seconds
         self.request_count = request_count
+        self.provider_code = provider_code
         super().__init__(sanitize_text(message))
 
 
 MAX_RETRY_AFTER_SECONDS = 3600
+
+
+def _safe_provider_error_code(response: httpx.Response) -> str | None:
+    """Extract only a bounded machine code; never retain arbitrary error bodies."""
+    try:
+        value = response.json().get("code")
+    except (ValueError, AttributeError):
+        return None
+    return (
+        value
+        if isinstance(value, str) and re.fullmatch(r"[A-Za-z][A-Za-z0-9]{0,63}", value)
+        else None
+    )
 
 
 def parse_retry_after(value: str | None) -> int | None:
@@ -223,8 +240,11 @@ class HardenedTransport:
                             if response.status_code == 401
                             else FailureCategory.AUTHORIZATION_ERROR
                         )
+                        code = _safe_provider_error_code(response)
                         raise TransportError(
-                            category, f"provider returned HTTP {response.status_code}"
+                            category,
+                            f"provider returned HTTP {response.status_code}",
+                            provider_code=code,
                         )
                     retry_after_seconds = parse_retry_after(response.headers.get("Retry-After"))
                     retryable = (
@@ -239,21 +259,27 @@ class HardenedTransport:
                         self.sleep(delay)
                         continue
                     if response.status_code == 429:
+                        code = _safe_provider_error_code(response)
                         raise TransportError(
                             FailureCategory.RATE_LIMITED,
                             "provider rate limited collection",
                             retry_after_seconds=retry_after_seconds,
                             request_count=attempt + 1,
+                            provider_code=code,
                         )
                     if response.status_code >= 500:
+                        code = _safe_provider_error_code(response)
                         raise TransportError(
                             FailureCategory.PROVIDER_5XX,
                             f"provider returned HTTP {response.status_code}",
+                            provider_code=code,
                         )
                     if response.status_code >= 400:
+                        code = _safe_provider_error_code(response)
                         raise TransportError(
                             FailureCategory.INVALID_RESPONSE,
                             f"provider returned HTTP {response.status_code}",
+                            provider_code=code,
                         )
                     if len(response.content) > self.max_bytes:
                         raise TransportError(

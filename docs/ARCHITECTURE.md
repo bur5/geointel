@@ -72,3 +72,11 @@ unverified upstream API behavior may be inferred.
 strategic context. Collection health and usable current coverage are operational metadata and
 cannot alter geopolitical risk by themselves. Automatic news-to-event/evidence promotion is
 deliberately absent.
+
+## Multi-source reporting and conservative corroboration (v0.1.4)
+
+GDELT and NewsAPI normalize only to `NewsReport`. Provider-neutral canonical URL identity removes known tracking parameters and recognizes exact cross-provider duplicates; it does not equate similar headlines or common domains. Exact duplicate observations retain observing-provider provenance.
+
+`StoryCluster` v1 deliberately clusters exact canonical URLs only. `CorroborationAssessment` separates `INDEPENDENT`, `LIKELY_SHARED_UPSTREAM`, and `UNKNOWN` chains; different providers or domains do not prove independence, and unknown is the default. Only affirmative evidence of two independent chains yields `MULTI_SOURCE_CORROBORATED_REPORTING`. Candidate eligibility is an analyst-review result, not an Event, escalation, probability, or risk adjustment.
+
+No migration was added: cluster and assessment snapshots use existing analysis-run collection metadata, while reports remain in the existing `news_reports` table.

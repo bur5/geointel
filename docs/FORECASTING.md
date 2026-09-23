@@ -58,3 +58,7 @@ The operational provider registry, explicit adapter-only verification state, str
 secret-safe bounded transport, failure taxonomy, and partial collection audit are specified in
 [PROVIDERS.md](PROVIDERS.md). Provider health remains operational metadata, not evidence; no
 unverified upstream API behavior may be inferred.
+
+## News boundary
+
+News reports and corroboration assessments are visible for analyst and Red Team review but never automatically create an `Event`, `Evidence`, forecast signal, indicator, or forecast. Corroborated reporting is not confirmed event truth. Article counts and news volume never increase geopolitical risk or probability. News discovery windows are independent of forecast horizons.

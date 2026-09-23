@@ -47,6 +47,18 @@ class Settings(BaseSettings):
     gdelt_base_url: str = "https://api.gdeltproject.org/api/v2/doc/doc"
     gdelt_timeout_seconds: float = 10.0
     gdelt_max_retries: int = 2
+    newsapi_enabled: bool = False
+    newsapi_mode: str = "disabled"
+    newsapi_base_url: str = "https://newsapi.org"
+    newsapi_api_key: str | None = None
+    newsapi_timeout_seconds: float = 10.0
+    newsapi_max_retries: int = 0
+    newsapi_max_pages: int = 2
+    newsapi_max_records: int = 100
+    newsapi_request_budget: int = 2
+    newsapi_page_size: int = 50
+    newsapi_window_days: int = 7
+    newsapi_entitlement: str = "developer"
     provider_allow_private_networks: bool = False
     provider_max_pages: int = 10
     provider_max_records: int = 10_000
@@ -61,6 +73,7 @@ class Settings(BaseSettings):
             ("ACLED", self.acled_mode),
             ("CAST", self.cast_mode),
             ("GDELT", self.gdelt_mode),
+            ("NEWSAPI", self.newsapi_mode),
         ):
             if mode.casefold() not in modes:
                 raise ValueError(f"{name}_MODE must be one of {sorted(modes)}")
@@ -76,6 +89,10 @@ class Settings(BaseSettings):
         elif self.gdelt_enabled:
             # GDELT has only the verified official contract; ENABLED is a compatibility switch.
             self.gdelt_mode = "official_api"
+        if self.newsapi_mode.casefold() != "disabled":
+            self.newsapi_enabled = True
+        elif self.newsapi_enabled:
+            self.newsapi_mode = "official_api"
         if (
             min(
                 self.ucdp_timeout,
@@ -83,6 +100,7 @@ class Settings(BaseSettings):
                 self.acled_timeout_seconds,
                 self.cast_timeout_seconds,
                 self.gdelt_timeout_seconds,
+                self.newsapi_timeout_seconds,
             )
             <= 0
         ):
@@ -94,6 +112,7 @@ class Settings(BaseSettings):
                 self.acled_max_retries,
                 self.cast_max_retries,
                 self.gdelt_max_retries,
+                self.newsapi_max_retries,
             )
             < 0
         ):
@@ -138,12 +157,17 @@ class Settings(BaseSettings):
             ("ACLED", self.acled_enabled, self.acled_base_url),
             ("CAST", self.cast_enabled, self.cast_base_url),
             ("GDELT", self.gdelt_enabled, self.gdelt_base_url),
+            ("NEWSAPI", self.newsapi_enabled, self.newsapi_base_url),
         ):
             if enabled:
                 try:
                     validate_provider_url(url, allow_private=self.provider_allow_private_networks)
                 except ValueError as exc:
                     raise ValueError(f"unsafe {name} provider URL: {exc}") from exc
+        if self.newsapi_entitlement.casefold() not in {"developer", "production"}:
+            raise ValueError("NEWSAPI_ENTITLEMENT must be developer or production")
+        if self.newsapi_enabled and not self.newsapi_api_key:
+            raise ValueError("NEWSAPI_API_KEY is required when NewsAPI is enabled")
         return self
 
 
