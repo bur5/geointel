@@ -1,4 +1,4 @@
-from datetime import date, timedelta
+from datetime import UTC, date, datetime, timedelta
 
 import httpx
 import pytest
@@ -391,3 +391,46 @@ def test_acled_empty_unrestricted_response_remains_successful_empty_collection()
     assert connector.last_audit.status == CollectionStatus.SUCCEEDED
     assert connector.last_audit.failure_category is None
     client.close()
+
+
+def test_cast_historical_forecast_is_temporally_mismatched_not_current():
+    raw = cast_row()
+    raw.update(
+        {
+            "country": "China",
+            "admin1": "Macao",
+            "month": "February",
+            "year": 2024,
+            "timestamp": 1704898538,
+        }
+    )
+    connector = CASTConnector("https://acleddata.com/api", None)
+    records = connector.normalize_official(raw, "China", 6)
+    assert len(records) == 4
+    assert all(row.alignment_status == "mismatch" for row in records)
+    assert all(any("temporal mismatch" in note for note in row.alignment_notes) for row in records)
+    assert all(
+        row.provenance["temporal_classification"] == "historical_forecast" for row in records
+    )
+    assert all(row.provenance["current_operational_signal"] is False for row in records)
+    assert all(row.target_end < row.retrieved_at for row in records)
+
+
+def test_cast_future_forecast_remains_temporally_current():
+    future = datetime.now(UTC) + timedelta(days=400)
+    raw = cast_row()
+    raw.update(
+        {
+            "month": future.strftime("%B"),
+            "year": future.year,
+            "timestamp": int(datetime.now(UTC).timestamp()),
+        }
+    )
+    connector = CASTConnector("https://acleddata.com/api", None)
+    records = connector.normalize_official(raw, "Spain", 6)
+    assert len(records) == 4
+    assert all(row.alignment_status == "aligned" for row in records)
+    assert all(
+        row.provenance["temporal_classification"] == "current_or_future_forecast" for row in records
+    )
+    assert all(row.provenance["current_operational_signal"] is True for row in records)
