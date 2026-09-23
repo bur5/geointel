@@ -106,7 +106,7 @@ class GDELTConnector:
     def collect(self, location: str, horizon_months: int = 12) -> list[NormalizedNewsReport]:
         del horizon_months  # News collection has its own documented current window.
         audit = CollectionAudit(
-            "GDELT", "0.1.3", IntegrationMode.OFFICIAL_API, "gdelt-doc2-artlist-json-v1"
+            "GDELT", "0.1.3.1", IntegrationMode.OFFICIAL_API, "gdelt-doc2-artlist-json-v1"
         )
         self.last_audit = audit
         end = self._now().astimezone(UTC).replace(microsecond=0)
@@ -129,7 +129,9 @@ class GDELTConnector:
             "enddatetime": end.strftime("%Y%m%d%H%M%S"),
         }
         try:
-            payload, request_url, attempts = self.transport.get_json(self.base_url, params=params)
+            payload, request_url, attempts = self.transport.get_json(
+                self.base_url, params=params, retry_rate_limited=False
+            )
             audit.request_count = attempts
             audit.page_count = 1
             rows = self._articles(payload)
@@ -157,6 +159,9 @@ class GDELTConnector:
             return output
         except TransportError as exc:
             audit.failure_category = exc.category
+            audit.rate_limited = exc.category == FailureCategory.RATE_LIMITED
+            audit.retry_after_seconds = exc.retry_after_seconds
+            audit.request_count = exc.request_count or audit.request_count
             audit.failure_reason = str(exc)
             audit.finish(CollectionStatus.FAILED)
             error = GDELTError(str(exc))

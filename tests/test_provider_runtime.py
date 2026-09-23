@@ -1,4 +1,5 @@
 import json
+from importlib import import_module
 
 import httpx
 import pytest
@@ -203,3 +204,51 @@ def test_registry_is_explicit_complete_and_secret_free(client):
     assert all(row["integration_mode"] == "DISABLED" for row in rows)
     response = client.get("/providers")
     assert response.status_code == 200 and "access_token" not in response.text.casefold()
+
+
+def test_gdelt_live_diagnostic_reports_only_sanitized_rate_limit_metadata(monkeypatch):
+    module = import_module("geointel.providers.__main__")
+    result_audit = CollectionAudit("GDELT", "0.1.3.1", IntegrationMode.OFFICIAL_API, "test")
+    result_audit.failure_category = FailureCategory.RATE_LIMITED
+    result_audit.rate_limited = True
+    result_audit.retry_after_seconds = 45
+
+    class RateLimitedConnector:
+        connector_name = "GDELT"
+        last_audit = result_audit
+
+        def collect(self, location, horizon_months):
+            del location, horizon_months
+            error = RuntimeError("provider rate limited collection")
+            error.category = FailureCategory.RATE_LIMITED
+            raise error
+
+    monkeypatch.setattr(
+        module,
+        "public_capabilities",
+        lambda settings: [
+            {
+                "provider": "GDELT",
+                "integration_mode": "OFFICIAL_API",
+                "configured": True,
+                "authentication_configured": True,
+                "enabled": True,
+            }
+        ],
+    )
+    monkeypatch.setattr(module, "connectors", lambda settings: [RateLimitedConnector()])
+
+    result = module._check_live("GDELT")
+
+    assert result == {
+        "provider": "GDELT",
+        "mode": "OFFICIAL_API",
+        "configured": True,
+        "authentication_configured": True,
+        "persisted": False,
+        "alerts_created": False,
+        "ok": False,
+        "failure_category": "RATE_LIMITED",
+        "message": "provider rate limited collection",
+        "retry_after_seconds": 45,
+    }
