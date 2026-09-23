@@ -160,8 +160,8 @@ class ACLEDConnector:
         if not rows and self._recency_restricted(audit.provider_restrictions):
             audit.failure_category = FailureCategory.RECENCY_RESTRICTED
             audit.failure_reason = (
-                "ACLED provider access restricts data recency for the requested operational window; "
-                "an empty result must not be interpreted as absence of events"
+                "ACLED provider access restricts data recency for the requested "
+                "operational window; an empty result must not be interpreted as absence of events"
             )
             audit.finish(CollectionStatus.PARTIAL)
 
