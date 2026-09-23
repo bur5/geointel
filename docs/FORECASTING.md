@@ -62,3 +62,11 @@ unverified upstream API behavior may be inferred.
 ## News boundary
 
 News reports and corroboration assessments are visible for analyst and Red Team review but never automatically create an `Event`, `Evidence`, forecast signal, indicator, or forecast. Corroborated reporting is not confirmed event truth. Article counts and news volume never increase geopolitical risk or probability. News discovery windows are independent of forecast horizons.
+
+## v0.1.5 media-story boundary
+
+Analyst and Red Team receive bounded story clusters and corroboration assessments alongside raw media
+reports. They must distinguish reports, probable story candidates, corroborated reporting, and
+validated events. Neither report nor publisher volume is a probability input. Red Team should test
+false merges, syndication-as-corroboration, volume bias, unresolved dependence, ambiguous geography,
+and stale/republished material. Candidate indicators remain review-only and cannot raise risk.

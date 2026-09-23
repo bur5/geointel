@@ -2,6 +2,7 @@ from uuid import uuid4
 
 import pytest
 
+from geointel import __version__
 from geointel.domain.models import AnalysisRun, Evidence, Forecast, ForecastSignal
 from geointel.domain.schemas import ConflictType
 
@@ -16,7 +17,7 @@ EXPECTED_TYPES = {item.value for item in ConflictType}
 def test_health(client):
     response = client.get("/health")
     assert response.status_code == 200
-    assert response.json() == {"status": "ok", "version": "0.1.4"}
+    assert response.json() == {"status": "ok", "version": __version__}
 
 
 def test_request_validation(client):
