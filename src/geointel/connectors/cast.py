@@ -180,6 +180,12 @@ class CASTConnector(VIEWSConnector):
             "explosions_remote_violence": record.erv_forecast,
             "violence_against_civilians": record.vac_forecast,
         }
+        retrieved_at = datetime.now(UTC)
+        temporal_classification = (
+            "historical_forecast"
+            if end < retrieved_at
+            else "current_or_future_forecast"
+        )
         output = []
         for target, value in targets.items():
             if value is None:
@@ -189,6 +195,11 @@ class CASTConnector(VIEWSConnector):
             if record.country.casefold() != requested_location.casefold():
                 notes.append(
                     f"location mismatch: requested {requested_location}, received {record.country}"
+                )
+            if temporal_classification == "historical_forecast":
+                notes.append(
+                    "temporal mismatch: CAST forecast target period ended before retrieval; "
+                    "retain for historical/backtesting use, not current operational forecasting"
                 )
             output.append(
                 NormalizedForecastSignal(
@@ -206,7 +217,7 @@ class CASTConnector(VIEWSConnector):
                     prediction=value,
                     unit="forecast_event_count",
                     scale="monthly",
-                    retrieved_at=datetime.now(UTC),
+                    retrieved_at=retrieved_at,
                     source_url=sanitize_url(retrieval_url) if retrieval_url else None,
                     alignment_status="mismatch" if notes else "aligned",
                     alignment_notes=notes,
@@ -221,8 +232,10 @@ class CASTConnector(VIEWSConnector):
                         "forecast_and_observed_are_distinct": True,
                         "predictive_not_observed": True,
                         "requested_horizon_months": requested_horizon_months,
+                        "temporal_classification": temporal_classification,
+                        "current_operational_signal": temporal_classification != "historical_forecast",
                         "retrieval_url": sanitize_url(retrieval_url) if retrieval_url else None,
-                        "retrieved_at": datetime.now(UTC).isoformat(),
+                        "retrieved_at": retrieved_at.isoformat(),
                         "schema": "geointel-cast-official-v1",
                     },
                 )
