@@ -182,9 +182,7 @@ class CASTConnector(VIEWSConnector):
         }
         retrieved_at = datetime.now(UTC)
         temporal_classification = (
-            "historical_forecast"
-            if end < retrieved_at
-            else "current_or_future_forecast"
+            "historical_forecast" if end < retrieved_at else "current_or_future_forecast"
         )
         output = []
         for target, value in targets.items():
