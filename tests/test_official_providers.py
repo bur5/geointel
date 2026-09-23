@@ -253,7 +253,7 @@ def cast_row():
     return {
         "country": "Spain",
         "admin1": "Madrid",
-        "month": 10,
+        "month": "October",
         "year": 2026,
         "total_forecast": 8,
         "battles_forecast": 4,
@@ -263,7 +263,7 @@ def cast_row():
         "battles_observed": 3,
         "erv_observed": 1,
         "vac_observed": 2,
-        "timestamp": "2026-09-15T00:00:00Z",
+        "timestamp": 1789430400,
     }
 
 
@@ -272,6 +272,7 @@ def test_cast_official_normalizes_four_event_count_signals_never_events():
         if request.url.path == "/oauth/token":
             return httpx.Response(200, json=token_payload(), request=request)
         assert request.url.path == "/api/cast/read"
+        assert request.url.params["country"] == "Spain"
         return httpx.Response(
             200, json={"data": [cast_row()], "next_cursor": None}, request=request
         )
@@ -292,6 +293,8 @@ def test_cast_official_normalizes_four_event_count_signals_never_events():
     assert battle.prediction == 4 and battle.unit == "forecast_event_count"
     assert battle.provenance["observed_context"]["battles"] == 3
     assert battle.provenance["forecast_and_observed_are_distinct"] is True
+    assert battle.target_start.month == 10
+    assert battle.issue_date.tzinfo is not None
     assert "probability" not in battle.model_dump() and not isinstance(
         battle, NormalizedOperationalEvent
     )
