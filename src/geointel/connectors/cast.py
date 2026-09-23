@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from calendar import monthrange
+from calendar import month_name, monthrange
 from datetime import UTC, datetime
 from typing import Any
 
@@ -28,7 +28,7 @@ class CASTRawForecast(BaseModel):
     model_config = ConfigDict(extra="forbid")
     country: str = Field(max_length=120)
     admin1: str | None = Field(default=None, max_length=160)
-    month: int = Field(ge=1, le=12)
+    month: str = Field(min_length=3, max_length=20)
     year: int = Field(ge=2000, le=2200)
     total_forecast: float | None = Field(default=None, ge=0)
     battles_forecast: float | None = Field(default=None, ge=0)
@@ -38,7 +38,7 @@ class CASTRawForecast(BaseModel):
     battles_observed: float | None = Field(default=None, ge=0)
     erv_observed: float | None = Field(default=None, ge=0)
     vac_observed: float | None = Field(default=None, ge=0)
-    timestamp: datetime
+    timestamp: int | datetime
 
 
 class CASTConnector(VIEWSConnector):
@@ -143,11 +143,24 @@ class CASTConnector(VIEWSConnector):
         retrieval_url: str | None = None,
     ) -> list[NormalizedForecastSignal]:
         record = CASTRawForecast.model_validate(raw)
-        start = datetime(record.year, record.month, 1, tzinfo=UTC)
+        try:
+            month = next(
+                index
+                for index, name in enumerate(month_name)
+                if name and name.casefold() == record.month.strip().casefold()
+            )
+        except StopIteration as exc:
+            raise ValueError(f"CAST month is invalid: {record.month!r}") from exc
+        provider_timestamp = (
+            datetime.fromtimestamp(record.timestamp, tz=UTC)
+            if isinstance(record.timestamp, int)
+            else record.timestamp.astimezone(UTC)
+        )
+        start = datetime(record.year, month, 1, tzinfo=UTC)
         end = datetime(
             record.year,
-            record.month,
-            monthrange(record.year, record.month)[1],
+            month,
+            monthrange(record.year, month)[1],
             23,
             59,
             59,
@@ -185,7 +198,7 @@ class CASTConnector(VIEWSConnector):
                     model_version=None,
                     geographic_unit=geography,
                     location=location,
-                    issue_date=record.timestamp,
+                    issue_date=provider_timestamp,
                     target_start=start,
                     target_end=end,
                     horizon_months=None,
@@ -201,7 +214,7 @@ class CASTConnector(VIEWSConnector):
                         "provider": "CAST",
                         "endpoint": "cast",
                         "record_id": identity,
-                        "provider_timestamp": record.timestamp.isoformat(),
+                        "provider_timestamp": provider_timestamp.isoformat(),
                         "forecast_type": target,
                         "native_unit": "forecast_event_count",
                         "observed_context": sanitize_mapping(observed),
