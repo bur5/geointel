@@ -409,7 +409,9 @@ def test_cast_historical_forecast_is_temporally_mismatched_not_current():
     assert all(
         any("temporal mismatch" in note for note in row.alignment_notes) for row in records
     )
-    assert all(row.provenance["temporal_classification"] == "historical_forecast" for row in records)
+    assert all(
+        row.provenance["temporal_classification"] == "historical_forecast" for row in records
+    )
     assert all(row.provenance["current_operational_signal"] is False for row in records)
     assert all(row.target_end < row.retrieved_at for row in records)
 
@@ -426,5 +428,8 @@ def test_cast_future_forecast_remains_temporally_current():
     records = connector.normalize_official(raw, "Spain", 6)
     assert len(records) == 4
     assert all(row.alignment_status == "aligned" for row in records)
-    assert all(row.provenance["temporal_classification"] == "current_or_future_forecast" for row in records)
+    assert all(
+        row.provenance["temporal_classification"] == "current_or_future_forecast"
+        for row in records
+    )
     assert all(row.provenance["current_operational_signal"] is True for row in records)
