@@ -79,6 +79,37 @@ class NormalizedOperationalEvent(BaseModel):
     provenance: dict = Field(default_factory=dict)
 
 
+class NormalizedNewsReport(BaseModel):
+    """An unverified media discovery record, never an Event or Evidence."""
+
+    provider: str = "GDELT"
+    source_record_id: str = Field(max_length=200)
+    canonical_url: str = Field(max_length=4000)
+    title: str = Field(max_length=2000)
+    publisher: str | None = Field(default=None, max_length=500)
+    publication_timestamp: datetime | None = None
+    retrieval_timestamp: datetime
+    language: str | None = Field(default=None, max_length=100)
+    source_country: str | None = Field(default=None, max_length=120)
+    requested_geography: str = Field(max_length=120)
+    provider_geography: dict | None = None
+    geographic_alignment_status: str = "unknown"
+    geographic_alignment_notes: list[str] = Field(default_factory=list)
+    temporal_classification: str = "publication_time_only"
+    temporal_alignment: str = "unknown"
+    identity_metadata: dict = Field(default_factory=dict)
+    syndication_metadata: dict = Field(default_factory=dict)
+    provenance: dict = Field(default_factory=dict)
+    epistemic_status: str = "media_report_not_confirmed_event"
+
+    @field_validator("epistemic_status")
+    @classmethod
+    def preserve_news_status(cls, value: str) -> str:
+        if value != "media_report_not_confirmed_event":
+            raise ValueError("news reports must remain unconfirmed media reports")
+        return value
+
+
 class NormalizedForecastSignal(BaseModel):
     """A provider model output; deliberately not observed Evidence or an Event."""
 

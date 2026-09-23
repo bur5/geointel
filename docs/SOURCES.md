@@ -76,3 +76,12 @@ The operational provider registry, explicit adapter-only verification state, str
 secret-safe bounded transport, failure taxonomy, and partial collection audit are specified in
 [PROVIDERS.md](PROVIDERS.md). Provider health remains operational metadata, not evidence; no
 unverified upstream API behavior may be inferred.
+
+# Current news / OSINT
+
+GDELT DOC 2.0 is used only as a broad, current-news discovery sensor. Its ArticleList records are
+stored as `NewsReport`, never automatically as `Evidence`, `Event`, `Indicator`,
+`ForecastSignal`, or `Forecast`. The underlying publisher remains distinct from GDELT as the
+discovery provider. Exact URL deduplication does not establish publisher independence;
+publication volume is not event frequency or conflict probability, and publication time is not an
+event date. See [PROVIDERS.md](PROVIDERS.md) for the bounded contract and operational controls.

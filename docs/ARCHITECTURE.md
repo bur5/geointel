@@ -62,3 +62,13 @@ The operational provider registry, explicit adapter-only verification state, str
 secret-safe bounded transport, failure taxonomy, and partial collection audit are specified in
 [PROVIDERS.md](PROVIDERS.md). Provider health remains operational metadata, not evidence; no
 unverified upstream API behavior may be inferred.
+
+# Current-news layer (v0.1.3)
+
+`NewsReport` is a first-class, provenance-bearing media discovery object related to an
+`AnalysisRun`. It is structurally separate from `Evidence`, `Event`, `Indicator`,
+`ForecastSignal`, strategic claims, and forecasts. The analysis reasoning payload exposes it as
+`news_reports`, alongside—not inside—historical evidence, recent events, predictive signals, and
+strategic context. Collection health and usable current coverage are operational metadata and
+cannot alter geopolitical risk by themselves. Automatic news-to-event/evidence promotion is
+deliberately absent.

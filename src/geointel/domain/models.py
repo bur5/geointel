@@ -92,6 +92,7 @@ class AnalysisRun(Base, UUIDMixin, TimestampMixin):
     evidence: Mapped[list["Evidence"]] = relationship(back_populates="analysis_run")
     forecast_signals: Mapped[list["ForecastSignal"]] = relationship(back_populates="analysis_run")
     events: Mapped[list["Event"]] = relationship(back_populates="analysis_run")
+    news_reports: Mapped[list["NewsReport"]] = relationship(back_populates="analysis_run")
     strategic_analyses: Mapped[list["StrategicAnalysis"]] = relationship(
         back_populates="analysis_run"
     )
@@ -343,6 +344,38 @@ class Evidence(Base, UUIDMixin, TimestampMixin):
     reliability: Mapped[str] = mapped_column(String(20))
     provenance: Mapped[dict] = mapped_column(JSON)
     analysis_run: Mapped[AnalysisRun] = relationship(back_populates="evidence")
+
+
+class NewsReport(Base, UUIDMixin, TimestampMixin):
+    """Media discovery record kept epistemically separate from evidence and events."""
+
+    __tablename__ = "news_reports"
+    __table_args__ = (
+        UniqueConstraint("analysis_run_id", "canonical_url"),
+        Index("ix_news_reports_provider_identity", "provider", "source_record_id"),
+        Index("ix_news_reports_run_published", "analysis_run_id", "publication_timestamp"),
+    )
+    analysis_run_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("analysis_runs.id"))
+    provider: Mapped[str] = mapped_column(String(40))
+    source_record_id: Mapped[str] = mapped_column(String(200))
+    canonical_url: Mapped[str] = mapped_column(Text)
+    title: Mapped[str] = mapped_column(Text)
+    publisher: Mapped[str | None] = mapped_column(String(500))
+    publication_timestamp: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    retrieval_timestamp: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    language: Mapped[str | None] = mapped_column(String(100))
+    source_country: Mapped[str | None] = mapped_column(String(120))
+    requested_geography: Mapped[str] = mapped_column(String(120))
+    provider_geography: Mapped[dict | None] = mapped_column(JSON)
+    geographic_alignment_status: Mapped[str] = mapped_column(String(30))
+    geographic_alignment_notes: Mapped[list] = mapped_column(JSON)
+    temporal_classification: Mapped[str] = mapped_column(String(50))
+    temporal_alignment: Mapped[str] = mapped_column(String(30))
+    identity_metadata: Mapped[dict] = mapped_column(JSON)
+    syndication_metadata: Mapped[dict] = mapped_column(JSON)
+    provenance: Mapped[dict] = mapped_column(JSON)
+    epistemic_status: Mapped[str] = mapped_column(String(50))
+    analysis_run: Mapped[AnalysisRun] = relationship(back_populates="news_reports")
 
 
 class Event(Base, UUIDMixin, TimestampMixin):

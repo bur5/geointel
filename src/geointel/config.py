@@ -42,6 +42,11 @@ class Settings(BaseSettings):
     cast_endpoint_path: str | None = None
     cast_timeout_seconds: float = 10.0
     cast_max_retries: int = 2
+    gdelt_enabled: bool = False
+    gdelt_mode: str = "disabled"
+    gdelt_base_url: str = "https://api.gdeltproject.org/api/v2/doc/doc"
+    gdelt_timeout_seconds: float = 10.0
+    gdelt_max_retries: int = 2
     provider_allow_private_networks: bool = False
     provider_max_pages: int = 10
     provider_max_records: int = 10_000
@@ -55,6 +60,7 @@ class Settings(BaseSettings):
             ("UCDP", self.ucdp_mode),
             ("ACLED", self.acled_mode),
             ("CAST", self.cast_mode),
+            ("GDELT", self.gdelt_mode),
         ):
             if mode.casefold() not in modes:
                 raise ValueError(f"{name}_MODE must be one of {sorted(modes)}")
@@ -65,12 +71,18 @@ class Settings(BaseSettings):
             self.acled_enabled = True
         if self.cast_mode.casefold() != "disabled":
             self.cast_enabled = True
+        if self.gdelt_mode.casefold() != "disabled":
+            self.gdelt_enabled = True
+        elif self.gdelt_enabled:
+            # GDELT has only the verified official contract; ENABLED is a compatibility switch.
+            self.gdelt_mode = "official_api"
         if (
             min(
                 self.ucdp_timeout,
                 self.views_timeout_seconds,
                 self.acled_timeout_seconds,
                 self.cast_timeout_seconds,
+                self.gdelt_timeout_seconds,
             )
             <= 0
         ):
@@ -81,6 +93,7 @@ class Settings(BaseSettings):
                 self.views_max_retries,
                 self.acled_max_retries,
                 self.cast_max_retries,
+                self.gdelt_max_retries,
             )
             < 0
         ):
@@ -124,6 +137,7 @@ class Settings(BaseSettings):
             ("VIEWS", self.views_enabled, self.views_base_url),
             ("ACLED", self.acled_enabled, self.acled_base_url),
             ("CAST", self.cast_enabled, self.cast_base_url),
+            ("GDELT", self.gdelt_enabled, self.gdelt_base_url),
         ):
             if enabled:
                 try:

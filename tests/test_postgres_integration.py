@@ -13,12 +13,14 @@ from geointel.domain.models import (
     Forecast,
     ForecastSignal,
     KnowledgeWork,
+    NewsReport,
     StrategicAnalysis,
     StrategicClaim,
 )
 from geointel.domain.schemas import (
     AnalysisRequest,
     NormalizedForecastSignal,
+    NormalizedNewsReport,
     NormalizedOperationalEvent,
 )
 from geointel.knowledge.ingestion import KnowledgeIngestor
@@ -103,6 +105,40 @@ def test_postgres_operational_event_and_predictive_signal_persistence():
             .count()
             == 1
         )
+
+
+@pytest.mark.skipif(not os.getenv("POSTGRES_TEST_URL"), reason="PostgreSQL service unavailable")
+def test_postgres_news_report_persistence_remains_separate():
+    class NewsFixture:
+        connector_name = "GDELT"
+
+        def collect(self, location, horizon_months):
+            del horizon_months
+            now = datetime.now(UTC)
+            return [
+                NormalizedNewsReport(
+                    source_record_id="synthetic-news-id",
+                    canonical_url="https://example.invalid/synthetic-news",
+                    title="Synthetic media report",
+                    retrieval_timestamp=now,
+                    requested_geography=location,
+                    provenance={"synthetic_fixture": True},
+                )
+            ]
+
+    engine = create_engine(os.environ["POSTGRES_TEST_URL"])
+    request = AnalysisRequest(
+        location="Spain",
+        question="Assess organized political violence in Spain for the next twelve months.",
+        horizon_months=12,
+    )
+    with Session(engine, expire_on_commit=False) as session:
+        model = OfflineModel()
+        AnalysisPipeline(session, ModelRouter(model, model, model), [NewsFixture()]).run(request)
+        assert (
+            session.query(NewsReport).filter_by(source_record_id="synthetic-news-id").count() == 1
+        )
+        assert session.query(Event).filter_by(source_record_id="synthetic-news-id").count() == 0
 
 
 @pytest.mark.skipif(not os.getenv("POSTGRES_TEST_URL"), reason="PostgreSQL service unavailable")

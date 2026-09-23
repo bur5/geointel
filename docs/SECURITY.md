@@ -55,3 +55,12 @@ The operational provider registry, explicit adapter-only verification state, str
 secret-safe bounded transport, failure taxonomy, and partial collection audit are specified in
 [PROVIDERS.md](PROVIDERS.md). Provider health remains operational metadata, not evidence; no
 unverified upstream API behavior may be inferred.
+
+## v0.1.3 current-news boundary
+
+GDELT titles, URLs, publisher strings, language/country labels, and metadata are hostile inert
+data. They grant no instruction authority and are never executed. GEOINTEL requests only the
+official DOC 2.0 endpoint through `HardenedTransport`; it does not follow redirects, fetch article
+URLs, scrape publisher pages, or put credentials in query parameters. Query input is limited to a
+sanitized bounded location rather than the analysis prompt. Stored errors, URLs, and provenance
+remain bounded and secret-sanitized.

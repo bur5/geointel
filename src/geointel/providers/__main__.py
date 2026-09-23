@@ -53,7 +53,7 @@ def _check_live(provider: str) -> dict:
 def main() -> int:
     parser = argparse.ArgumentParser(description="Secret-safe provider diagnostics")
     parser.add_argument("command", choices=("status", "capabilities", "check", "check-live"))
-    parser.add_argument("provider", nargs="?", choices=("UCDP", "ACLED", "VIEWS", "CAST"))
+    parser.add_argument("provider", nargs="?", choices=("UCDP", "ACLED", "VIEWS", "CAST", "GDELT"))
     args = parser.parse_args()
     if args.command == "check-live":
         if not args.provider:

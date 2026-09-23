@@ -1,3 +1,3 @@
-"""GEOINTEL v0.1.2."""
+"""GEOINTEL v0.1.3."""
 
-__version__ = "0.1.2"
+__version__ = "0.1.3"
