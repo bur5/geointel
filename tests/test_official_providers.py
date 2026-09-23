@@ -1,3 +1,5 @@
+from datetime import date, timedelta
+
 import httpx
 import pytest
 
@@ -211,11 +213,18 @@ def test_acled_official_cursor_event_identity_fatalities_duplicate_and_bearer_se
     ].fatalities == 4
     assert connector.last_audit.duplicates == 1
     assert [request.url.params["cursor"] for request in event_requests] == ["0", "next"]
+    assert all(request.url.params["event_date_where"] == "BETWEEN" for request in event_requests)
+    for request in event_requests:
+        start_text, end_text = request.url.params["event_date"].split("|")
+        start, end = date.fromisoformat(start_text), date.fromisoformat(end_text)
+        assert end - start == timedelta(days=90)
+        assert end == date.today()
     assert all(
         request.headers["authorization"] == "Bearer test-access" for request in event_requests
     )
     assert "test-access" not in str([row.provenance for row in records])
     assert records[0].provenance["fatalities_are_reported_not_precise"] is True
+    assert records[0].provenance["operational_window_days"] == 90
     client.close()
 
 
