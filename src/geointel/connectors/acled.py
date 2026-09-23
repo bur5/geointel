@@ -111,6 +111,12 @@ class ACLEDConnector:
         )
         self.last_audit = audit
         retrieval_urls: dict[str, str] = {}
+        # The operational ACLED layer is explicitly a rolling 0-90 day window. Filter
+        # at the provider boundary so historical rows are not downloaded and then
+        # misrepresented as operational input. ACLED documents event_date BETWEEN.
+        window_end = datetime.now(UTC).date()
+        window_start = window_end - timedelta(days=90)
+        event_date_range = f"{window_start.isoformat()}|{window_end.isoformat()}"
 
         def fetch(cursor):
             token = self.oauth.access_token()
@@ -118,6 +124,8 @@ class ACLEDConnector:
                 f"{self.base_url}/acled/read",
                 params={
                     "country": location,
+                    "event_date": event_date_range,
+                    "event_date_where": "BETWEEN",
                     "cursor": "0" if cursor is None else cursor,
                     "limit": min(self.max_records, 5000),
                 },
@@ -269,6 +277,7 @@ class ACLEDConnector:
                 "endpoint": "acled/read" if self.official_api else "operator-adapter",
                 "observed_report_not_prediction": True,
                 "fatalities_are_reported_not_precise": True,
+                "operational_window_days": 90,
                 "raw_adapter_record": sanitize_mapping(record.model_dump(mode="json")),
             },
         )
