@@ -29,6 +29,7 @@ from geointel.domain.schemas import (
 )
 from geointel.knowledge.lenses import KissingerLens, LensRegistry
 from geointel.knowledge.retrieval import KnowledgeQuery, LexicalKnowledgeRetriever
+from geointel.news.corroboration import assess_cluster, cluster_reports
 from geointel.providers.base import ModelRouter
 from geointel.providers.runtime import sanitize_text
 
@@ -167,7 +168,14 @@ class AnalysisPipeline:
         evidence = self._deduplicate(evidence, self._record_key)
         signals = self._deduplicate(signals, self._record_key)
         events = self._deduplicate(events, self._record_key)
-        news_reports = self._deduplicate(news_reports, self._record_key)
+        all_news_observations = list(news_reports)
+        clusters = cluster_reports(all_news_observations)
+        assessed_at = datetime.now(UTC)
+        corroboration = [
+            assess_cluster(cluster, all_news_observations, assessed_at=assessed_at)
+            for cluster in clusters
+        ]
+        news_reports = self._merge_news_duplicates(news_reports)
         for item in evidence:
             source = self.session.scalar(select(Source).where(Source.name == item.source_name))
             if not source:
@@ -273,11 +281,20 @@ class AnalysisPipeline:
             "forecast_signal_count": len(signals),
             "recent_event_count": len(events),
             "news_report_count": len(news_reports),
+            "news_report_observation_count": len(all_news_observations),
+            "story_cluster_count": len(clusters),
+            "story_clusters": [item.model_dump(mode="json") for item in clusters],
+            "corroboration_assessments": [item.model_dump(mode="json") for item in corroboration],
             "gdelt_connector_outcome": gdelt_outcomes[0] if gdelt_outcomes else None,
             "connector_failures": connector_errors,
             "connector_outcomes": outcomes,
             "external_collection_succeeded": any(item["succeeded"] for item in outcomes),
-            "current_operational_coverage_available": bool(news_reports or events),
+            "current_operational_coverage_available": bool(
+                events or any(item.provider == "GDELT" for item in news_reports)
+            ),
+            "delayed_news_discovery_coverage_available": any(
+                item.provider == "NEWSAPI" for item in news_reports
+            ),
             "collected_at": datetime.now(UTC).isoformat(),
         }
         strategic_context = self._strategic_analysis(run, request, evidence, events, signals)
@@ -453,5 +470,22 @@ class AnalysisPipeline:
             # Records without provider identity are kept distinct rather than guessed equal.
             return ("evidence", record.source_name, record.source_record_id or id(record))
         if isinstance(record, NormalizedNewsReport):
-            return ("news_report", record.provider, record.canonical_url)
+            return ("news_report", record.canonical_url)
         return (type(record).__name__, record.provider, record.source_record_id)
+
+    @staticmethod
+    def _merge_news_duplicates(records):
+        """Retain one exact identity while preserving every observing provider."""
+        unique = {}
+        for record in records:
+            existing = unique.get(record.canonical_url)
+            if existing is None:
+                record.provenance["observed_by_providers"] = [record.provider]
+                unique[record.canonical_url] = record
+                continue
+            providers = existing.provenance.setdefault("observed_by_providers", [existing.provider])
+            if record.provider not in providers:
+                providers.append(record.provider)
+            existing.syndication_metadata["exact_cross_provider_duplicate"] = True
+            existing.syndication_metadata["independence_status"] = "LIKELY_SHARED_UPSTREAM"
+        return list(unique.values())

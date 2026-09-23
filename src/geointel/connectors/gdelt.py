@@ -6,11 +6,11 @@ import hashlib
 import re
 from datetime import UTC, datetime, timedelta
 from typing import Any
-from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator
 
 from geointel.domain.schemas import NormalizedNewsReport
+from geointel.news.identity import canonicalize_article_url
 from geointel.providers.runtime import (
     CollectionAudit,
     CollectionStatus,
@@ -22,7 +22,6 @@ from geointel.providers.runtime import (
     sanitize_url,
 )
 
-TRACKING_QUERY_KEYS = {"fbclid", "gclid", "mc_cid", "mc_eid"}
 SAFE_LOCATION = re.compile(r"[^\w .,'()\-]", re.UNICODE)
 
 
@@ -52,24 +51,6 @@ class GDELTArticle(BaseModel):
                 except ValueError:
                     pass
         return value
-
-
-def canonicalize_article_url(value: str) -> str:
-    """Normalize representation only; never infer identity from article text."""
-    parts = urlsplit(value.strip())
-    if parts.scheme.casefold() not in {"http", "https"} or not parts.hostname:
-        raise ValueError("article URL must be absolute HTTP(S)")
-    scheme, host = parts.scheme.casefold(), parts.hostname.rstrip(".").casefold()
-    port = parts.port
-    netloc = host if port in {None, 80 if scheme == "http" else 443} else f"{host}:{port}"
-    path = parts.path or "/"
-    query = []
-    for key, val in parse_qsl(parts.query, keep_blank_values=True):
-        lowered = key.casefold()
-        if lowered.startswith("utm_") or lowered in TRACKING_QUERY_KEYS:
-            continue
-        query.append((key, val))
-    return urlunsplit((scheme, netloc, path, urlencode(query), ""))
 
 
 def build_location_query(location: str) -> str:

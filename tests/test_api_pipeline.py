@@ -16,7 +16,7 @@ EXPECTED_TYPES = {item.value for item in ConflictType}
 def test_health(client):
     response = client.get("/health")
     assert response.status_code == 200
-    assert response.json() == {"status": "ok", "version": "0.1.3.1"}
+    assert response.json() == {"status": "ok", "version": "0.1.4"}
 
 
 def test_request_validation(client):

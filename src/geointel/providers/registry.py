@@ -55,6 +55,10 @@ DOCS = {
         "https://blog.gdeltproject.org/gdelt-doc-2-0-api-debuts/",
         "https://api.gdeltproject.org/api/v2/doc/doc",
     ),
+    "NEWSAPI": (
+        "https://newsapi.org/docs/endpoints/everything",
+        "https://newsapi.org/docs/authentication",
+    ),
 }
 
 
@@ -154,6 +158,21 @@ def capabilities(settings: Settings | None = None) -> list[ProviderCapability]:
             page=250,
             deps=(),
         ),
+        "NEWSAPI": dict(
+            enabled=settings.newsapi_enabled,
+            configured=bool(settings.newsapi_api_key),
+            requested=settings.newsapi_mode,
+            auth=bool(settings.newsapi_api_key),
+            role="news_reporting_discovery_not_confirmed_event",
+            status=DocumentationStatus.PARTIALLY_VERIFIED,
+            schema="newsapi-everything-v1",
+            geo=("query_relevance_only",),
+            temporal=("publication_timestamp", "developer_plan_24_hour_delay"),
+            pagination="page/pageSize bounded by max pages, records, and request budget",
+            rate="Developer: development only, 100 requests/day, ~1 month history",
+            page=100,
+            deps=(),
+        ),
     }
     rows = []
     for name, item in definitions.items():
@@ -161,11 +180,13 @@ def capabilities(settings: Settings | None = None) -> list[ProviderCapability]:
         rows.append(
             ProviderCapability(
                 provider=name,
-                connector_version="0.1.3.1" if name == "GDELT" else "0.1.2",
+                connector_version="0.1.4" if name in {"GDELT", "NEWSAPI"} else "0.1.2",
                 integration_mode=mode,
                 documentation_status=item["status"],
                 official_documentation=DOCS[name],
-                documentation_accessed="2026-09-23" if name == "GDELT" else "2026-09-22",
+                documentation_accessed="2026-09-23"
+                if name in {"GDELT", "NEWSAPI"}
+                else "2026-09-22",
                 authentication_required=None if name == "VIEWS" else name != "GDELT",
                 authentication_configured=item["auth"],
                 configured=item["configured"],

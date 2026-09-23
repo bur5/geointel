@@ -14,6 +14,7 @@ from geointel.connectors.acled import ACLEDConnector
 from geointel.connectors.base import DisabledConnector, EvidenceConnector
 from geointel.connectors.cast import CASTConnector
 from geointel.connectors.gdelt import GDELTConnector
+from geointel.connectors.newsapi import NewsAPIConnector
 from geointel.connectors.ucdp import UCDPConnector
 from geointel.connectors.views import VIEWSConnector
 from geointel.domain.database import get_session
@@ -134,6 +135,27 @@ def connectors(settings: Settings | None = None) -> list[EvidenceConnector]:
                     allow_private=settings.provider_allow_private_networks,
                 ),
                 max_records=min(settings.provider_max_records, 250),
+            )
+        )
+    if settings.newsapi_enabled:
+        result.append(
+            NewsAPIConnector(
+                settings.newsapi_base_url,
+                settings.newsapi_api_key or "",
+                settings.newsapi_timeout_seconds,
+                settings.newsapi_max_retries,
+                transport=HardenedTransport(
+                    timeout=settings.newsapi_timeout_seconds,
+                    retries=settings.newsapi_max_retries,
+                    max_bytes=settings.provider_max_response_bytes,
+                    allow_private=settings.provider_allow_private_networks,
+                ),
+                max_pages=settings.newsapi_max_pages,
+                max_records=settings.newsapi_max_records,
+                request_budget=settings.newsapi_request_budget,
+                page_size=settings.newsapi_page_size,
+                window_days=settings.newsapi_window_days,
+                entitlement=settings.newsapi_entitlement,
             )
         )
     return result

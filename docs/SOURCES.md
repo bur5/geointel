@@ -85,3 +85,7 @@ stored as `NewsReport`, never automatically as `Evidence`, `Event`, `Indicator`,
 discovery provider. Exact URL deduplication does not establish publisher independence;
 publication volume is not event frequency or conflict probability, and publication time is not an
 event date. See [PROVIDERS.md](PROVIDERS.md) for the bounded contract and operational controls.
+
+## Reporting sources
+
+NewsAPI and GDELT are discovery/reporting sources, not event truth. GDELT remains `PARTIALLY_VERIFIED` following persistent live HTTP 429 observations. NewsAPI is `PARTIALLY_VERIFIED`: its official contract and operator connectivity were tested, while Developer access is development-only (100 requests/day), delayed 24 hours, and limited to roughly one month. Cross-provider copies of the same Reuters/AP/AFP or canonical article are one reporting chain, not independent confirmations. Publication time is not occurrence time.
