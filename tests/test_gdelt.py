@@ -19,11 +19,11 @@ from geointel.providers.runtime import FailureCategory, HardenedTransport
 NOW = datetime(2026, 9, 23, 12, tzinfo=UTC)
 
 
-def connector(payload, *, status=200, max_bytes=1_000_000, counter=None):
+def connector(payload, *, status=200, headers=None, max_bytes=1_000_000, counter=None):
     def handler(request):
         if counter is not None:
             counter.append(request)
-        return httpx.Response(status, json=payload, request=request)
+        return httpx.Response(status, json=payload, headers=headers, request=request)
 
     client = httpx.Client(transport=httpx.MockTransport(handler))
     transport = HardenedTransport(client=client, retries=0, max_bytes=max_bytes)
@@ -99,6 +99,55 @@ def test_http_failure_uses_transport_failure_taxonomy():
     with pytest.raises(GDELTError) as exc:
         connector({}, status=503).collect("Spain")
     assert exc.value.category == FailureCategory.PROVIDER_5XX
+
+
+@pytest.mark.parametrize(
+    "retry_after,expected",
+    [("120", 120), (None, None), ("tomorrow", None), ("999999999", 3600)],
+)
+def test_rate_limit_is_single_request_and_retry_after_is_safely_exposed(retry_after, expected):
+    requests = []
+    headers = (
+        {"Retry-After": retry_after, "Set-Cookie": "secret-cookie"}
+        if retry_after
+        else {"Set-Cookie": "secret-cookie"}
+    )
+    gdelt = connector(
+        {"unsafe_body": "token=body-secret"}, status=429, headers=headers, counter=requests
+    )
+
+    with pytest.raises(GDELTError) as exc:
+        gdelt.collect("Spain")
+
+    assert exc.value.category == FailureCategory.RATE_LIMITED
+    assert len(requests) == 1
+    assert gdelt.last_audit.request_count == 1
+    assert gdelt.last_audit.rate_limited is True
+    assert gdelt.last_audit.retry_after_seconds == expected
+    rendered = str(gdelt.last_audit.public())
+    assert "body-secret" not in rendered and "secret-cookie" not in rendered
+
+
+def test_rate_limit_produces_no_domain_records_or_operational_coverage(session):
+    pipeline = AnalysisPipeline(
+        session,
+        ModelRouter(OfflineModel(), OfflineModel()),
+        connectors=[connector({"articles": [article()]}, status=429)],
+    )
+    run = pipeline.run(
+        AnalysisRequest(
+            location="Spain", question="Assess organized violence carefully.", horizon_months=12
+        )
+    )
+
+    assert session.query(NewsReport).count() == 0
+    assert session.query(Event).count() == 0
+    assert session.query(Evidence).count() == 0
+    assert run.collection_metadata["current_operational_coverage_available"] is False
+    outcome = run.collection_metadata["gdelt_connector_outcome"]
+    assert outcome["status"] == "failed"
+    assert outcome["failure_category"] == "RATE_LIMITED"
+    assert outcome["record_count"] == 0
 
 
 def test_timeout_retry_and_response_size_use_hardened_transport_bounds():

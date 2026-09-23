@@ -40,12 +40,14 @@ def _check_live(provider: str) -> dict:
             collection_audit=audit.public() if audit else None,
         )
     except Exception as exc:
+        audit = getattr(connector, "last_audit", None)
         result.update(
             ok=False,
             failure_category=getattr(
                 getattr(exc, "category", None), "value", FailureCategory.UNKNOWN.value
             ),
             message=sanitize_text(str(exc), 300),
+            retry_after_seconds=(audit.retry_after_seconds if audit else None),
         )
     return result
 

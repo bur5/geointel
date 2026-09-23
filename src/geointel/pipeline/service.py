@@ -142,6 +142,8 @@ class AnalysisPipeline:
                 )
             except Exception as exc:
                 safe_error = self._safe_error(exc)
+                audit = getattr(connector, "last_audit", None)
+                audit_public = audit.public() if audit is not None else None
                 logger.warning(
                     "evidence_connector_failed",
                     extra={"connector": connector_name, "error": safe_error},
@@ -155,6 +157,10 @@ class AnalysisPipeline:
                         "succeeded": False,
                         "record_count": 0,
                         "failure_reason": safe_error,
+                        "failure_category": (
+                            audit_public.get("failure_category") if audit_public else None
+                        ),
+                        "collection_audit": audit_public,
                         "collection_timestamp": collected_at,
                     }
                 )

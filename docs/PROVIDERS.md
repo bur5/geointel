@@ -1,4 +1,4 @@
-# Provider operations (v0.1.3)
+# Provider operations (v0.1.3.1)
 
 Provider responses are **untrusted data**. Provider configuration, authentication, health, and
 failures are operational metadata; they are never geopolitical evidence or escalation signals.
@@ -10,7 +10,7 @@ No live provider is enabled by default and CI performs no live request.
 | ACLED Event | observed/reported events | `OFFICIAL_API` | **VERIFIED** | ACLED OAuth bearer token |
 | ACLED CAST | predictive monthly event counts | `OFFICIAL_API` | **VERIFIED** | shared ACLED OAuth client |
 | VIEWS | predictive model output | `OPERATOR_ADAPTER` | **OPERATOR_ADAPTER_REQUIRED** | adapter-defined |
-| GDELT DOC 2.0 | news/OSINT discovery sensor | `OFFICIAL_API` | **VERIFIED** | none |
+| GDELT DOC 2.0 | news/OSINT discovery sensor | `OFFICIAL_API` | **PARTIALLY_VERIFIED** | none |
 
 `OFFICIAL_API`, `OPERATOR_ADAPTER`, `FIXTURE`, and `DISABLED` remain the exact integration-mode
 set. `GET /providers` and `python -m geointel.providers status` report mode, configured/enabled
@@ -119,6 +119,20 @@ Future work could implement an explicit, human-reviewable corroboration workflow
 underlying claims with independent primary or validated event sources, records contradictions,
 and creates a separately attributed promotion decision. v0.1.3 intentionally implements no such
 automatic promotion or independence claim.
+
+**Operator observation (2026-09-22/23; not a permanent property of GDELT):** the official DOC
+2.0 endpoint was reachable but returned HTTP 429 during repeated, bounded diagnostic attempts.
+One attempt encountered a TLS handshake timeout at the default 10-second timeout. Raising the
+local `GDELT_TIMEOUT_SECONDS` to 30 seconds allowed TLS connectivity, after which the endpoint
+again returned HTTP 429. Successful live data and schema normalization verification therefore
+remains pending; GDELT must not be described as production/live verified.
+
+v0.1.3.1 classifies a definitive 429 as `RATE_LIMITED`, makes no follow-up GDELT request, and
+returns a sanitized `retry_after_seconds` diagnostic when `Retry-After` contains decimal delay
+seconds. Values are capped at 3,600 seconds; missing or malformed values become `null`. The
+diagnostic does not sleep on or retry a 429, expose the response body or headers, persist records,
+create alerts, or treat provider health as geopolitical evidence or operational coverage. The
+timeout remains locally configurable; the default was not increased.
 
 ## Explicit live connectivity diagnostics
 

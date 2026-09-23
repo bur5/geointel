@@ -72,6 +72,7 @@ class CollectionAudit:
     duplicates: int = 0
     truncated: bool = False
     rate_limited: bool = False
+    retry_after_seconds: int | None = None
     failure_category: FailureCategory | None = None
     failure_reason: str | None = None
     rejection_reasons: list[str] = field(default_factory=list)
@@ -149,9 +150,32 @@ def validate_provider_url(url: str, *, allow_private: bool = False) -> str:
 
 
 class TransportError(RuntimeError):
-    def __init__(self, category: FailureCategory, message: str):
+    def __init__(
+        self,
+        category: FailureCategory,
+        message: str,
+        *,
+        retry_after_seconds: int | None = None,
+        request_count: int | None = None,
+    ):
         self.category = category
+        self.retry_after_seconds = retry_after_seconds
+        self.request_count = request_count
         super().__init__(sanitize_text(message))
+
+
+MAX_RETRY_AFTER_SECONDS = 3600
+
+
+def parse_retry_after(value: str | None) -> int | None:
+    """Parse delay-seconds conservatively and cap untrusted upstream advice."""
+    if value is None or not value.isascii() or not value.isdigit():
+        return None
+    try:
+        seconds = int(value)
+    except ValueError:  # Defensive for unexpectedly large integer strings.
+        return None
+    return min(seconds, MAX_RETRY_AFTER_SECONDS)
 
 
 class HardenedTransport:
@@ -178,6 +202,7 @@ class HardenedTransport:
         *,
         params: dict[str, Any] | None = None,
         headers: dict[str, str] | None = None,
+        retry_rate_limited: bool = True,
     ) -> tuple[Any, str, int]:
         validate_provider_url(url, allow_private=self.allow_private)
         owned = self.client is None
@@ -201,17 +226,24 @@ class HardenedTransport:
                         raise TransportError(
                             category, f"provider returned HTTP {response.status_code}"
                         )
-                    retryable = response.status_code in {408, 429} or response.status_code >= 500
+                    retry_after_seconds = parse_retry_after(response.headers.get("Retry-After"))
+                    retryable = (
+                        response.status_code == 408
+                        or response.status_code >= 500
+                        or (response.status_code == 429 and retry_rate_limited)
+                    )
                     if retryable and attempt < self.retries:
                         delay = min(2.0, 0.05 * (2**attempt))
-                        retry_after = response.headers.get("Retry-After", "")
-                        if retry_after.isdigit():
-                            delay = min(2.0, float(retry_after))
+                        if retry_after_seconds is not None:
+                            delay = min(2.0, float(retry_after_seconds))
                         self.sleep(delay)
                         continue
                     if response.status_code == 429:
                         raise TransportError(
-                            FailureCategory.RATE_LIMITED, "provider rate limited collection"
+                            FailureCategory.RATE_LIMITED,
+                            "provider rate limited collection",
+                            retry_after_seconds=retry_after_seconds,
+                            request_count=attempt + 1,
                         )
                     if response.status_code >= 500:
                         raise TransportError(

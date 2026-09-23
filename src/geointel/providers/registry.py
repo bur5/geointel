@@ -145,12 +145,12 @@ def capabilities(settings: Settings | None = None) -> list[ProviderCapability]:
             requested=settings.gdelt_mode,
             auth=False,
             role="news_osint_discovery_sensor_not_confirmed_event",
-            status=DocumentationStatus.VERIFIED,
+            status=DocumentationStatus.PARTIALLY_VERIFIED,
             schema="gdelt-doc2-artlist-json-v1",
             geo=("query_relevance_only",),
             temporal=("publication_timestamp", "rolling_0_90_days"),
             pagination="single bounded ArticleList response; no pagination inferred",
-            rate="provider policy; bounded retries",
+            rate="429 is terminal for each bounded GDELT collection; Retry-After is diagnostic",
             page=250,
             deps=(),
         ),
@@ -161,7 +161,7 @@ def capabilities(settings: Settings | None = None) -> list[ProviderCapability]:
         rows.append(
             ProviderCapability(
                 provider=name,
-                connector_version="0.1.3" if name == "GDELT" else "0.1.2",
+                connector_version="0.1.3.1" if name == "GDELT" else "0.1.2",
                 integration_mode=mode,
                 documentation_status=item["status"],
                 official_documentation=DOCS[name],
