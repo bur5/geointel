@@ -175,7 +175,11 @@ class ACLEDConnector:
                 audit.reject(exc)
         if audit.rejected and audit.status == CollectionStatus.SUCCEEDED:
             audit.finish(CollectionStatus.PARTIAL)
-        if not rows and audit.failure_category:
+        if (
+            not rows
+            and audit.failure_category
+            and audit.failure_category != FailureCategory.RECENCY_RESTRICTED
+        ):
             error = ACLEDError(f"ACLED collection failed: {audit.failure_reason}")
             error.category = audit.failure_category
             raise error
