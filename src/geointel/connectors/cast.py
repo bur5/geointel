@@ -233,7 +233,9 @@ class CASTConnector(VIEWSConnector):
                         "predictive_not_observed": True,
                         "requested_horizon_months": requested_horizon_months,
                         "temporal_classification": temporal_classification,
-                        "current_operational_signal": temporal_classification != "historical_forecast",
+                        "current_operational_signal": (
+                            temporal_classification != "historical_forecast"
+                        ),
                         "retrieval_url": sanitize_url(retrieval_url) if retrieval_url else None,
                         "retrieved_at": retrieved_at.isoformat(),
                         "schema": "geointel-cast-official-v1",
