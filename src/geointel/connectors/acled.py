@@ -223,7 +223,13 @@ class ACLEDConnector:
     def _recency_restricted(restrictions: dict[str, Any]) -> bool:
         if not restrictions:
             return False
-        value = restrictions.get("data_recency")
+        # Production ACLED currently exposes Research-tier delay under
+        # data_query_restrictions.date_recency (for example a structured
+        # {"quantity": 12, "unit": "Months", ...} object). Keep support for
+        # the earlier/adapter data_recency spelling for backwards compatibility.
+        value = restrictions.get("date_recency")
+        if value in (None, False, "", [], {}):
+            value = restrictions.get("data_recency")
         if value in (None, False, "", [], {}):
             return False
         if isinstance(value, str) and value.strip().casefold() in {
