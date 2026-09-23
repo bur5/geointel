@@ -44,6 +44,7 @@ class FailureCategory(StrEnum):
     PAYLOAD_TOO_LARGE = "PAYLOAD_TOO_LARGE"
     UNSUPPORTED_PROVIDER_VERSION = "UNSUPPORTED_PROVIDER_VERSION"
     DISABLED = "DISABLED"
+    RECENCY_RESTRICTED = "RECENCY_RESTRICTED"
     UNKNOWN = "UNKNOWN"
 
 
@@ -74,6 +75,7 @@ class CollectionAudit:
     failure_category: FailureCategory | None = None
     failure_reason: str | None = None
     rejection_reasons: list[str] = field(default_factory=list)
+    provider_restrictions: dict[str, Any] = field(default_factory=dict)
 
     def finish(self, status: CollectionStatus) -> None:
         self.status, self.completed_at = status, datetime.now(UTC)
