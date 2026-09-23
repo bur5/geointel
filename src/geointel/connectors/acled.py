@@ -11,6 +11,7 @@ from geointel.providers.acled_auth import ACLEDOAuthClient
 from geointel.providers.runtime import (
     CollectionAudit,
     CollectionStatus,
+    FailureCategory,
     HardenedTransport,
     IntegrationMode,
     paginate,
@@ -134,6 +135,11 @@ class ACLEDConnector:
             if not isinstance(payload, dict) or not isinstance(payload.get("data"), list):
                 raise ValueError("ACLED response schema mismatch")
             rows = payload["data"]
+            restrictions = payload.get("data_query_restrictions")
+            if restrictions is not None:
+                if not isinstance(restrictions, dict):
+                    raise ValueError("ACLED data_query_restrictions is malformed")
+                audit.provider_restrictions = sanitize_mapping(restrictions)
             if not all(isinstance(row, dict) for row in rows):
                 raise ValueError("ACLED data contains a non-object")
             next_cursor = payload.get("next_cursor")
@@ -151,6 +157,14 @@ class ACLEDConnector:
             max_pages=self.max_pages,
             max_records=self.max_records,
         )
+        if not rows and self._recency_restricted(audit.provider_restrictions):
+            audit.failure_category = FailureCategory.RECENCY_RESTRICTED
+            audit.failure_reason = (
+                "ACLED provider access restricts data recency for the requested operational window; "
+                "an empty result must not be interpreted as absence of events"
+            )
+            audit.finish(CollectionStatus.PARTIAL)
+
         normalized = []
         for row in rows:
             try:
@@ -200,6 +214,19 @@ class ACLEDConnector:
                 last = exc
                 break
         raise ACLEDError(f"ACLED retrieval failed after {attempts} attempts: {last}") from last
+
+    @staticmethod
+    def _recency_restricted(restrictions: dict[str, Any]) -> bool:
+        if not restrictions:
+            return False
+        value = restrictions.get("data_recency")
+        if value in (None, False, "", [], {}):
+            return False
+        if isinstance(value, str) and value.strip().casefold() in {
+            "none", "unrestricted", "real-time", "realtime", "current"
+        }:
+            return False
+        return True
 
     @staticmethod
     def _transient(status: int) -> bool:
