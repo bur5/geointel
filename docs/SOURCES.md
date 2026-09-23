@@ -89,3 +89,11 @@ event date. See [PROVIDERS.md](PROVIDERS.md) for the bounded contract and operat
 ## Reporting sources
 
 NewsAPI and GDELT are discovery/reporting sources, not event truth. GDELT remains `PARTIALLY_VERIFIED` following persistent live HTTP 429 observations. NewsAPI is `PARTIALLY_VERIFIED`: its official contract and operator connectivity were tested, while Developer access is development-only (100 requests/day), delayed 24 hours, and limited to roughly one month. Cross-provider copies of the same Reuters/AP/AFP or canonical article are one reporting chain, not independent confirmations. Publication time is not occurrence time.
+
+### v0.1.5 reporting provenance
+
+Story analysis preserves discovery provider separately from publisher/domain, author/byline, named
+wire/upstream, and an optional affirmatively assigned reporting-chain ID. Missing attribution is
+`UNKNOWN`; absence of a shared marker never proves independence. Cross-provider canonical copies are
+one artifact, and different URLs/domains may be syndicated. Clustering never fetches article URLs.
+All news fields remain untrusted inert input; credentials never enter story metadata.

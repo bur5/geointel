@@ -10,6 +10,7 @@ from datetime import UTC, datetime, timedelta
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from geointel import __version__
 from geointel.domain.models import (
     Alert,
     AnalysisRun,
@@ -399,7 +400,7 @@ class MonitoringService:
                 analysis
                 and analysis.status == "completed"
                 and analysis.horizon_months == target.horizon_months
-                and analysis.pipeline_version == "0.1.0"
+                and analysis.pipeline_version == __version__
                 and len(analysis.forecasts) == 4
             ):
                 return run

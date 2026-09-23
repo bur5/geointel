@@ -73,10 +73,27 @@ strategic context. Collection health and usable current coverage are operational
 cannot alter geopolitical risk by themselves. Automatic news-to-event/evidence promotion is
 deliberately absent.
 
-## Multi-source reporting and conservative corroboration (v0.1.4)
+## Semantic story candidates and conservative corroboration (v0.1.5)
 
-GDELT and NewsAPI normalize only to `NewsReport`. Provider-neutral canonical URL identity removes known tracking parameters and recognizes exact cross-provider duplicates; it does not equate similar headlines or common domains. Exact duplicate observations retain observing-provider provenance.
+Exact canonical URL identity remains the highest-confidence duplicate layer. The deterministic
+`story-similarity-v1` layer compares different URLs using normalized headline Jaccard similarity,
+non-generic distinctive tokens, heuristic proper-name overlap, requested-location overlap, and a
+72-hour **publication**-time window. It merges only when time plus multiple textual dimensions pass
+conservative thresholds (Jaccard >= 0.42 plus three distinctive shared tokens, or location plus two
+proper names, two distinctive tokens, and Jaccard >= 0.30). Generic conflict terms are excluded.
+Complete-link placement prevents weak transitive bridges. Lower-confidence relationships remain
+`possible_same_story_unresolved`, and every decision retains its feature values. False splits are
+preferred to false merges. Publication timestamps are never treated as event occurrence times.
 
-`StoryCluster` v1 deliberately clusters exact canonical URLs only. `CorroborationAssessment` separates `INDEPENDENT`, `LIKELY_SHARED_UPSTREAM`, and `UNKNOWN` chains; different providers or domains do not prove independence, and unknown is the default. Only affirmative evidence of two independent chains yields `MULTI_SOURCE_CORROBORATED_REPORTING`. Candidate eligibility is an analyst-review result, not an Event, escalation, probability, or risk adjustment.
+Clusters expose report IDs, providers, publisher domains, publication range, match reasons, and
+uncertainty. `probable_same_story` is a candidate grouping, not a confirmed common event. Exact
+duplicates and explicit wire attribution are `LIKELY_SHARED_REPORTING_CHAIN`. Different providers
+have no independence meaning; different domains are `MULTIPLE_DISTINCT_PUBLISHERS_UNRESOLVED`.
+`MULTI_SOURCE_CORROBORATED_REPORTING` requires at least two affirmatively `INDEPENDENT` records with
+different explicit `reporting_chain_id` values and no detected common wire. It means apparently
+independent reporting supports the story, not that the event is proven.
 
-No migration was added: cluster and assessment snapshots use existing analysis-run collection metadata, while reports remain in the existing `news_reports` table.
+Candidate eligibility also requires a probable cluster, explicit geographic and current temporal
+alignment, and no stale/republished classification. It never creates an `Event`, `Evidence`,
+`Indicator`, `ForecastSignal`, escalation, or risk adjustment. Clusters and assessments remain
+analysis-run metadata, so v0.1.5 needs no schema migration.
