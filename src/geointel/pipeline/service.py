@@ -113,8 +113,7 @@ class AnalysisPipeline:
                 audit = getattr(connector, "last_audit", None)
                 audit_public = audit.public() if audit is not None else None
                 restricted = bool(
-                    audit_public
-                    and audit_public.get("failure_category") == "RECENCY_RESTRICTED"
+                    audit_public and audit_public.get("failure_category") == "RECENCY_RESTRICTED"
                 )
                 outcomes.append(
                     {
