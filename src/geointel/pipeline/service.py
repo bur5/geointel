@@ -110,15 +110,23 @@ class AnalysisPipeline:
                 events.extend(
                     item for item in records if isinstance(item, NormalizedOperationalEvent)
                 )
+                audit = getattr(connector, "last_audit", None)
+                audit_public = audit.public() if audit is not None else None
+                restricted = bool(
+                    audit_public and audit_public.get("failure_category") == "RECENCY_RESTRICTED"
+                )
                 outcomes.append(
                     {
                         "connector": connector_name,
                         "attempted": True,
-                        "status": "succeeded",
-                        "succeeded": True,
+                        "status": "recency_restricted" if restricted else "succeeded",
+                        "succeeded": not restricted,
                         "record_count": len(records),
-                        "failure_reason": None,
+                        "failure_reason": (
+                            audit_public.get("failure_reason") if restricted else None
+                        ),
                         "collection_timestamp": collected_at,
+                        "collection_audit": audit_public,
                     }
                 )
             except Exception as exc:
