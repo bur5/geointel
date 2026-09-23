@@ -345,3 +345,49 @@ def test_cast_auth_failure_and_partial_collection():
     assert connector.last_audit.status == CollectionStatus.PARTIAL
     assert connector.last_audit.failure_category == FailureCategory.PROVIDER_5XX
     client.close()
+
+
+def test_acled_empty_recency_restricted_response_is_not_successful_coverage():
+    def handler(request):
+        if request.url.path == "/oauth/token":
+            return httpx.Response(200, json=token_payload(), request=request)
+        return httpx.Response(
+            200,
+            json={
+                "data": [],
+                "next_cursor": None,
+                "data_query_restrictions": {"data_recency": "12 months"},
+            },
+            request=request,
+        )
+
+    client, transport, auth = oauth_and_transport(handler)
+    connector = ACLEDConnector(
+        "https://acleddata.com/api", None, official_api=True, oauth=auth, transport=transport
+    )
+    assert connector.collect("Spain") == []
+    assert connector.last_audit.status == CollectionStatus.PARTIAL
+    assert connector.last_audit.failure_category == FailureCategory.RECENCY_RESTRICTED
+    assert connector.last_audit.provider_restrictions == {"data_recency": "12 months"}
+    assert "absence of events" in connector.last_audit.failure_reason
+    client.close()
+
+
+def test_acled_empty_unrestricted_response_remains_successful_empty_collection():
+    def handler(request):
+        if request.url.path == "/oauth/token":
+            return httpx.Response(200, json=token_payload(), request=request)
+        return httpx.Response(
+            200,
+            json={"data": [], "next_cursor": None, "data_query_restrictions": {}},
+            request=request,
+        )
+
+    client, transport, auth = oauth_and_transport(handler)
+    connector = ACLEDConnector(
+        "https://acleddata.com/api", None, official_api=True, oauth=auth, transport=transport
+    )
+    assert connector.collect("Spain") == []
+    assert connector.last_audit.status == CollectionStatus.SUCCEEDED
+    assert connector.last_audit.failure_category is None
+    client.close()
