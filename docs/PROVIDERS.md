@@ -1,4 +1,4 @@
-# Provider operations (v0.1.2)
+# Provider operations (v0.1.3)
 
 Provider responses are **untrusted data**. Provider configuration, authentication, health, and
 failures are operational metadata; they are never geopolitical evidence or escalation signals.
@@ -10,6 +10,7 @@ No live provider is enabled by default and CI performs no live request.
 | ACLED Event | observed/reported events | `OFFICIAL_API` | **VERIFIED** | ACLED OAuth bearer token |
 | ACLED CAST | predictive monthly event counts | `OFFICIAL_API` | **VERIFIED** | shared ACLED OAuth client |
 | VIEWS | predictive model output | `OPERATOR_ADAPTER` | **OPERATOR_ADAPTER_REQUIRED** | adapter-defined |
+| GDELT DOC 2.0 | news/OSINT discovery sensor | `OFFICIAL_API` | **VERIFIED** | none |
 
 `OFFICIAL_API`, `OPERATOR_ADAPTER`, `FIXTURE`, and `DISABLED` remain the exact integration-mode
 set. `GET /providers` and `python -m geointel.providers status` report mode, configured/enabled
@@ -90,6 +91,35 @@ could not be independently retrieved in this environment (the web research servi
 VIEWS retains the strict operator-adapter schema and predictive-only semantics. Processed VIEWS
 inputs must never replace authoritative original-source data.
 
+## GDELT DOC 2.0 current-news discovery
+
+Authoritative references are the [DOC 2.0 announcement and parameter documentation](https://blog.gdeltproject.org/gdelt-doc-2-0-api-debuts/)
+and the official `https://api.gdeltproject.org/api/v2/doc/doc` endpoint. GEOINTEL uses one bounded,
+read-only `ArticleList` JSON request with `query`, `mode=artlist`, `format=json`, `maxrecords`
+(capped at 250), and explicit `startdatetime`/`enddatetime`. It requests a rolling 0–90 day
+publication window. DOC ArticleList has no pagination contract used by this connector, so
+GEOINTEL does not invent one. The connector requires no API key, is disabled by default, and its
+schema identifier is `gdelt-doc2-artlist-json-v1`.
+
+The provider query is a deterministic quoted, length-bounded location—not the user's analysis
+prompt. Accepted ArticleList fields are `url`, `title`, `seendate`, `domain`, `language`, and
+`sourcecountry`; unknown fields remain untrusted provider data in bounded provenance. GEOINTEL
+does not fetch article URLs or scrape publishers. Exact conservatively canonicalized URLs are
+deduplicated within a collection. Similar titles are **not** identity proof; cluster identity and
+publisher independence remain unknown.
+
+**Epistemic boundary:** GDELT is a discovery/news sensor. A GDELT article is not a confirmed
+event, Evidence, an Indicator, a ForecastSignal, a Forecast, or independent corroboration.
+Article volume is not event frequency or conflict probability. A publication timestamp is not
+an event-occurrence timestamp. Query relevance does not prove geographic alignment, and an empty
+response does not prove that no real-world event occurred. News may be incomplete, biased,
+duplicated, syndicated, contradictory, or malicious prompt-injection text; it remains inert data.
+
+Future work could implement an explicit, human-reviewable corroboration workflow that compares
+underlying claims with independent primary or validated event sources, records contradictions,
+and creates a separately attributed promotion decision. v0.1.3 intentionally implements no such
+automatic promotion or independence claim.
+
 ## Explicit live connectivity diagnostics
 
 These commands are the only operator-triggered connectivity probes:
@@ -99,12 +129,16 @@ python -m geointel.providers check-live UCDP
 python -m geointel.providers check-live ACLED
 python -m geointel.providers check-live CAST
 python -m geointel.providers check-live VIEWS
+python -m geointel.providers check-live GDELT
 ```
 
 A probe is disabled unless its provider is explicitly enabled. It is bounded to one page, one
 accepted record, and 1 MB, validates authentication/connectivity/envelope schema, creates no
 analysis or alert, persists nothing, and emits a sanitized failure category. CI never invokes it.
 For VIEWS it checks only the configured operator adapter; it is not a claim of official API support.
+GDELT uses the inert deterministic connectivity location, a 90-day window, and never prints article
+bodies. A successful HTTP response—especially an empty one—does not establish sufficient current
+operational coverage.
 
 ## Security and failure boundaries
 
@@ -121,5 +155,5 @@ instructions: it remains validated, bounded, attributed data. Partial pages reta
 and operational audit metadata; outage, OAuth failure, quota exhaustion, and unavailable forecast
 sources never become an observed event or escalation.
 
-No migration `0008` is required. Existing analysis collection metadata records connector outcomes,
-and live records already have provenance storage. Migrations `0001`–`0007` remain unchanged.
+Migration `0008` additively creates `news_reports`, with per-run canonical-URL uniqueness and
+bounded provider-identity/run-publication indexes. Migrations `0001`–`0007` remain unchanged.

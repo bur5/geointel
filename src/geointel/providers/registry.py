@@ -51,6 +51,10 @@ DOCS = {
         "https://viewsforecasting.org/source-code/",
         "https://viewsforecasting.org/user-guide/",
     ),
+    "GDELT": (
+        "https://blog.gdeltproject.org/gdelt-doc-2-0-api-debuts/",
+        "https://api.gdeltproject.org/api/v2/doc/doc",
+    ),
 }
 
 
@@ -135,6 +139,21 @@ def capabilities(settings: Settings | None = None) -> list[ProviderCapability]:
             page=None,
             deps=(),
         ),
+        "GDELT": dict(
+            enabled=settings.gdelt_enabled,
+            configured=settings.gdelt_mode.casefold() == "official_api",
+            requested=settings.gdelt_mode,
+            auth=False,
+            role="news_osint_discovery_sensor_not_confirmed_event",
+            status=DocumentationStatus.VERIFIED,
+            schema="gdelt-doc2-artlist-json-v1",
+            geo=("query_relevance_only",),
+            temporal=("publication_timestamp", "rolling_0_90_days"),
+            pagination="single bounded ArticleList response; no pagination inferred",
+            rate="provider policy; bounded retries",
+            page=250,
+            deps=(),
+        ),
     }
     rows = []
     for name, item in definitions.items():
@@ -142,12 +161,12 @@ def capabilities(settings: Settings | None = None) -> list[ProviderCapability]:
         rows.append(
             ProviderCapability(
                 provider=name,
-                connector_version="0.1.2",
+                connector_version="0.1.3" if name == "GDELT" else "0.1.2",
                 integration_mode=mode,
                 documentation_status=item["status"],
                 official_documentation=DOCS[name],
-                documentation_accessed="2026-09-22",
-                authentication_required=None if name == "VIEWS" else True,
+                documentation_accessed="2026-09-23" if name == "GDELT" else "2026-09-22",
+                authentication_required=None if name == "VIEWS" else name != "GDELT",
                 authentication_configured=item["auth"],
                 configured=item["configured"],
                 enabled=item["enabled"],

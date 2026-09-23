@@ -13,6 +13,7 @@ from geointel.config import Settings, get_settings
 from geointel.connectors.acled import ACLEDConnector
 from geointel.connectors.base import DisabledConnector, EvidenceConnector
 from geointel.connectors.cast import CASTConnector
+from geointel.connectors.gdelt import GDELTConnector
 from geointel.connectors.ucdp import UCDPConnector
 from geointel.connectors.views import VIEWSConnector
 from geointel.domain.database import get_session
@@ -120,6 +121,21 @@ def connectors(settings: Settings | None = None) -> list[EvidenceConnector]:
         if settings.cast_enabled
         else DisabledConnector("CAST")
     )
+    if settings.gdelt_enabled:
+        result.append(
+            GDELTConnector(
+                settings.gdelt_base_url,
+                settings.gdelt_timeout_seconds,
+                settings.gdelt_max_retries,
+                transport=HardenedTransport(
+                    timeout=settings.gdelt_timeout_seconds,
+                    retries=settings.gdelt_max_retries,
+                    max_bytes=settings.provider_max_response_bytes,
+                    allow_private=settings.provider_allow_private_networks,
+                ),
+                max_records=min(settings.provider_max_records, 250),
+            )
+        )
     return result
 
 

@@ -24,6 +24,7 @@ class OfflineModel:
         evidence = payload.get("evidence", [])
         signals = payload.get("predictive_signals", [])
         recent_events = payload.get("recent_events", [])
+        news_reports = payload.get("news_reports", [])
         metadata = payload.get("collection_metadata", {})
         if output_type is AnalystOutput:
             result = AnalystOutput(
@@ -54,6 +55,8 @@ class OfflineModel:
                 assumptions=[
                     "Absence of retrieved evidence is not evidence of absence.",
                     "Offline mode uses no current-events feed.",
+                    "Media reports are unconfirmed and may be syndicated, incomplete, biased, "
+                    "duplicated, or contradictory; article volume is not event frequency.",
                 ],
                 strategic_context=[
                     f"{item['lens_name']} output is an interpretation, not evidence."
@@ -112,7 +115,13 @@ class OfflineModel:
                     "Exact source identifiers are deduplicated; similar cross-source reports "
                     "remain unresolved and must not be counted as independent confirmation."
                 ]
-                if recent_events
+                if recent_events or news_reports
+                else [],
+                sensationalism_risks=[
+                    "News reports are discovery leads, not confirmed events or independent "
+                    "corroboration; publication volume is not conflict probability."
+                ]
+                if news_reports
                 else [],
                 geographic_mismatches=[x for x in mismatch_notes if "geographic" in x],
                 horizon_mismatches=[x for x in mismatch_notes if "horizon" in x],

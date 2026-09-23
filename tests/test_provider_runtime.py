@@ -199,7 +199,7 @@ def test_pagination_limits_malformed_records_and_partial_failure():
 
 def test_registry_is_explicit_complete_and_secret_free(client):
     rows = public_capabilities(Settings())
-    assert {row["provider"] for row in rows} == {"UCDP", "ACLED", "VIEWS", "CAST"}
+    assert {row["provider"] for row in rows} == {"UCDP", "ACLED", "VIEWS", "CAST", "GDELT"}
     assert all(row["integration_mode"] == "DISABLED" for row in rows)
     response = client.get("/providers")
     assert response.status_code == 200 and "access_token" not in response.text.casefold()
