@@ -356,7 +356,20 @@ def test_acled_empty_recency_restricted_response_is_not_successful_coverage():
             json={
                 "data": [],
                 "next_cursor": None,
-                "data_query_restrictions": {"data_recency": "12 months"},
+                "data_query_restrictions": {
+                    "countries": [],
+                    "date_recency": {
+                        "date": "2025-09-23",
+                        "description": "12 Months old",
+                        "quantity": 12,
+                        "timestamp": 1758602799,
+                        "unit": "Months",
+                    },
+                    "event_types": [],
+                    "history": [],
+                    "recency": [],
+                    "regions": [],
+                },
             },
             request=request,
         )
@@ -368,7 +381,8 @@ def test_acled_empty_recency_restricted_response_is_not_successful_coverage():
     assert connector.collect("Spain") == []
     assert connector.last_audit.status == CollectionStatus.PARTIAL
     assert connector.last_audit.failure_category == FailureCategory.RECENCY_RESTRICTED
-    assert connector.last_audit.provider_restrictions == {"data_recency": "12 months"}
+    assert connector.last_audit.provider_restrictions["date_recency"]["quantity"] == 12
+    assert connector.last_audit.provider_restrictions["date_recency"]["unit"] == "Months"
     assert "absence of events" in connector.last_audit.failure_reason
     client.close()
 
