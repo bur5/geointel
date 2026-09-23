@@ -227,7 +227,11 @@ class ACLEDConnector:
         if value in (None, False, "", [], {}):
             return False
         if isinstance(value, str) and value.strip().casefold() in {
-            "none", "unrestricted", "real-time", "realtime", "current"
+            "none",
+            "unrestricted",
+            "real-time",
+            "realtime",
+            "current",
         }:
             return False
         return True
