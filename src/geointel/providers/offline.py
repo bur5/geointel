@@ -26,6 +26,8 @@ class OfflineModel:
         recent_events = payload.get("recent_events", [])
         news_reports = payload.get("news_reports", [])
         metadata = payload.get("collection_metadata", {})
+        delayed_news = bool(metadata.get("delayed_news_discovery_coverage_available"))
+        operational = bool(metadata.get("current_operational_coverage_available"))
         if output_type is AnalystOutput:
             result = AnalystOutput(
                 observed_evidence=[e["summary"] for e in evidence],
@@ -54,7 +56,15 @@ class OfflineModel:
                 ],
                 assumptions=[
                     "Absence of retrieved evidence is not evidence of absence.",
-                    "Offline mode uses no current-events feed.",
+                    (
+                        "Delayed news-discovery reports are available as unconfirmed leads, but "
+                        "no validated current operational event coverage is available."
+                        if delayed_news and not operational
+                        else "No validated current operational event coverage is available."
+                        if not operational
+                        else "Validated operational records and unconfirmed news leads retain "
+                        "separate evidentiary status."
+                    ),
                     "Media reports are unconfirmed and may be syndicated, incomplete, biased, "
                     "duplicated, or contradictory; article volume is not event frequency.",
                 ],
@@ -77,7 +87,16 @@ class OfflineModel:
                         ),
                         evidence_for=[],
                         evidence_against=[],
-                        unknowns=["Current events and historical base rates are unavailable."],
+                        unknowns=[
+                            (
+                                "No validated current operational event evidence is available; "
+                                "delayed news-discovery reports exist but are not confirmed "
+                                "Events or Evidence. Historical base rates are unavailable."
+                                if delayed_news and not operational
+                                else "Validated current operational event evidence and historical "
+                                "base rates are unavailable."
+                            )
+                        ],
                         resolution_criteria=[
                             f"Observe whether qualifying {kind.value} occurs within the horizon."
                         ],
@@ -96,7 +115,10 @@ class OfflineModel:
         elif output_type is RedTeamOutput:
             mismatch_notes = payload.get("source_disagreements", [])
             result = RedTeamOutput(
-                missing_evidence=["No live current-events or validated base-rate dataset."],
+                missing_evidence=[
+                    "No validated current operational event or base-rate dataset; delayed news "
+                    "discovery, when present, consists only of unconfirmed leads."
+                ],
                 unjustified_precision=[
                     "Do not assign numeric probabilities without calibrated data."
                 ],
@@ -112,8 +134,9 @@ class OfflineModel:
                     else ["No VIEWS or CAST predictive signal was available."]
                 ),
                 duplicated_evidence=[
-                    "Exact source identifiers are deduplicated; similar cross-source reports "
-                    "remain unresolved and must not be counted as independent confirmation."
+                    "Reports may be semantically clustered as a probable story, while source "
+                    "dependence may remain unresolved; multiple domains are not independent "
+                    "corroboration and shared wire/upstream reporting must not be double-counted."
                 ]
                 if recent_events or news_reports
                 else [],

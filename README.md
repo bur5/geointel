@@ -1,4 +1,4 @@
-# GEOINTEL v0.1.5
+# GEOINTEL v0.1.5.1
 
 GEOINTEL is a geopolitical decision-support and conflict early-warning foundation. v0.1.0 preserves the UCDP/ACLED/VIEWS/CAST pipeline—collection → strategic retrieval/lenses → Analyst → four-category Forecaster → mandatory Red Team → synthesis → immutable persistence—and adds an auditable strategic-knowledge layer. It is not verified intelligence and does not provide personal relocation advice.
 
@@ -63,6 +63,20 @@ GitHub Actions runs these checks on Python 3.11 and 3.12, performs startup/healt
 There is no verified direct live VIEWS integration, official VIEWS aggregation algorithm, or ensemble weighting in v0.0.3. Subnational/grid or mismatched-horizon signals are retained and flagged, never silently aggregated. Provider-native predictions retain their stated unit/scale and are not reinterpreted. There is also no live LLM/news feed, authentication, rate limiting, PostGIS, calibration/backtesting, UI, alerting, or deployment automation. `POST /analysis` remains synchronous; do not expose it to untrusted networks as-is.
 
 See [architecture](docs/ARCHITECTURE.md), [forecasting](docs/FORECASTING.md), [sources](docs/SOURCES.md), [agent rules](docs/AGENT_RULES.md), and [security](docs/SECURITY.md).
+
+## v0.1.5.1 news-relevance hotfix
+
+News discovery now follows an explicit, deterministic review path:
+
+`NewsReport` → `NewsRelevanceAssessment` → `StoryCluster` → source/reporting-chain
+assessment → candidate indicator → human/analyst validation → a possible future explicit
+Evidence/Event process.
+
+Relevance is a transparent discovery heuristic, not truth or event confirmation. Corroborated
+reporting is not a confirmed event, and a candidate indicator is not Evidence or an Event. Article
+volume is not risk. Query geography records collection intent; it is not demonstrated story
+geography unless title, description, or source metadata supports it. Delayed NewsAPI discovery
+leads remain separate from validated current operational coverage.
 
 ## v0.0.3 operational early-warning sources
 

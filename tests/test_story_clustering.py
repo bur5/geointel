@@ -156,7 +156,8 @@ def test_two_affirmatively_distinct_chains_are_corroborated_but_not_an_event():
     ]
     cluster, result = assessment(items)
     assert result.status == CorroborationStatus.MULTI_SOURCE_CORROBORATED_REPORTING
-    assert result.candidate_indicator_eligible is True
+    assert result.candidate_indicator_eligible is False
+    assert "relevance_assessment_not_available" in result.candidate_indicator_blockers
     assert result.boundary == "candidate_only_not_event_not_evidence_not_risk_score"
     assert result.news_report_provenance == cluster.member_report_ids
     assert not hasattr(result, "event_timestamp")
@@ -191,4 +192,4 @@ def test_prompt_injection_is_inert_text_and_version_has_one_runtime_source():
     match = compare_reports(left, right)
     assert match.decision == "probable_same_story"
     assert left.title == injection
-    assert __version__ == PIPELINE_VERSION == "0.1.5"
+    assert __version__ == PIPELINE_VERSION == "0.1.5.1"

@@ -15,6 +15,7 @@ from urllib.parse import urlsplit
 from pydantic import BaseModel, Field
 
 from geointel.domain.schemas import NormalizedNewsReport
+from geointel.news.relevance import NewsRelevanceAssessment, RelevanceState
 
 STORY_METHOD_VERSION = "story-similarity-v1"
 ASSESSMENT_VERSION = "conservative-chains-v2"
@@ -251,7 +252,9 @@ def cluster_reports(reports: list[NormalizedNewsReport]) -> list[StoryCluster]:
         exact_only = len({x.canonical_url for x in members}) == 1 and len(members) > 1
         probable = any(match.decision == "probable_same_story" for match in matches)
         classification = (
-            "exact_duplicate_reporting_artifacts"
+            "SINGLE_REPORT_CLUSTER"
+            if len(members) == 1
+            else "exact_duplicate_reporting_artifacts"
             if exact_only
             else "probable_same_story"
             if probable
@@ -314,7 +317,11 @@ def _wire(report: NormalizedNewsReport) -> str | None:
 
 
 def assess_cluster(
-    cluster: StoryCluster, reports: list[NormalizedNewsReport], *, assessed_at: datetime
+    cluster: StoryCluster,
+    reports: list[NormalizedNewsReport],
+    *,
+    assessed_at: datetime,
+    relevance: NewsRelevanceAssessment | None = None,
 ) -> CorroborationAssessment:
     """Assess chains. Independence requires affirmative status *and* distinct chain IDs."""
     members = [r for r in reports if _id(r) in cluster.member_report_ids]
@@ -377,6 +384,17 @@ def assess_cluster(
         blockers.append("temporal_alignment_not_current_or_unknown")
     if any(r.temporal_classification == "stale_or_republished" for r in members):
         blockers.append("stale_or_republished_material")
+    if relevance is None:
+        blockers.append("relevance_assessment_not_available")
+    else:
+        for field, code in (
+            ("topic_relevance", "topic_relevance_not_established"),
+            ("conflict_relevance", "conflict_relevance_not_established"),
+            ("geographic_relevance", "geographic_relevance_not_established"),
+            ("temporal_relevance", "temporal_relevance_not_established"),
+        ):
+            if getattr(relevance, field) in {RelevanceState.NOT_RELEVANT, RelevanceState.UNKNOWN}:
+                blockers.append(code)
     return CorroborationAssessment(
         cluster_id=cluster.cluster_id,
         status=status,
