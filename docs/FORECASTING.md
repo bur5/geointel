@@ -70,3 +70,23 @@ reports. They must distinguish reports, probable story candidates, corroborated 
 validated events. Neither report nor publisher volume is a probability input. Red Team should test
 false merges, syndication-as-corroboration, volume bias, unresolved dependence, ambiguous geography,
 and stale/republished material. Candidate indicators remain review-only and cannot raise risk.
+
+## v0.1.5.1 deterministic relevance boundary
+
+Each report is assessed against the request's location, question, and horizon before cluster-level
+source assessment. Explicit geographic, topic, conflict, temporal, and overall states are retained
+with matched terms, reasons, uncertainty, and a method version. Negative signals remove obvious
+sports, entertainment, photography, consumer-product, and routine-business noise unless genuine
+conflict/security language requires cautious review. Requested query geography alone is never
+proof of story geography.
+
+Cluster relevance conservatively aggregates member states: one weak report cannot establish the
+whole cluster's relevance. Candidate eligibility requires established relevance as well as the
+existing affirmative independent-chain and probable-story gates. The full boundary remains:
+
+`NewsReport` → `RelevanceAssessment` → `StoryCluster` → `Source/Reporting-Chain Assessment`
+→ `Candidate Indicator` → human validation → possible Evidence/Event only through a future
+explicit validation process.
+
+Relevance does not mean truth or event confirmation; corroborated reporting does not mean a
+confirmed event; a candidate indicator is not Evidence/Event; and article volume is not risk.

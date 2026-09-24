@@ -209,7 +209,10 @@ def test_news_persists_only_as_news_and_prompt_injection_remains_inert(session):
     assert session.query(Event).count() == 0
     assert session.query(Evidence).count() == 0
     assert run.collection_metadata["news_report_count"] == 1
-    assert run.collection_metadata["current_operational_coverage_available"] is True
+    assert run.collection_metadata["current_operational_coverage_available"] is False
+    assert "news_relevance_assessments" in run.collection_metadata
+    assert "story_cluster_relevance_assessments" in run.collection_metadata
+    assert run.collection_metadata["candidate_indicator_eligible_count"] == 0
 
 
 def test_empty_pipeline_result_does_not_mark_current_coverage(session):

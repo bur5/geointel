@@ -31,6 +31,7 @@ from geointel.domain.schemas import (
 from geointel.knowledge.lenses import KissingerLens, LensRegistry
 from geointel.knowledge.retrieval import KnowledgeQuery, LexicalKnowledgeRetriever
 from geointel.news.corroboration import assess_cluster, cluster_reports
+from geointel.news.relevance import assess_cluster_relevance, assess_report_relevance
 from geointel.providers.base import ModelRouter
 from geointel.providers.runtime import sanitize_text
 
@@ -171,9 +172,19 @@ class AnalysisPipeline:
         events = self._deduplicate(events, self._record_key)
         all_news_observations = list(news_reports)
         clusters = cluster_reports(all_news_observations)
+        report_relevance = [
+            assess_report_relevance(item, request) for item in all_news_observations
+        ]
+        cluster_relevance = [assess_cluster_relevance(item, report_relevance) for item in clusters]
+        relevance_by_cluster = {item.subject_id: item for item in cluster_relevance}
         assessed_at = datetime.now(UTC)
         corroboration = [
-            assess_cluster(cluster, all_news_observations, assessed_at=assessed_at)
+            assess_cluster(
+                cluster,
+                all_news_observations,
+                assessed_at=assessed_at,
+                relevance=relevance_by_cluster[cluster.cluster_id],
+            )
             for cluster in clusters
         ]
         news_reports = self._merge_news_duplicates(news_reports)
@@ -285,14 +296,38 @@ class AnalysisPipeline:
             "news_report_observation_count": len(all_news_observations),
             "story_cluster_count": len(clusters),
             "story_clusters": [item.model_dump(mode="json") for item in clusters],
+            "news_relevance_assessments": [
+                item.model_dump(mode="json") for item in report_relevance
+            ],
+            "story_cluster_relevance_assessments": [
+                item.model_dump(mode="json") for item in cluster_relevance
+            ],
             "corroboration_assessments": [item.model_dump(mode="json") for item in corroboration],
+            **{
+                f"news_report_{state}_count": sum(
+                    item.overall_relevance.value == state.upper() for item in report_relevance
+                )
+                for state in ("relevant", "possibly_relevant", "not_relevant", "relevance_unknown")
+                if state != "relevance_unknown"
+            },
+            "news_report_relevance_unknown_count": sum(
+                item.overall_relevance.value == "UNKNOWN" for item in report_relevance
+            ),
+            "story_cluster_relevant_count": sum(
+                item.overall_relevance.value == "RELEVANT" for item in cluster_relevance
+            ),
+            "story_cluster_not_relevant_count": sum(
+                item.overall_relevance.value == "NOT_RELEVANT" for item in cluster_relevance
+            ),
+            "candidate_indicator_eligible_count": sum(
+                item.candidate_indicator_eligible for item in corroboration
+            ),
             "gdelt_connector_outcome": gdelt_outcomes[0] if gdelt_outcomes else None,
             "connector_failures": connector_errors,
             "connector_outcomes": outcomes,
             "external_collection_succeeded": any(item["succeeded"] for item in outcomes),
-            "current_operational_coverage_available": bool(
-                events or any(item.provider == "GDELT" for item in news_reports)
-            ),
+            # Media discovery is never validated current operational event coverage.
+            "current_operational_coverage_available": bool(events),
             "delayed_news_discovery_coverage_available": any(
                 item.provider == "NEWSAPI" for item in news_reports
             ),
@@ -311,6 +346,10 @@ class AnalysisPipeline:
             "recent_events": [x.model_dump(mode="json") for x in events],
             "news_reports": [x.model_dump(mode="json") for x in news_reports],
             "story_clusters": [x.model_dump(mode="json") for x in clusters],
+            "news_relevance_assessments": [x.model_dump(mode="json") for x in report_relevance],
+            "story_cluster_relevance_assessments": [
+                x.model_dump(mode="json") for x in cluster_relevance
+            ],
             "corroboration_assessments": [x.model_dump(mode="json") for x in corroboration],
             "news_report_guardrails": [
                 "A media report is not a confirmed event or Evidence.",
