@@ -1,4 +1,4 @@
-# GEOINTEL v0.1.5.1
+# GEOINTEL v0.1.6
 
 GEOINTEL is a geopolitical decision-support and conflict early-warning foundation. v0.1.0 preserves the UCDP/ACLED/VIEWS/CAST pipeline—collection → strategic retrieval/lenses → Analyst → four-category Forecaster → mandatory Red Team → synthesis → immutable persistence—and adds an auditable strategic-knowledge layer. It is not verified intelligence and does not provide personal relocation advice.
 
@@ -158,3 +158,8 @@ normalization. ACLED Event uses cursor pagination in advance of the October 1, 2
 CAST values remain monthly event counts, never probabilities. VIEWS remains adapter-only because
 its exact current technical contract could not be independently retrieved. Explicit bounded
 connectivity probes are available through `python -m geointel.providers check-live PROVIDER`.
+
+
+## News query intelligence (v0.1.6)
+
+NewsAPI is a **discovery-only** source. Its Developer plan is delayed and intended only for development/testing. A deterministic, request-budget-bounded query plan combines geography with small organized-violence signal families; this improves discovery efficiency, not truth, and query terms never count as article evidence. Every report is retained with a bounded safe relevance audit snapshot. Conservative `UNKNOWN` items enter a HIGH/MEDIUM/LOW analyst review queue; that priority is information-quality triage, not event probability or geopolitical risk. Relevance and candidate indicators are neither Events nor Evidence, and news availability never establishes validated current operational coverage.

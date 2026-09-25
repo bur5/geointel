@@ -90,3 +90,8 @@ explicit validation process.
 
 Relevance does not mean truth or event confirmation; corroborated reporting does not mean a
 confirmed event; a candidate indicator is not Evidence/Event; and article volume is not risk.
+
+
+## News boundaries
+
+News relevance does not verify an event and article volume is never a probability, base rate, or risk score. Candidate indicators still require independent reporting chains and analyst review and remain neither Event nor Evidence. Successful delayed discovery does not provide forecast-signal coverage or validated current operational-event coverage; sparse synthesis remains unquantified while not incorrectly describing available delayed leads as simply “offline mode.”

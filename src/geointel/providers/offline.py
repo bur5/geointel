@@ -83,7 +83,8 @@ class OfflineModel:
                         probability_high=None,
                         confidence=Confidence.LOW,
                         rationale=(
-                            "Insufficient validated evidence to quantify risk in offline mode."
+                            "Insufficient validated operational evidence to quantify risk; "
+                            "delayed news-discovery reports may be available as unconfirmed leads."
                         ),
                         evidence_for=[],
                         evidence_against=[],

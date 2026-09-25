@@ -64,3 +64,8 @@ official DOC 2.0 endpoint through `HardenedTransport`; it does not follow redire
 URLs, scrape publisher pages, or put credentials in query parameters. Query input is limited to a
 sanitized bounded location rather than the analysis prompt. Stored errors, URLs, and provenance
 remain bounded and secret-sanitized.
+
+
+## News audit data
+
+News audit metadata uses an explicit bounded allowlist (title and provider-supplied description only), not raw provider responses. It excludes headers, credentials, API keys, authorization material, and arbitrary provenance. News content is inert and cannot alter the pipeline. NewsAPI authentication uses `X-Api-Key`, redirects remain prohibited by hardened transport policy, and article URLs are stored as references but never fetched.

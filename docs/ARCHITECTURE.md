@@ -97,3 +97,8 @@ Candidate eligibility also requires a probable cluster, explicit geographic and 
 alignment, and no stale/republished classification. It never creates an `Event`, `Evidence`,
 `Indicator`, `ForecastSignal`, escalation, or risk adjustment. Clusters and assessments remain
 analysis-run metadata, so v0.1.5 needs no schema migration.
+
+
+## Auditable news discovery pipeline (v0.1.6)
+
+The explicit ordering is provider discovery → raw `NewsReport` → report relevance → operational story clustering (excluding definitively `NOT_RELEVANT` noise) → provenance/dependence assessment → corroboration → candidate eligibility → analyst review. All raw reports remain persisted and all assessments have bounded metadata snapshots; `UNKNOWN` also follows a review path and cannot become eligible merely because its review priority is HIGH. Query match is not geography, publication time is not event time, domains are not independent chains, and no stage automatically creates Event or Evidence. AnalysisRun JSON is used, so v0.1.6 requires no database migration.

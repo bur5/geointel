@@ -177,3 +177,8 @@ bounded provider-identity/run-publication indexes. Migrations `0001`–`0007` re
 GEOINTEL uses `GET https://newsapi.org/v2/everything` as a bounded reporting-discovery sensor. Authentication is exclusively the `X-Api-Key` header; credentials are never query parameters, registry/audit/diagnostic values, or persisted values. The documented contract and an operator authentication/connectivity response were verified, but the current Developer entitlement is development/testing only: 100 requests/day, a 24-hour `/everything` delay, and approximately one month of searchable history. It is not a production or real-time feed.
 
 Defaults are a seven-day window ending 24 hours before retrieval, 50 records/page, two pages, 100 records, and two requests. Collection is sequential. A paid deployment must explicitly declare `NEWSAPI_ENTITLEMENT=production`; no upgrade is inferred. `publishedAt` is publication time, not event occurrence time. Success provides delayed news-discovery coverage only.
+
+
+## NewsAPI query plans
+
+NewsAPI query planning allocates a small deterministic family pack within one global request budget; query count does not multiply page/request limits. Serialized plans expose provider, geography, analysis intent, query, family, ordinal, and plan version. Per-family accepted counts are diagnostics, not evidence or a risk measure. Developer-plan results are delayed discovery leads for development and testing, not real-time operational coverage.
