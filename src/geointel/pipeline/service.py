@@ -31,7 +31,13 @@ from geointel.domain.schemas import (
 from geointel.knowledge.lenses import KissingerLens, LensRegistry
 from geointel.knowledge.retrieval import KnowledgeQuery, LexicalKnowledgeRetriever
 from geointel.news.corroboration import assess_cluster, cluster_reports
-from geointel.news.relevance import assess_cluster_relevance, assess_report_relevance
+from geointel.news.relevance import (
+    RelevanceState,
+    assess_cluster_relevance,
+    assess_report_relevance,
+    build_review_item,
+    relevance_audit_snapshot,
+)
 from geointel.providers.base import ModelRouter
 from geointel.providers.runtime import sanitize_text
 
@@ -171,17 +177,38 @@ class AnalysisPipeline:
         signals = self._deduplicate(signals, self._record_key)
         events = self._deduplicate(events, self._record_key)
         all_news_observations = list(news_reports)
-        clusters = cluster_reports(all_news_observations)
         report_relevance = [
             assess_report_relevance(item, request) for item in all_news_observations
         ]
+        report_audits = [
+            relevance_audit_snapshot(report, request, assessment)
+            for report, assessment in zip(all_news_observations, report_relevance, strict=True)
+        ]
+        review_queue = [
+            build_review_item(assessment, snapshot)
+            for assessment, snapshot in zip(report_relevance, report_audits, strict=True)
+            if assessment.overall_relevance == RelevanceState.UNKNOWN
+        ]
+        # All raw reports remain persisted/audited. Definitive noise alone is excluded
+        # from operational clustering; UNKNOWN stays visible but cannot become eligible.
+        operational_ids = {
+            item.subject_id
+            for item in report_relevance
+            if item.overall_relevance != RelevanceState.NOT_RELEVANT
+        }
+        operational_news = [
+            item
+            for item in all_news_observations
+            if f"{item.provider}:{item.source_record_id}" in operational_ids
+        ]
+        clusters = cluster_reports(operational_news)
         cluster_relevance = [assess_cluster_relevance(item, report_relevance) for item in clusters]
         relevance_by_cluster = {item.subject_id: item for item in cluster_relevance}
         assessed_at = datetime.now(UTC)
         corroboration = [
             assess_cluster(
                 cluster,
-                all_news_observations,
+                operational_news,
                 assessed_at=assessed_at,
                 relevance=relevance_by_cluster[cluster.cluster_id],
             )
@@ -287,6 +314,19 @@ class AnalysisPipeline:
                 )
             )
         gdelt_outcomes = [item for item in outcomes if item["connector"] == "GDELT"]
+        query_plans = [
+            connector.last_query_plan.model_dump(mode="json")
+            for connector in self.connectors
+            if getattr(connector, "last_query_plan", None) is not None
+        ]
+        query_counts = {
+            family: count
+            for connector in self.connectors
+            for family, count in getattr(connector, "last_query_accepted_counts", {}).items()
+        }
+        query_families = [
+            query["signal_family"] for plan in query_plans for query in plan["queries"]
+        ]
         run.collection_metadata = {
             "connector_count": len(self.connectors),
             "evidence_count": len(evidence),
@@ -294,11 +334,25 @@ class AnalysisPipeline:
             "recent_event_count": len(events),
             "news_report_count": len(news_reports),
             "news_report_observation_count": len(all_news_observations),
+            "news_query_plan_version": query_plans[0]["version"] if query_plans else None,
+            "news_query_count": sum(len(plan["queries"]) for plan in query_plans),
+            "news_query_signal_families": query_families,
+            "news_query_plans": query_plans,
+            "news_query_accepted_report_counts": query_counts,
             "story_cluster_count": len(clusters),
             "story_clusters": [item.model_dump(mode="json") for item in clusters],
             "news_relevance_assessments": [
                 item.model_dump(mode="json") for item in report_relevance
             ],
+            "news_relevance_audit_snapshots": report_audits,
+            "relevance_review_queue": [item.model_dump(mode="json") for item in review_queue],
+            "news_review_queue_count": len(review_queue),
+            **{
+                f"news_review_{priority}_count": sum(
+                    item.review_priority.value == priority.upper() for item in review_queue
+                )
+                for priority in ("high", "medium", "low")
+            },
             "story_cluster_relevance_assessments": [
                 item.model_dump(mode="json") for item in cluster_relevance
             ],

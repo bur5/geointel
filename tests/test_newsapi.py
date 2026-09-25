@@ -5,6 +5,7 @@ import pytest
 
 from geointel.connectors.newsapi import NewsAPIConnector, NewsAPIError
 from geointel.news.corroboration import CorroborationStatus, assess_cluster, cluster_reports
+from geointel.news.query import QUERY_PLAN_VERSION, plan_news_queries
 from geointel.providers.runtime import FailureCategory, HardenedTransport
 
 NOW = datetime(2026, 9, 23, 12, tzinfo=UTC)
@@ -23,6 +24,7 @@ def article(url="https://example.com/a?utm_source=x", title="Report"):
 
 
 def connector(pages, *, statuses=None, requests=None, **bounds):
+    bounds.setdefault("request_budget", 1)
     calls = [] if requests is None else requests
 
     def handler(request):
@@ -123,3 +125,14 @@ def test_exact_cross_provider_identity_clusters_but_ambiguous_titles_do_not():
     assert assessment.status == CorroborationStatus.LIKELY_SYNDICATED
     assert assessment.independent_chain_count == 0
     assert assessment.candidate_indicator_eligible is False
+
+
+def test_query_plan_is_deterministic_bounded_and_not_evidence():
+    first = plan_news_queries("Spain", request_budget=3)
+    second = plan_news_queries("Spain", request_budget=3)
+    assert first == second
+    assert first.version == QUERY_PLAN_VERSION
+    assert len(first.queries) == 3
+    assert len(first.queries) <= first.request_budget
+    assert all("Spain" in item.query_text for item in first.queries)
+    assert first.boundary == "discovery_instructions_not_article_content_or_evidence"

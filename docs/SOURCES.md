@@ -97,3 +97,8 @@ wire/upstream, and an optional affirmatively assigned reporting-chain ID. Missin
 `UNKNOWN`; absence of a shared marker never proves independence. Cross-provider canonical copies are
 one artifact, and different URLs/domains may be syndicated. Clustering never fetches article URLs.
 All news fields remain untrusted inert input; credentials never enter story metadata.
+
+
+## NewsAPI query intelligence
+
+NewsAPI is unconfirmed discovery, never an event truth source. Developer access is delayed and for development/testing only. Deterministic query packs are bounded by configured global request and record limits and serialize their plan/version/families without credentials or raw responses. `X-Api-Key` remains a header; keys never enter URLs, logs, or AnalysisRun metadata. The connector does not fetch article bodies or follow article URLs.

@@ -9,12 +9,16 @@ from __future__ import annotations
 import re
 from collections import Counter
 from enum import StrEnum
+from urllib.parse import urlsplit
 
 from pydantic import BaseModel, Field
 
 from geointel.domain.schemas import AnalysisRequest, NormalizedNewsReport
 
 RELEVANCE_METHOD_VERSION = "organized-political-violence-v1"
+AUDIT_TITLE_LIMIT = 300
+AUDIT_DESCRIPTION_LIMIT = 500
+AUDIT_FIELD_LIMIT = 600
 _WORDS = re.compile(r"[^\W_]+(?:['’-][^\W_]+)?", re.UNICODE)
 
 
@@ -35,11 +39,27 @@ class NewsRelevanceAssessment(BaseModel):
     overall_relevance: RelevanceState
     reason_codes: list[str]
     matched_terms: list[str] = Field(default_factory=list)
+    matched_signal_families: list[str] = Field(default_factory=list)
     matched_entities: list[str] = Field(default_factory=list)
     uncertainty: str
     method_version: str = RELEVANCE_METHOD_VERSION
     member_relevance: list[dict] = Field(default_factory=list)
     boundary: str = "discovery_relevance_not_truth_not_event_confirmation"
+
+
+class ReviewPriority(StrEnum):
+    HIGH = "HIGH"
+    MEDIUM = "MEDIUM"
+    LOW = "LOW"
+
+
+class NewsReviewItem(BaseModel):
+    report_id: str
+    audit_snapshot: dict
+    unresolved_dimensions: list[str]
+    reason_codes: list[str]
+    review_priority: ReviewPriority
+    semantics: str = "review priority only; not event probability or geopolitical risk"
 
 
 _STRONG = {
@@ -64,6 +84,9 @@ _STRONG = {
     "politically motivated bombing",
     "car bomb",
     "suicide bombing",
+    "armed separatist attack",
+    "military border incident",
+    "violent riot",
 }
 _VIOLENCE = {
     "bombing",
@@ -80,6 +103,9 @@ _VIOLENCE = {
     "assassination",
     "terrorism",
     "insurgency",
+    "attacked",
+    "attack",
+    "mutiny",
 }
 _POLITICAL = {
     "political",
@@ -94,6 +120,7 @@ _POLITICAL = {
     "election",
     "minister",
     "parliament",
+    "border",
 }
 _PEACEFUL = {
     "peaceful protest",
@@ -141,6 +168,7 @@ _NEGATIVE = {
         "product launch",
         "market share",
     },
+    "travel": {"travel", "holiday", "hotel", "tourism", "destination", "beach"},
 }
 
 
@@ -204,7 +232,13 @@ def assess_report_relevance(
         reasons.append(f"off_topic_signal:{category}")
 
     conflict_signal = bool(question_scope and (strong or (violent and political)))
-    if peaceful and not (strong or violent - {"protest"}):
+    # Strongly off-topic contexts win over ambiguous sports metaphors such as attack,
+    # defence and shot. Only an explicit multiword organized-violence phrase can override.
+    explicit_strong = strong - {"armed group"}
+    if negative and not explicit_strong:
+        topic = conflict = RelevanceState.NOT_RELEVANT
+        reasons.append("off_topic_without_conflict_signal")
+    elif peaceful and not (strong or violent - {"protest"}):
         topic = conflict = RelevanceState.NOT_RELEVANT
         reasons.append("peaceful_protest_without_violence_signal")
     elif conflict_signal:
@@ -214,9 +248,6 @@ def assess_report_relevance(
         if negative:
             topic = conflict = RelevanceState.POSSIBLY_RELEVANT
             reasons.append("conflict_signal_prevents_off_topic_override")
-    elif negative:
-        topic = conflict = RelevanceState.NOT_RELEVANT
-        reasons.append("off_topic_without_conflict_signal")
     elif political:
         topic = RelevanceState.POSSIBLY_RELEVANT
         conflict = RelevanceState.NOT_RELEVANT
@@ -255,11 +286,79 @@ def assess_report_relevance(
         overall_relevance=overall,
         reason_codes=reasons,
         matched_terms=sorted(matched),
+        matched_signal_families=sorted(
+            (["explicit_organized_violence"] if strong else [])
+            + (["violence_or_escalation"] if violent else [])
+            + (["political_context"] if political else [])
+        ),
         matched_entities=[request.location] if geography == RelevanceState.RELEVANT else [],
         uncertainty=(
             "Deterministic metadata heuristic for discovery triage only; article text is "
             "untrusted and relevance does not establish occurrence, motive, or truth."
         ),
+    )
+
+
+def _bounded(value: object, limit: int) -> str:
+    """Normalize untrusted provider strings for bounded inert JSON storage."""
+    return " ".join(str(value or "").replace("\x00", "").split())[:limit]
+
+
+def relevance_audit_snapshot(
+    report: NormalizedNewsReport,
+    request: AnalysisRequest,
+    assessment: NewsRelevanceAssessment,
+) -> dict:
+    """Create a strict allowlist snapshot; raw payloads and credentials are excluded."""
+    description = report.provenance.get("description", "")
+    domain = urlsplit(str(report.canonical_url)).hostname or ""
+    return {
+        "report_id": assessment.subject_id,
+        "provider": _bounded(report.provider, 40),
+        "publisher": _bounded(report.publisher, 200),
+        "publisher_domain": _bounded(domain, 253),
+        "title": _bounded(report.title, AUDIT_TITLE_LIMIT),
+        "publication_timestamp": (
+            report.publication_timestamp.isoformat() if report.publication_timestamp else None
+        ),
+        "requested_geography": _bounded(request.location, 120),
+        "geographic_relevance": assessment.geographic_relevance.value,
+        "topic_relevance": assessment.topic_relevance.value,
+        "conflict_relevance": assessment.conflict_relevance.value,
+        "temporal_relevance": assessment.temporal_relevance.value,
+        "overall_relevance": assessment.overall_relevance.value,
+        "matched_terms": [_bounded(x, 80) for x in assessment.matched_terms[:30]],
+        "matched_signal_families": assessment.matched_signal_families[:20],
+        "reason_codes": [_bounded(x, 120) for x in assessment.reason_codes[:30]],
+        "uncertainty": _bounded(assessment.uncertainty, AUDIT_FIELD_LIMIT),
+        "canonical_url": _bounded(report.canonical_url, 1000),
+        "description_excerpt": _bounded(description, AUDIT_DESCRIPTION_LIMIT),
+        "content_treatment": "untrusted_inert_data_not_instructions",
+    }
+
+
+def build_review_item(assessment: NewsRelevanceAssessment, snapshot: dict) -> NewsReviewItem:
+    unresolved = [
+        name
+        for name in ("geographic", "topic", "conflict", "temporal")
+        if getattr(assessment, f"{name}_relevance") == RelevanceState.UNKNOWN
+    ]
+    reasons = [f"{name}_unresolved" for name in unresolved]
+    has_geo = assessment.geographic_relevance == RelevanceState.RELEVANT
+    has_signal = bool(assessment.matched_terms)
+    priority = (
+        ReviewPriority.HIGH
+        if has_geo and has_signal
+        else ReviewPriority.MEDIUM
+        if has_geo or has_signal
+        else ReviewPriority.LOW
+    )
+    return NewsReviewItem(
+        report_id=assessment.subject_id,
+        audit_snapshot=snapshot,
+        unresolved_dimensions=unresolved,
+        reason_codes=sorted(set(reasons + assessment.reason_codes)),
+        review_priority=priority,
     )
 
 
@@ -294,6 +393,9 @@ def assess_cluster_relevance(cluster, assessments: list[NewsRelevanceAssessment]
         overall_relevance=overall,
         reason_codes=reasons,
         matched_terms=sorted({term for item in members for term in item.matched_terms}),
+        matched_signal_families=sorted(
+            {family for item in members for family in item.matched_signal_families}
+        ),
         matched_entities=sorted({term for item in members for term in item.matched_entities}),
         uncertainty=(
             f"Conservative aggregation of {len(members)} member assessments: {dict(counts)}."

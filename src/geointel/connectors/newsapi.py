@@ -11,6 +11,7 @@ from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from geointel.domain.schemas import NormalizedNewsReport
 from geointel.news.identity import canonicalize_article_url
+from geointel.news.query import NewsQueryPlan, plan_news_queries
 from geointel.providers.runtime import (
     CollectionAudit,
     CollectionStatus,
@@ -96,6 +97,8 @@ class NewsAPIConnector:
         self.transport = transport or HardenedTransport(timeout=timeout, retries=retries)
         self._now = now or (lambda: datetime.now(UTC))
         self.last_audit: CollectionAudit | None = None
+        self.last_query_plan: NewsQueryPlan | None = None
+        self.last_query_accepted_counts: dict[str, int] = {}
 
     def collect(self, location: str, horizon_months: int = 12) -> list[NormalizedNewsReport]:
         del horizon_months
@@ -105,9 +108,12 @@ class NewsAPIConnector:
         self.last_audit = audit
         end = self._now().astimezone(UTC).replace(microsecond=0) - timedelta(hours=24)
         start = end - timedelta(days=self.window_days)
-        query = " ".join(SAFE_QUERY.sub("", location).split())[:120]
-        if len(query) < 2:
-            raise NewsAPIError("location cannot form a safe NewsAPI query")
+        try:
+            plan = plan_news_queries(location, request_budget=self.request_budget)
+        except ValueError as exc:
+            raise NewsAPIError(str(exc)) from exc
+        self.last_query_plan = plan
+        self.last_query_accepted_counts = {}
         audit.provider_restrictions = {
             "window_start": start.isoformat(),
             "window_end": end.isoformat(),
@@ -126,17 +132,19 @@ class NewsAPIConnector:
         }
         output, seen, total = [], set(), None
         try:
-            for page in range(1, min(self.max_pages, self.request_budget) + 1):
+            # The global request budget is allocated across query families. It is never
+            # multiplied by either query count or max_pages.
+            for query in plan.queries[: min(self.max_pages, self.request_budget)]:
                 payload, request_url, attempts = self.transport.get_json(
                     self.url,
                     params={
-                        "q": query,
+                        "q": query.query_text,
                         "from": start.isoformat(),
                         "to": end.isoformat(),
                         "language": "en",
                         "sortBy": "publishedAt",
                         "pageSize": self.page_size,
-                        "page": page,
+                        "page": 1,
                     },
                     headers={"X-Api-Key": self.api_key},
                     retry_rate_limited=False,
@@ -146,6 +154,7 @@ class NewsAPIConnector:
                 rows, total = self._articles(payload)
                 audit.received += len(rows)
                 retrieved = self._now().astimezone(UTC)
+                accepted_before = audit.accepted
                 for raw in rows:
                     if len(output) >= self.max_records:
                         audit.truncated = True
@@ -160,7 +169,10 @@ class NewsAPIConnector:
                             audit.accepted += 1
                     except (ValidationError, ValueError, TypeError) as exc:
                         audit.reject(exc)
-                if audit.truncated or not rows or audit.received >= total:
+                self.last_query_accepted_counts[query.signal_family] = (
+                    audit.accepted - accepted_before
+                )
+                if audit.truncated:
                     break
             audit.truncated |= bool(total is not None and audit.received < total)
             audit.finish(
