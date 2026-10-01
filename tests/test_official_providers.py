@@ -28,11 +28,12 @@ def ucdp_record(identity=7):
     return {
         "id": identity,
         "country": "Spain",
+        "country_id": 230,
         "date_start": "2024-01-02T00:00:00Z",
         "type_of_violence": 1,
-        "deaths_best": 2,
-        "deaths_low": 1,
-        "deaths_high": 3,
+        "best": 2,
+        "low": 1,
+        "high": 3,
         "latitude": 40.4,
         "longitude": -3.7,
     }
@@ -74,9 +75,13 @@ def test_ucdp_official_header_version_pagination_duplicate_and_provenance():
     )
     assert all(request.headers["x-ucdp-access-token"] == "ucdp-test-secret" for request in requests)
     assert all(request.url.path.endswith("/gedevents/26.1") for request in requests)
+    assert all(request.url.params["Country"] == "230" for request in requests)
+    assert all("country" not in request.url.params for request in requests)
     rendered = str([row.provenance for row in records])
     assert "ucdp-test-secret" not in rendered and records[0].provenance["dataset_version"] == "26.1"
     assert records[0].provenance["observed_historical_not_forecast"] is True
+    assert records[0].provenance["fatalities"] == {"best": 2, "low": 1, "high": 3}
+    assert records[0].provenance["resolved_ucdp_country_id"] == 230
     client.close()
 
 
@@ -121,6 +126,31 @@ def test_ucdp_official_classifies_auth_and_quota_without_leaking_token(status, c
         connector.collect("Spain")
     assert found.value.category == category and "ucdp-secret" not in str(found.value)
     assert "provider-secret" not in str(found.value)
+    client.close()
+
+
+def test_ucdp_http_400_has_safe_actionable_audit_without_body_or_token():
+    client = mock_client(
+        lambda request: httpx.Response(
+            400, json={"code": "InvalidCountry", "detail": "token=upstream-secret"}, request=request
+        )
+    )
+    connector = UCDPConnector(
+        "https://ucdpapi.pcr.uu.se/api",
+        "26.1",
+        access_token="local-test-secret",
+        official_api=True,
+        client=client,
+        retries=0,
+    )
+    with pytest.raises(UCDPError) as found:
+        connector.collect("Spain")
+    audit = connector.last_audit.public()
+    assert found.value.category == FailureCategory.INVALID_REQUEST
+    assert audit["failure_category"] == "INVALID_REQUEST"
+    assert audit["provider_restrictions"]["resolved_country_id"] == 230
+    rendered = str(audit)
+    assert "local-test-secret" not in rendered and "upstream-secret" not in rendered
     client.close()
 
 

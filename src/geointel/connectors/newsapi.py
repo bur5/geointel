@@ -99,6 +99,7 @@ class NewsAPIConnector:
         self.last_audit: CollectionAudit | None = None
         self.last_query_plan: NewsQueryPlan | None = None
         self.last_query_accepted_counts: dict[str, int] = {}
+        self.rotation_index = 0
 
     def collect(self, location: str, horizon_months: int = 12) -> list[NormalizedNewsReport]:
         del horizon_months
@@ -109,7 +110,9 @@ class NewsAPIConnector:
         end = self._now().astimezone(UTC).replace(microsecond=0) - timedelta(hours=24)
         start = end - timedelta(days=self.window_days)
         try:
-            plan = plan_news_queries(location, request_budget=self.request_budget)
+            plan = plan_news_queries(
+                location, request_budget=self.request_budget, rotation_index=self.rotation_index
+            )
         except ValueError as exc:
             raise NewsAPIError(str(exc)) from exc
         self.last_query_plan = plan

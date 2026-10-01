@@ -2,9 +2,10 @@ from datetime import UTC, datetime
 from typing import Any
 
 import httpx
-from pydantic import BaseModel, ConfigDict, Field, ValidationError
+from pydantic import AliasChoices, BaseModel, ConfigDict, Field, ValidationError
 
 from geointel.domain.schemas import Confidence, NormalizedEvidence
+from geointel.geography import CountryIdentity, resolve_country
 from geointel.providers.runtime import (
     CollectionAudit,
     CollectionStatus,
@@ -24,15 +25,20 @@ class UCDPError(RuntimeError):
 
 
 class UCDPRawRecord(BaseModel):
-    model_config = ConfigDict(extra="allow")
+    model_config = ConfigDict(extra="ignore")
     id: int | str
     country: str
+    country_id: int | None = None
     date_start: datetime | None = None
     date_end: datetime | None = None
     type_of_violence: int | None = None
-    deaths_best: int | None = Field(default=None, ge=0)
-    deaths_low: int | None = Field(default=None, ge=0)
-    deaths_high: int | None = Field(default=None, ge=0)
+    best: int | None = Field(
+        default=None, ge=0, validation_alias=AliasChoices("best", "deaths_best")
+    )
+    low: int | None = Field(default=None, ge=0, validation_alias=AliasChoices("low", "deaths_low"))
+    high: int | None = Field(
+        default=None, ge=0, validation_alias=AliasChoices("high", "deaths_high")
+    )
     latitude: float | None = Field(default=None, ge=-90, le=90)
     longitude: float | None = Field(default=None, ge=-180, le=180)
     source_article: str | None = None
@@ -59,6 +65,7 @@ class UCDPConnector:
         max_pages: int = 10,
         max_records: int = 10_000,
         max_bytes: int = 5_000_000,
+        dataset_role: str = "annual_historical",
     ):
         if timeout <= 0 or retries < 0:
             raise ValueError(
@@ -75,6 +82,9 @@ class UCDPConnector:
             official_api,
         )
         self.page_size, self.max_pages, self.max_records = page_size, max_pages, max_records
+        if dataset_role not in {"annual_historical", "candidate_recent"}:
+            raise ValueError("UCDP dataset_role must be annual_historical or candidate_recent")
+        self.dataset_role = dataset_role
         self.transport = HardenedTransport(
             timeout=timeout,
             retries=retries,
@@ -125,17 +135,34 @@ class UCDPConnector:
             )
         if not self.api_version.strip():
             raise UCDPError("UCDP dataset version is required", FailureCategory.CONFIGURATION_ERROR)
-        audit = CollectionAudit("UCDP", "0.1.2", IntegrationMode.OFFICIAL_API, "ucdp-gedevents-26")
+        try:
+            country = resolve_country(location)
+        except ValueError as exc:
+            raise UCDPError(str(exc), FailureCategory.CONFIGURATION_ERROR) from exc
+        audit = CollectionAudit(
+            "UCDP", "0.1.6.1", IntegrationMode.OFFICIAL_API, "ucdp-gedevents-v1"
+        )
         self.last_audit = audit
         output: list[NormalizedEvidence] = []
         seen: set[str] = set()
         total_pages: int | None = None
         url = f"{self.base_url}/gedevents/{self.api_version}"
+        audit.provider_restrictions = {
+            "resource": "gedevents",
+            "dataset_version": self.api_version,
+            "requested_geography": location,
+            "resolved_country_id": country.gw_code,
+            "page_size": self.page_size,
+            "temporal_role": self.dataset_role,
+            "coverage_semantics": self._coverage_semantics(),
+            "sanitized_endpoint": sanitize_url(url),
+        }
         try:
             for page in range(1, self.max_pages + 1):
+                audit.provider_restrictions["page"] = page
                 payload, retrieval_url, attempts = self.transport.get_json(
                     url,
-                    params={"country": location, "pagesize": self.page_size, "page": page},
+                    params={"Country": country.gw_code, "pagesize": self.page_size, "page": page},
                     headers={"x-ucdp-access-token": self.access_token},
                 )
                 audit.request_count += attempts
@@ -159,7 +186,7 @@ class UCDPConnector:
                         if record_id in seen:
                             audit.duplicates += 1
                             continue
-                        item = self.normalize(raw, location, retrieval_url)
+                        item = self.normalize(raw, location, retrieval_url, country)
                         seen.add(record_id)
                         output.append(item)
                         audit.accepted += 1
@@ -213,16 +240,22 @@ class UCDPConnector:
         return payload[keys[0]]
 
     def normalize(
-        self, raw: dict, location: str, retrieval_url: str | None = None
+        self,
+        raw: dict,
+        location: str,
+        retrieval_url: str | None = None,
+        resolved_country: CountryIdentity | None = None,
     ) -> NormalizedEvidence:
         record = UCDPRawRecord.model_validate(raw)
+        if resolved_country and record.country_id != resolved_country.gw_code:
+            raise ValueError("UCDP record country_id does not match resolved request geography")
         return NormalizedEvidence(
             source_name="UCDP",
             source_record_id=str(record.id),
             title=f"UCDP conflict record {record.id}",
             summary=(
                 f"UCDP coded violence record for {record.country}; best deaths: "
-                f"{record.deaths_best if record.deaths_best is not None else 'unknown'}."
+                f"{record.best if record.best is not None else 'unknown'}."
             ),
             published_at=None,
             event_date=record.date_start,
@@ -231,22 +264,35 @@ class UCDPConnector:
             reliability=Confidence.HIGH,
             provenance={
                 "provider": "UCDP",
-                "dataset": "GED",
+                "dataset": "GED Candidate" if self.dataset_role == "candidate_recent" else "GED",
+                "temporal_role": self.dataset_role,
+                "coverage_semantics": self._coverage_semantics(),
                 "endpoint": "gedevents",
                 "dataset_version": self.api_version,
                 "record_id": str(record.id),
                 "country": record.country,
+                "country_id": record.country_id,
+                "requested_geography": location,
+                "resolved_ucdp_country_id": resolved_country.gw_code if resolved_country else None,
                 "date_end": record.date_end.isoformat() if record.date_end else None,
                 "type_of_violence": record.type_of_violence,
                 "fatalities": {
-                    "best": record.deaths_best,
-                    "low": record.deaths_low,
-                    "high": record.deaths_high,
+                    "best": record.best,
+                    "low": record.low,
+                    "high": record.high,
                 },
                 "coordinates": {"latitude": record.latitude, "longitude": record.longitude},
                 "source_article": sanitize_mapping(record.source_article),
                 "retrieval_url": sanitize_url(retrieval_url) if retrieval_url else None,
                 "retrieved_at": datetime.now(UTC).isoformat(),
                 "observed_historical_not_forecast": True,
+                "not_realtime": True,
             },
+        )
+
+    def _coverage_semantics(self) -> str:
+        return (
+            "recent_candidate_observed_conflict_not_realtime_not_evidence_of_absence"
+            if self.dataset_role == "candidate_recent"
+            else "annual_historical_base_rate_not_current_operational_coverage"
         )

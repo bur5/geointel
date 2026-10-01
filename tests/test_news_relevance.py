@@ -214,6 +214,30 @@ def test_sports_metaphors_do_not_create_violence_relevance():
     assert result.overall_relevance == RelevanceState.NOT_RELEVANT
 
 
+@pytest.mark.parametrize("place", ["Catalonia", "Tarragona"])
+def test_explicit_spanish_subnational_mapping_is_auditable(place):
+    result = assess_report_relevance(
+        report("subnational", f"Attempted attack on political leader campaigning in {place}"),
+        REQUEST,
+    )
+    assert result.geographic_relevance == RelevanceState.RELEVANT
+    assert place in result.matched_entities
+    assert result.overall_relevance == RelevanceState.POSSIBLY_RELEVANT
+    assert "potential_political_violence_composition" in result.reason_codes
+    assert result.subject_type == "NewsReport"
+
+
+def test_unmapped_foreign_place_and_peaceful_campaign_do_not_become_conflict():
+    foreign = assess_report_relevance(
+        report("foreign", "Political leader attacked while campaigning in Marseille"), REQUEST
+    )
+    assert foreign.geographic_relevance == RelevanceState.UNKNOWN
+    peaceful = assess_report_relevance(
+        report("peaceful", "Peaceful election campaign rally in Tarragona"), REQUEST
+    )
+    assert peaceful.conflict_relevance == RelevanceState.NOT_RELEVANT
+
+
 def test_bounded_audit_and_unknown_review_are_inert_and_not_risk():
     secret = "api-key-must-not-appear"
     item = report(

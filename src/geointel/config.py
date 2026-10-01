@@ -17,6 +17,7 @@ class Settings(BaseSettings):
     ucdp_base_url: str = "https://ucdpapi.pcr.uu.se/api"
     ucdp_api_version: str = "26.1"
     ucdp_dataset_version: str | None = None
+    ucdp_dataset_role: str = "annual_historical"
     ucdp_endpoint_path: str | None = None
     ucdp_access_token: str | None = None
     ucdp_enabled: bool = False
@@ -166,6 +167,8 @@ class Settings(BaseSettings):
                     raise ValueError(f"unsafe {name} provider URL: {exc}") from exc
         if self.newsapi_entitlement.casefold() not in {"developer", "production"}:
             raise ValueError("NEWSAPI_ENTITLEMENT must be developer or production")
+        if self.ucdp_dataset_role not in {"annual_historical", "candidate_recent"}:
+            raise ValueError("UCDP_DATASET_ROLE must be annual_historical or candidate_recent")
         if self.newsapi_enabled and not self.newsapi_api_key:
             raise ValueError("NEWSAPI_API_KEY is required when NewsAPI is enabled")
         return self

@@ -1,4 +1,4 @@
-# GEOINTEL v0.1.6
+# GEOINTEL v0.1.6.1
 
 GEOINTEL is a geopolitical decision-support and conflict early-warning foundation. v0.1.0 preserves the UCDP/ACLED/VIEWS/CAST pipeline—collection → strategic retrieval/lenses → Analyst → four-category Forecaster → mandatory Red Team → synthesis → immutable persistence—and adds an auditable strategic-knowledge layer. It is not verified intelligence and does not provide personal relocation advice.
 
@@ -163,3 +163,20 @@ connectivity probes are available through `python -m geointel.providers check-li
 ## News query intelligence (v0.1.6)
 
 NewsAPI is a **discovery-only** source. Its Developer plan is delayed and intended only for development/testing. A deterministic, request-budget-bounded query plan combines geography with small organized-violence signal families; this improves discovery efficiency, not truth, and query terms never count as article evidence. Every report is retained with a bounded safe relevance audit snapshot. Conservative `UNKNOWN` items enter a HIGH/MEDIUM/LOW analyst review queue; that priority is information-quality triage, not event probability or geopolitical risk. Relevance and candidate indicators are neither Events nor Evidence, and news availability never establishes validated current operational coverage.
+
+## Corrective provider and discovery hardening (v0.1.6.1)
+
+Official UCDP requests now fail closed through a reviewed country-identity table and send the
+numeric Gleditsch-Ward code as `Country`; the original requested geography and resolved provider
+identifier remain separate in audit/provenance. Annual GED is historical/base-rate material.
+`UCDP_DATASET_ROLE=candidate_recent` explicitly labels a configured Candidate version as recent,
+approximately monthly-lag observed-conflict material—not real-time intelligence. Versions are
+never combined without record provenance, and neither dataset's absence proves absence of violence.
+
+News relevance recognizes only explicitly mapped subnational entities (currently Catalonia and
+Tarragona for Spain) and audits the matching entity. A violence term plus a political actor or
+campaign term plus supported geography is a potential political-violence *discovery* lead; motive,
+occurrence, Event, and Evidence status are never inferred. NewsAPI families rotate by persisted
+analysis-run sequence with deterministic round-robin selection while retaining the request budget.
+GDELT audit metadata retains its 90-day window, non-paginated ArticleList truncation, fresh-fetch
+status, and success/rate-limit distinction; GDELT remains a discovery sensor only.

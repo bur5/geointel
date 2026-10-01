@@ -63,6 +63,8 @@ def test_valid_articlelist_is_bounded_auditable_and_publication_is_not_event_dat
     assert query["enddatetime"] == "20260923120000"
     assert query["mode"] == "artlist" and query["format"] == "json"
     assert gdelt.last_audit.provider_restrictions["window_days"] == 90
+    assert gdelt.last_audit.provider_restrictions["collection_mode"] == "fresh_network_fetch"
+    assert report.provenance["continuous_historical_availability_not_asserted"] is True
 
 
 def test_exact_and_conservatively_canonicalized_urls_deduplicate_but_titles_do_not():

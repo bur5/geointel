@@ -192,4 +192,4 @@ def test_prompt_injection_is_inert_text_and_version_has_one_runtime_source():
     match = compare_reports(left, right)
     assert match.decision == "probable_same_story"
     assert left.title == injection
-    assert __version__ == PIPELINE_VERSION == "0.1.6"
+    assert __version__ == PIPELINE_VERSION == "0.1.6.1"

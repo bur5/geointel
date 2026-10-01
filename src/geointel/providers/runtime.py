@@ -277,7 +277,9 @@ class HardenedTransport:
                     if response.status_code >= 400:
                         code = _safe_provider_error_code(response)
                         raise TransportError(
-                            FailureCategory.INVALID_RESPONSE,
+                            FailureCategory.INVALID_REQUEST
+                            if response.status_code == 400
+                            else FailureCategory.INVALID_RESPONSE,
                             f"provider returned HTTP {response.status_code}",
                             provider_code=code,
                         )

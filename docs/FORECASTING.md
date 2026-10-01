@@ -25,6 +25,18 @@ Red Team checks predictive-as-fact errors, exact/cross-source duplication, geogr
 mismatch, stale/sparse events, fatality uncertainty, causal overclaiming, sensationalism, and
 low-base-rate false positives. No source has override weight.
 
+Collection metadata separately reports historical UCDP coverage, Candidate/recent UCDP coverage,
+current operational Event coverage, delayed news discovery, and review state. Annual GED success
+cannot set current operational coverage. Candidate is more current observed-conflict material but
+is still delayed, incomplete, not real-time certainty, and cannot establish absence when empty.
+
+News geography can be supported by a finite audited subnational mapping; query geography alone is
+insufficient. Compositional violence + political-actor/campaign signals only raise discovery review
+relevance when geography is supported. They do not confirm occurrence or political motive. Query
+families rotate deterministically by persisted run sequence under the unchanged global budget.
+GDELT/NewsAPI publication timestamps are not occurrence times, and GDELT truncation or rate limits
+remain collection facts rather than geopolitical signals.
+
 ## Strategic interpretation boundary (v0.0.4)
 
 A strategic claim is an attributed proposition; a historical case separates factual summary from
