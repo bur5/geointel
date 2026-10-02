@@ -136,3 +136,10 @@ def test_query_plan_is_deterministic_bounded_and_not_evidence():
     assert len(first.queries) <= first.request_budget
     assert all("Spain" in item.query_text for item in first.queries)
     assert first.boundary == "discovery_instructions_not_article_content_or_evidence"
+    rotated = plan_news_queries("Spain", request_budget=3, rotation_index=2)
+    assert rotated.selected_families != first.selected_families
+    assert len(rotated.selected_families) == 3
+    assert set(rotated.selected_families + rotated.omitted_families) == set(
+        rotated.eligible_families
+    )
+    assert rotated.selection_method == "round_robin_explicit_sequence_v1"

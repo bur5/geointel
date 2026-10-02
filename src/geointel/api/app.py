@@ -78,6 +78,7 @@ def connectors(settings: Settings | None = None) -> list[EvidenceConnector]:
             max_pages=settings.provider_max_pages,
             max_records=settings.provider_max_records,
             max_bytes=settings.provider_max_response_bytes,
+            dataset_role=settings.ucdp_dataset_role,
         )
         if settings.ucdp_enabled
         else DisabledConnector("UCDP")

@@ -6,7 +6,8 @@ import re
 
 from pydantic import BaseModel, Field
 
-QUERY_PLAN_VERSION = "organized-political-violence-v1"
+QUERY_PLAN_VERSION = "organized-political-violence-rotation-v2"
+ROTATION_METHOD = "round_robin_explicit_sequence_v1"
 _SAFE = re.compile(r"[^\w .,'()\-]", re.UNICODE)
 
 # Deliberately compact packs: each request searches one coherent family rather than one
@@ -38,6 +39,11 @@ class NewsQueryPlan(BaseModel):
     version: str = QUERY_PLAN_VERSION
     request_budget: int
     queries: list[NewsQuery]
+    eligible_families: list[str]
+    selected_families: list[str]
+    omitted_families: list[str]
+    rotation_index: int
+    selection_method: str = ROTATION_METHOD
     boundary: str = "discovery_instructions_not_article_content_or_evidence"
 
 
@@ -47,12 +53,16 @@ def plan_news_queries(
     request_budget: int,
     provider: str = "NEWSAPI",
     analysis_intent: str = "organized_political_violence",
+    rotation_index: int = 0,
 ) -> NewsQueryPlan:
     """Return the same bounded plan for the same inputs."""
     location = " ".join(_SAFE.sub("", geography).split())[:120]
     if len(location) < 2:
         raise ValueError("location cannot form a safe news query")
     count = min(max(request_budget, 0), len(_FAMILIES))
+    start = rotation_index % len(_FAMILIES)
+    rotated = _FAMILIES[start:] + _FAMILIES[:start]
+    selected = rotated[:count]
     queries = [
         NewsQuery(
             provider=provider,
@@ -62,7 +72,7 @@ def plan_news_queries(
             signal_family=family,
             request_ordinal=index,
         )
-        for index, (family, terms) in enumerate(_FAMILIES[:count], 1)
+        for index, (family, terms) in enumerate(selected, 1)
     ]
     return NewsQueryPlan(
         provider=provider,
@@ -70,4 +80,10 @@ def plan_news_queries(
         analysis_intent=analysis_intent,
         request_budget=request_budget,
         queries=queries,
+        eligible_families=[family for family, _ in _FAMILIES],
+        selected_families=[family for family, _ in selected],
+        omitted_families=[
+            family for family, _ in _FAMILIES if family not in {x[0] for x in selected}
+        ],
+        rotation_index=rotation_index,
     )

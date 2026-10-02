@@ -1,7 +1,7 @@
 import logging
 from datetime import UTC, datetime
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from geointel import __version__
@@ -66,6 +66,7 @@ class AnalysisPipeline:
             raise
 
     def _run(self, request: AnalysisRequest) -> AnalysisRun:
+        rotation_sequence = self.session.scalar(select(func.count()).select_from(AnalysisRun)) or 0
         location = self.session.scalar(select(Location).where(Location.name == request.location))
         if not location:
             location = Location(name=request.location)
@@ -90,6 +91,9 @@ class AnalysisPipeline:
         outcomes = []
         for connector in self.connectors:
             connector_name = getattr(connector, "connector_name", type(connector).__name__)
+            if connector_name == "NEWSAPI" and hasattr(connector, "rotation_index"):
+                # Persisted AnalysisRun identity is deterministic and advances between runs.
+                connector.rotation_index = rotation_sequence
             collected_at = datetime.now(UTC).isoformat()
             if isinstance(connector, DisabledConnector):
                 outcomes.append(
@@ -314,6 +318,7 @@ class AnalysisPipeline:
                 )
             )
         gdelt_outcomes = [item for item in outcomes if item["connector"] == "GDELT"]
+        ucdp_evidence = [item for item in evidence if item.source_name == "UCDP"]
         query_plans = [
             connector.last_query_plan.model_dump(mode="json")
             for connector in self.connectors
@@ -377,13 +382,24 @@ class AnalysisPipeline:
                 item.candidate_indicator_eligible for item in corroboration
             ),
             "gdelt_connector_outcome": gdelt_outcomes[0] if gdelt_outcomes else None,
+            "news_report_counts_by_provider": {
+                provider: sum(item.provider == provider for item in news_reports)
+                for provider in sorted({item.provider for item in news_reports})
+            },
             "connector_failures": connector_errors,
             "connector_outcomes": outcomes,
             "external_collection_succeeded": any(item["succeeded"] for item in outcomes),
             # Media discovery is never validated current operational event coverage.
             "current_operational_coverage_available": bool(events),
+            "historical_conflict_coverage_available": any(
+                item.provenance.get("temporal_role") == "annual_historical"
+                for item in ucdp_evidence
+            ),
+            "candidate_recent_conflict_coverage_available": any(
+                item.provenance.get("temporal_role") == "candidate_recent" for item in ucdp_evidence
+            ),
             "delayed_news_discovery_coverage_available": any(
-                item.provider == "NEWSAPI" for item in news_reports
+                item.provider in {"NEWSAPI", "GDELT"} for item in news_reports
             ),
             "collected_at": datetime.now(UTC).isoformat(),
         }

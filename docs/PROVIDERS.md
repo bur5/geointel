@@ -21,11 +21,20 @@ documentation links without exposing credential values.
 
 Authoritative contract: <https://ucdp.uu.se/apidocs/>. GEOINTEL uses the official HTTPS API host,
 `gedevents` resource, explicit dataset version path, `x-ucdp-access-token` header, and documented
-`pagesize`/`page` parameters. It stops at `TotalPages`; malformed or changing page counts, duplicate
+numeric Gleditsch-Ward `Country` plus `pagesize`/`page` parameters. Human geography is resolved by
+a finite reviewed mapping and fails closed before HTTP when unknown. It stops at `TotalPages`;
+malformed or changing page counts, duplicate
 IDs, quota/auth errors, schema failures, response bounds, maximum pages, and maximum records are
 audited. The default currently verified GED version is `26.1`, but `UCDP_DATASET_VERSION` is
 explicitly configurable and is preserved in each record's provenance. GED records remain
-observed/historical evidence and never become forecasts.
+observed/historical evidence and never become forecasts or current operational coverage. Fatality
+fields use the official `best`, `low`, and `high` names.
+
+`UCDP_DATASET_ROLE` is `annual_historical` by default. Operators may configure a reviewed Candidate
+version with `candidate_recent`; each record retains the dataset version and role, and Candidate is
+approximately monthly-lag data rather than real-time intelligence. Annual and Candidate records are
+not provenance-free merged. Candidate live enablement is configuration-driven and must use the
+currently documented version (for example 26.0.8 in August 2026) after operator verification.
 
 Request an API token from UCDP under its current access process, store it in the deployment secret
 manager, then configure (values shown are placeholders):
@@ -34,6 +43,7 @@ manager, then configure (values shown are placeholders):
 UCDP_MODE=official_api
 UCDP_ACCESS_TOKEN=<secret supplied by UCDP>
 UCDP_DATASET_VERSION=26.1
+UCDP_DATASET_ROLE=annual_historical
 ```
 
 The token is header-only. It is not placed in URLs, logs, provenance, database fields, registry

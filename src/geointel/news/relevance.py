@@ -14,8 +14,9 @@ from urllib.parse import urlsplit
 from pydantic import BaseModel, Field
 
 from geointel.domain.schemas import AnalysisRequest, NormalizedNewsReport
+from geointel.geography import matched_subnational_entities, resolve_country
 
-RELEVANCE_METHOD_VERSION = "organized-political-violence-v1"
+RELEVANCE_METHOD_VERSION = "organized-political-violence-v2"
 AUDIT_TITLE_LIMIT = 300
 AUDIT_DESCRIPTION_LIMIT = 500
 AUDIT_FIELD_LIMIT = 600
@@ -119,6 +120,11 @@ _POLITICAL = {
     "coup",
     "election",
     "minister",
+    "political leader",
+    "party leader",
+    "candidate",
+    "parliamentarian",
+    "campaign",
     "parliament",
     "border",
 }
@@ -208,16 +214,30 @@ def assess_report_relevance(
         reasons.append("request_topic_not_covered_by_violence_ontology")
 
     location = request.location.casefold().strip()
+    geographic_entities: list[str] = []
     provider_geo = " ".join(str(x) for x in (report.provider_geography or {}).values()).casefold()
     source_geo = (report.source_country or "").casefold()
+    try:
+        identity = resolve_country(request.location)
+        subnational = matched_subnational_entities(text, identity)
+    except ValueError:
+        subnational = []
     if location and (location in text or location == source_geo or location in provider_geo):
         geography = RelevanceState.RELEVANT
         reasons.append("requested_geography_supported_by_report_metadata")
+        geographic_entities = [request.location]
+    elif subnational:
+        geography = RelevanceState.RELEVANT
+        geographic_entities = subnational
+        reasons.extend(
+            f"explicit_subnational_mapping:{entity}:{request.location}" for entity in subnational
+        )
     elif report.source_country or report.provider_geography:
         geography = RelevanceState.NOT_RELEVANT
         reasons.append("report_metadata_supports_different_geography")
     else:
         geography = RelevanceState.UNKNOWN
+        geographic_entities = []
         reasons.append("query_geography_not_demonstrated_by_report_metadata")
 
     strong = _contains(text, _STRONG)
@@ -245,6 +265,15 @@ def assess_report_relevance(
         conflict = RelevanceState.RELEVANT if strong else RelevanceState.POSSIBLY_RELEVANT
         topic = RelevanceState.RELEVANT if strong else RelevanceState.POSSIBLY_RELEVANT
         reasons.append("organized_political_violence_discovery_signal")
+        if violent and political and geography == RelevanceState.RELEVANT:
+            reasons.extend(
+                [
+                    "potential_political_violence_composition",
+                    "violence_component_matched",
+                    "political_actor_or_campaign_component_matched",
+                    "motive_not_inferred",
+                ]
+            )
         if negative:
             topic = conflict = RelevanceState.POSSIBLY_RELEVANT
             reasons.append("conflict_signal_prevents_off_topic_override")
@@ -291,7 +320,7 @@ def assess_report_relevance(
             + (["violence_or_escalation"] if violent else [])
             + (["political_context"] if political else [])
         ),
-        matched_entities=[request.location] if geography == RelevanceState.RELEVANT else [],
+        matched_entities=geographic_entities,
         uncertainty=(
             "Deterministic metadata heuristic for discovery triage only; article text is "
             "untrusted and relevance does not establish occurrence, motive, or truth."

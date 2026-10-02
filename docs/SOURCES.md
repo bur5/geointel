@@ -4,7 +4,19 @@ Connectors validate untrusted data, use bounded retries/timeouts, retain provena
 
 ## UCDP
 
-UCDP supplies historical/conflict evidence. Its endpoint is intentionally operator-configured rather than guessed. Confirm current documentation, access terms, schema, and licensing before enabling it. A UCDP artifact is Evidence, not automatically an Event.
+UCDP supplies historical/conflict evidence. Official `gedevents/<version>` collection resolves a
+human location through the finite reviewed country table and sends its numeric Gleditsch-Ward code
+as `Country`; unknown/ambiguous locations stop before HTTP. The initial verified mappings are Spain
+230, Georgia 372, Taiwan 713, Serbia 340, and Nigeria 475, as documented by the UCDP API country
+code list/codebook linked from the [official API documentation](https://ucdp.uu.se/apidocs/).
+These identifiers and aliases are provider lookups, not sovereignty judgments.
+
+Annual GED (default 26.1, through 2025) is historical/base-rate evidence and never current
+operational coverage. A separately configured Candidate version has the explicit
+`candidate_recent` role and approximately one-month publication lag; it is not real time. Dataset,
+version, temporal role, requested geography, resolved code, and fatalities (`best`/`low`/`high`)
+remain in provenance. Missing records never establish absence. A UCDP artifact is Evidence, not
+automatically an Event.
 
 ## VIEWS
 

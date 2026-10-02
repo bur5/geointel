@@ -100,6 +100,9 @@ class GDELTConnector:
             "window_days": 90,
             "max_records": self.max_records,
             "articlelist_has_no_pagination": True,
+            "collection_mode": "fresh_network_fetch",
+            "continuous_historical_availability_not_asserted": True,
+            "discovery_sensor_not_event_source": True,
         }
         params = {
             "query": query,
@@ -228,5 +231,8 @@ class GDELTConnector:
                 "untrusted_media_content": True,
                 "article_not_fetched": True,
                 "not_event_or_evidence": True,
+                "collection_mode": "fresh_network_fetch",
+                "continuous_historical_availability_not_asserted": True,
+                "publication_timestamp_not_event_occurrence": True,
             },
         )
