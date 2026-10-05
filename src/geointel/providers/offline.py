@@ -7,6 +7,7 @@ from geointel.domain.schemas import (
     Confidence,
     ConflictType,
     ForecastOutput,
+    HistoricalBaseRateSummary,
     RedTeamOutput,
     RiskAssessment,
     SynthesisOutput,
@@ -21,7 +22,17 @@ class OfflineModel:
     name = "offline-rules-v1"
 
     def generate(self, role: str, payload: dict, output_type: type[T]) -> T:
-        evidence = payload.get("evidence", [])
+        evidence = payload.get("observed_evidence", payload.get("evidence", []))
+        historical = payload.get("historical_evidence", [])
+        summary = payload.get("historical_base_rate_summary")
+        history_available = bool(summary and summary["status"] == "available")
+        history_note = (
+            f"Historical base-rate context available: "
+            f"{summary['observation_statistics']['observation_count']} observations; "
+            "historical features are not forecast probabilities."
+            if history_available
+            else "No validated historical base-rate observations are available."
+        )
         signals = payload.get("predictive_signals", [])
         recent_events = payload.get("recent_events", [])
         news_reports = payload.get("news_reports", [])
@@ -30,8 +41,16 @@ class OfflineModel:
         operational = bool(metadata.get("current_operational_coverage_available"))
         if output_type is AnalystOutput:
             result = AnalystOutput(
-                observed_evidence=[e["summary"] for e in evidence],
-                historical_evidence=[e["summary"] for e in evidence],
+                observed_evidence=[
+                    e["summary"]
+                    for e in evidence
+                    if e.get("provenance", {}).get("temporal_role")
+                    not in {"annual_historical", "historical"}
+                ],
+                historical_evidence=[history_note] if historical else [],
+                historical_base_rate_summary=(
+                    HistoricalBaseRateSummary.model_validate(summary) if summary else None
+                ),
                 recent_events=[
                     f"ACLED reported {item['event_type']} on {item['event_date']} "
                     f"({item['alignment_status']}); report is not independently verified."
@@ -51,9 +70,7 @@ class OfflineModel:
                     for item in metadata.get("connector_outcomes", [])
                     if not item["succeeded"]
                 ],
-                historical_base_rate_notes=[
-                    "No validated historical base-rate dataset was available in offline mode."
-                ],
+                historical_base_rate_notes=[history_note],
                 assumptions=[
                     "Absence of retrieved evidence is not evidence of absence.",
                     (
@@ -90,13 +107,16 @@ class OfflineModel:
                         evidence_against=[],
                         unknowns=[
                             (
-                                "No validated current operational event evidence is available; "
-                                "delayed news-discovery reports exist but are not confirmed "
-                                "Events or Evidence. Historical base rates are unavailable."
+                                "No validated current operational event coverage is available. "
+                                "Delayed news-discovery reports are "
+                                "not confirmed Events or Evidence."
                                 if delayed_news and not operational
-                                else "Validated current operational event evidence and historical "
-                                "base rates are unavailable."
-                            )
+                                else "No validated current operational event coverage is available."
+                                if not operational
+                                else "Operational reports require independent review."
+                            ),
+                            history_note,
+                            "No calibrated forecast probability model is available.",
                         ],
                         resolution_criteria=[
                             f"Observe whether qualifying {kind.value} occurs within the horizon."
@@ -116,13 +136,49 @@ class OfflineModel:
         elif output_type is RedTeamOutput:
             mismatch_notes = payload.get("source_disagreements", [])
             result = RedTeamOutput(
-                missing_evidence=[
-                    "No validated current operational event or base-rate dataset; delayed news "
-                    "discovery, when present, consists only of unconfirmed leads."
-                ],
+                missing_evidence=(
+                    ["No validated current operational event coverage is available."]
+                    if not operational
+                    else []
+                )
+                + ([] if history_available else [history_note]),
+                temporal_leakage_concerns=[
+                    "Temporal leakage: historical evidence presented as current."
+                    for item in evidence
+                    if item.get("provenance", {}).get("temporal_role")
+                    in {"annual_historical", "historical"}
+                ]
+                + (
+                    ["Temporal leakage: historical narrative presented as current."]
+                    if set(payload.get("analysis", {}).get("observed_evidence", []))
+                    & {item["summary"] for item in historical}
+                    else []
+                )
+                + (
+                    ["Temporal leakage: historical coverage asserted as current coverage."]
+                    if history_available and operational and not recent_events and not evidence
+                    else []
+                ),
+                base_rate_concerns=[
+                    "Dataset coverage end must not be mistaken for present-day coverage.",
+                    "Historical frequency is not forecast probability; fatalities are not events.",
+                    "Sparse historical observations cannot establish a trend.",
+                    "Missing categories must not be inferred.",
+                ]
+                if history_available
+                else [],
                 unjustified_precision=[
                     "Do not assign numeric probabilities without calibrated data."
-                ],
+                ]
+                + (
+                    ["Historical features do not justify uncalibrated forecast probabilities."]
+                    if history_available
+                    and any(
+                        item.get("probability_low") is not None
+                        for item in payload.get("forecast", {}).get("assessments", [])
+                    )
+                    else []
+                ),
                 false_positive_risks=[
                     "Political tension must not be conflated with organized violence."
                 ],
@@ -215,7 +271,14 @@ class OfflineModel:
             result = SynthesisOutput(
                 summary=(
                     "Insufficient evidence for quantified risk. The red-team review requires "
-                    "restraint and additional independent data."
+                    "restraint and additional independent data. "
+                    + history_note
+                    + " "
+                    + (
+                        "No validated current operational event coverage is available."
+                        if not operational
+                        else "Operational records remain separately identified."
+                    )
                 ),
                 assessments=[
                     RiskAssessment.model_validate(x) for x in payload["forecast"]["assessments"]
