@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import date, datetime
 from enum import StrEnum
 from uuid import UUID
 
@@ -155,7 +155,62 @@ class RiskAssessment(BaseModel):
         return self
 
 
+class HistoricalDatasetCoverage(BaseModel):
+    provider: str
+    dataset: str | None = None
+    resource: str | None = None
+    dataset_version: str | None = None
+    temporal_role: str
+    requested_geography: str
+    resolved_provider_geography_id: int | str | None = None
+    earliest_observed_date: date | None = None
+    latest_observed_date: date | None = None
+    coverage_end: date | None = None
+    reference_date: date | None = None
+    reference_basis: str = "latest_observation_not_dataset_coverage"
+    historical: bool = True
+    coverage_semantics: str | None = None
+    observation_count: int
+
+
+class HistoricalObservationStatistics(BaseModel):
+    observation_count: int = 0
+    dated_observation_count: int = 0
+    earliest_observation_date: date | None = None
+    latest_observation_date: date | None = None
+    earliest_year: int | None = None
+    latest_year: int | None = None
+    observed_year_span: int | None = None
+    distinct_observed_year_count: int = 0
+    years_since_latest_observation: int | None = None
+
+
+class HistoricalFatalityStatistics(BaseModel):
+    best_total: int | None = None
+    low_total: int | None = None
+    high_total: int | None = None
+    best_available_count: int = 0
+    low_available_count: int = 0
+    high_available_count: int = 0
+    median_best_per_observation: float | None = None
+    maximum_best_per_observation: int | None = None
+
+
+class HistoricalBaseRateSummary(BaseModel):
+    status: str
+    method_version: str = "historical-observations-v1"
+    geography: str
+    coverage: list[HistoricalDatasetCoverage] = Field(default_factory=list)
+    observation_statistics: HistoricalObservationStatistics
+    fatality_statistics: HistoricalFatalityStatistics
+    trailing_window_counts: dict[str, dict[str, int]] = Field(default_factory=dict)
+    category_statistics: dict[str, dict[str, int]] = Field(default_factory=dict)
+    category_available_counts: dict[str, int] = Field(default_factory=dict)
+    caveats: list[str]
+
+
 class AnalystOutput(BaseModel):
+    historical_base_rate_summary: HistoricalBaseRateSummary | None = None
     observed_evidence: list[str]
     historical_evidence: list[str] = Field(default_factory=list)
     recent_events: list[str] = Field(default_factory=list)
@@ -181,6 +236,7 @@ class ForecastOutput(BaseModel):
 
 
 class RedTeamOutput(BaseModel):
+    temporal_leakage_concerns: list[str] = Field(default_factory=list)
     unsupported_claims: list[str] = Field(default_factory=list)
     missing_evidence: list[str] = Field(default_factory=list)
     alternative_explanations: list[str] = Field(default_factory=list)

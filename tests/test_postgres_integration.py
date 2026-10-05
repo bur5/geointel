@@ -242,3 +242,38 @@ def test_postgres_monitoring_linkage_alert_dedupe_and_resolution():
         assert session.scalar(
             select(MonitoringRun).where(MonitoringRun.id == repeated.id)
         ).analysis_run_id
+
+
+@pytest.mark.skipif(not os.getenv("POSTGRES_TEST_URL"), reason="PostgreSQL service unavailable")
+def test_postgres_historical_summary_and_raw_provenance():
+    from test_historical_base_rates import observation
+
+    from geointel.domain.models import Evidence
+
+    class History:
+        def collect(self, location, horizon_months):
+            return [observation("postgres-history", 2020, 2, 1, 3)]
+
+    engine = create_engine(os.environ["POSTGRES_TEST_URL"])
+    with Session(engine, expire_on_commit=False) as session:
+        model = OfflineModel()
+        run = AnalysisPipeline(session, ModelRouter(model, model, model), [History()]).run(
+            AnalysisRequest(
+                location="Spain",
+                question="Assess organized violence over twelve months.",
+                horizon_months=12,
+            )
+        )
+        session.expire_all()
+        saved = session.get(AnalysisRun, run.id)
+        summary = saved.collection_metadata["historical_base_rate_summary"]
+        assert summary["fatality_statistics"]["best_total"] == 2
+        assert summary["coverage"][0]["coverage_end"] == "2025-12-31"
+        assert not saved.collection_metadata["current_operational_coverage_available"]
+        assert saved.analyst_output["observed_evidence"] == []
+        assert (
+            session.scalar(select(Evidence).where(Evidence.analysis_run_id == run.id)).provenance[
+                "temporal_role"
+            ]
+            == "annual_historical"
+        )

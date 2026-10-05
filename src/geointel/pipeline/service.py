@@ -38,6 +38,7 @@ from geointel.news.relevance import (
     build_review_item,
     relevance_audit_snapshot,
 )
+from geointel.pipeline.historical import is_current, is_historical, summarize_history
 from geointel.providers.base import ModelRouter
 from geointel.providers.runtime import sanitize_text
 
@@ -178,6 +179,9 @@ class AnalysisPipeline:
                     }
                 )
         evidence = self._deduplicate(evidence, self._record_key)
+        historical = [item for item in evidence if is_historical(item)]
+        current = [item for item in evidence if is_current(item)]
+        base_rate = summarize_history(historical, request.location, datetime.now(UTC).date())
         signals = self._deduplicate(signals, self._record_key)
         events = self._deduplicate(events, self._record_key)
         all_news_observations = list(news_reports)
@@ -390,11 +394,13 @@ class AnalysisPipeline:
             "connector_outcomes": outcomes,
             "external_collection_succeeded": any(item["succeeded"] for item in outcomes),
             # Media discovery is never validated current operational event coverage.
-            "current_operational_coverage_available": bool(events),
-            "historical_conflict_coverage_available": any(
-                item.provenance.get("temporal_role") == "annual_historical"
-                for item in ucdp_evidence
-            ),
+            "current_operational_coverage_available": bool(events or current),
+            "historical_conflict_coverage_available": bool(historical),
+            "historical_base_rate_summary": base_rate.model_dump(mode="json"),
+            "current_evidence_count": len(current),
+            "historical_observation_count": len(historical),
+            "unclassified_evidence_count": len(evidence) - len(current) - len(historical),
+            "predictive_signal_coverage_available": bool(signals),
             "candidate_recent_conflict_coverage_available": any(
                 item.provenance.get("temporal_role") == "candidate_recent" for item in ucdp_evidence
             ),
@@ -403,7 +409,7 @@ class AnalysisPipeline:
             ),
             "collected_at": datetime.now(UTC).isoformat(),
         }
-        strategic_context = self._strategic_analysis(run, request, evidence, events, signals)
+        strategic_context = self._strategic_analysis(run, request, historical, events, signals)
         # Reassign JSON after retrieval queries may have autoflushed the run.
         run.collection_metadata = {
             **run.collection_metadata,
@@ -411,8 +417,9 @@ class AnalysisPipeline:
         }
         payload = {
             "request": request.model_dump(),
-            "observed_evidence": [x.model_dump(mode="json") for x in evidence],
-            "historical_evidence": [x.model_dump(mode="json") for x in evidence],
+            "observed_evidence": [x.model_dump(mode="json") for x in current],
+            "historical_evidence": [x.model_dump(mode="json") for x in historical],
+            "historical_base_rate_summary": base_rate.model_dump(mode="json"),
             "recent_events": [x.model_dump(mode="json") for x in events],
             "news_reports": [x.model_dump(mode="json") for x in news_reports],
             "story_clusters": [x.model_dump(mode="json") for x in clusters],
@@ -432,7 +439,7 @@ class AnalysisPipeline:
                 "Only explicit distinct reporting-chain evidence supports corroborated reporting.",
             ],
             # Compatibility alias for structured providers implemented against v0.0.1.
-            "evidence": [x.model_dump(mode="json") for x in evidence],
+            "evidence": [x.model_dump(mode="json") for x in current],
             "predictive_signals": [x.model_dump(mode="json") for x in signals],
             "source_disagreements": self._alignment_disagreements(signals, events),
             "collection_metadata": run.collection_metadata,

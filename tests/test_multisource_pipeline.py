@@ -21,7 +21,7 @@ class SuccessfulUCDP:
                 retrieved_at=datetime.now(UTC),
                 geographic_scope=location,
                 reliability=Confidence.HIGH,
-                provenance={"synthetic_fixture": True},
+                provenance={"synthetic_fixture": True, "temporal_role": "annual_historical"},
             )
         ]
 
@@ -60,7 +60,8 @@ def test_views_signal_is_persisted_separately_and_never_becomes_event(client, se
     assert session.query(Event).count() == 0
     assert all(item.probability_low is None for item in session.query(Forecast).all())
     analyst = response.json()["analyst_output"]
-    assert analyst["observed_evidence"]
+    assert analyst["observed_evidence"] == []
+    assert analyst["historical_evidence"]
     assert analyst["predictive_signals"]
 
 

@@ -1,4 +1,4 @@
-# GEOINTEL v0.1.6.1
+# GEOINTEL v0.1.7
 
 GEOINTEL is a geopolitical decision-support and conflict early-warning foundation. v0.1.0 preserves the UCDP/ACLED/VIEWS/CAST pipeline—collection → strategic retrieval/lenses → Analyst → four-category Forecaster → mandatory Red Team → synthesis → immutable persistence—and adds an auditable strategic-knowledge layer. It is not verified intelligence and does not provide personal relocation advice.
 
@@ -180,3 +180,17 @@ occurrence, Event, and Evidence status are never inferred. NewsAPI families rota
 analysis-run sequence with deterministic round-robin selection while retaining the request budget.
 GDELT audit metadata retains its 90-day window, non-paginated ArticleList truncation, fresh-fetch
 status, and success/rate-limit distinction; GDELT remains a discovery sensor only.
+
+## Historical base-rate features (v0.1.7)
+
+Annual UCDP GED observations are historical context, never current operational
+violence or predictive signals. Explicit provenance temporal roles separate
+current observations, historical observations, provider predictions and media
+leads. Unclassified structured evidence remains in the audit store without
+being promoted to current evidence. Historical collection alone cannot establish
+current operational coverage or escalation.
+
+`collection_metadata.historical_base_rate_summary` and the typed analyst output
+contain deterministic `historical-observations-v1` features. See
+[the historical feature contract](docs/HISTORICAL_BASE_RATES.md). These are inputs
+for future calibrated forecasting models, not probabilities or model authority.
