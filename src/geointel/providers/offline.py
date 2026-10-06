@@ -8,10 +8,12 @@ from geointel.domain.schemas import (
     ConflictType,
     ForecastOutput,
     HistoricalBaseRateSummary,
+    HistoricalConflictProfile,
     RedTeamOutput,
     RiskAssessment,
     SynthesisOutput,
 )
+from geointel.pipeline.historical_review import historical_context, review_historical_claims
 
 T = TypeVar("T", bound=BaseModel)
 
@@ -33,6 +35,14 @@ class OfflineModel:
             if history_available
             else "No validated historical base-rate observations are available."
         )
+        profile = payload.get("historical_conflict_profile")
+        if profile:
+            history_available = profile["status"] == "available"
+            history_note = (
+                historical_context(profile)
+                if history_available
+                else "No validated historical base-rate observations are available."
+            )
         signals = payload.get("predictive_signals", [])
         recent_events = payload.get("recent_events", [])
         news_reports = payload.get("news_reports", [])
@@ -47,7 +57,10 @@ class OfflineModel:
                     if e.get("provenance", {}).get("temporal_role")
                     not in {"annual_historical", "historical"}
                 ],
-                historical_evidence=[history_note] if historical else [],
+                historical_evidence=[history_note] if historical or history_available else [],
+                historical_conflict_profile=(
+                    HistoricalConflictProfile.model_validate(profile) if profile else None
+                ),
                 historical_base_rate_summary=(
                     HistoricalBaseRateSummary.model_validate(summary) if summary else None
                 ),
@@ -115,7 +128,7 @@ class OfflineModel:
                                 if not operational
                                 else "Operational reports require independent review."
                             ),
-                            history_note,
+                            historical_context(profile, kind) if profile else history_note,
                             "No calibrated forecast probability model is available.",
                         ],
                         resolution_criteria=[
@@ -266,6 +279,8 @@ class OfflineModel:
                 if payload.get("strategic_context")
                 else [],
             )
+            for field, findings in review_historical_claims(payload).items():
+                setattr(result, field, sorted(set(getattr(result, field) + findings)))
         elif output_type is SynthesisOutput:
             critique = payload["red_team"]
             result = SynthesisOutput(
@@ -281,7 +296,10 @@ class OfflineModel:
                     )
                 ),
                 assessments=[
-                    RiskAssessment.model_validate(x) for x in payload["forecast"]["assessments"]
+                    RiskAssessment.model_validate(
+                        {**x, "probability_low": None, "probability_high": None}
+                    )
+                    for x in payload["forecast"]["assessments"]
                 ],
                 incorporated_critiques=[
                     finding

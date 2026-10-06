@@ -38,7 +38,13 @@ from geointel.news.relevance import (
     build_review_item,
     relevance_audit_snapshot,
 )
-from geointel.pipeline.historical import is_current, is_historical, summarize_history
+from geointel.pipeline.historical import (
+    build_conflict_profile,
+    is_current,
+    is_historical,
+    summarize_history,
+)
+from geointel.pipeline.historical_review import review_historical_claims
 from geointel.providers.base import ModelRouter
 from geointel.providers.runtime import sanitize_text
 
@@ -181,7 +187,9 @@ class AnalysisPipeline:
         evidence = self._deduplicate(evidence, self._record_key)
         historical = [item for item in evidence if is_historical(item)]
         current = [item for item in evidence if is_current(item)]
-        base_rate = summarize_history(historical, request.location, datetime.now(UTC).date())
+        analysis_date = datetime.now(UTC).date()
+        base_rate = summarize_history(historical, request.location, analysis_date)
+        profile = build_conflict_profile(historical, request.location, analysis_date)
         signals = self._deduplicate(signals, self._record_key)
         events = self._deduplicate(events, self._record_key)
         all_news_observations = list(news_reports)
@@ -397,6 +405,7 @@ class AnalysisPipeline:
             "current_operational_coverage_available": bool(events or current),
             "historical_conflict_coverage_available": bool(historical),
             "historical_base_rate_summary": base_rate.model_dump(mode="json"),
+            "historical_conflict_profile": profile.model_dump(mode="json"),
             "current_evidence_count": len(current),
             "historical_observation_count": len(historical),
             "unclassified_evidence_count": len(evidence) - len(current) - len(historical),
@@ -420,6 +429,7 @@ class AnalysisPipeline:
             "observed_evidence": [x.model_dump(mode="json") for x in current],
             "historical_evidence": [x.model_dump(mode="json") for x in historical],
             "historical_base_rate_summary": base_rate.model_dump(mode="json"),
+            "historical_conflict_profile": profile.model_dump(mode="json"),
             "recent_events": [x.model_dump(mode="json") for x in events],
             "news_reports": [x.model_dump(mode="json") for x in news_reports],
             "story_clusters": [x.model_dump(mode="json") for x in clusters],
@@ -456,6 +466,14 @@ class AnalysisPipeline:
             {**payload, "analysis": analyst.model_dump(), "forecast": forecast.model_dump()},
             RedTeamOutput,
         )
+        # These audit checks also run when a different structured model is routed.
+        review_payload = {
+            **payload,
+            "analysis": analyst.model_dump(mode="json"),
+            "forecast": forecast.model_dump(mode="json"),
+        }
+        for field, findings in review_historical_claims(review_payload).items():
+            setattr(red, field, sorted(set(getattr(red, field) + findings)))
         synthesis = self.router.for_role("reasoning").generate(
             "meta_analyst",
             {
@@ -467,6 +485,11 @@ class AnalysisPipeline:
             SynthesisOutput,
         )
         synthesis.validate_red_team_incorporation(red)
+        if any(
+            x.probability_low is not None or x.probability_high is not None
+            for x in synthesis.assessments
+        ):
+            raise ValueError("v0.1.8 has no calibrated probability mechanism")
         run.analyst_output = analyst.model_dump(mode="json")
         run.red_team_output = red.model_dump(mode="json")
         run.synthesis_output = synthesis.model_dump(mode="json")

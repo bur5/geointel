@@ -20,6 +20,7 @@ from geointel.domain.models import (
     WatchlistTarget,
 )
 from geointel.domain.schemas import AnalysisRequest
+from geointel.pipeline.historical_review import historical_context
 
 CADENCES = {
     "hourly": timedelta(hours=1),
@@ -418,6 +419,12 @@ class MonitoringService:
 
     @staticmethod
     def _snapshot(run: AnalysisRun) -> dict:
+        profile = (run.collection_metadata or {}).get("historical_conflict_profile")
+        descriptive_context = (
+            {historical_context(profile, f.conflict_type) for f in run.forecasts}
+            if profile
+            else set()
+        )
         forecasts = {
             f.conflict_type: {
                 "confidence": f.confidence,
@@ -425,7 +432,8 @@ class MonitoringService:
                 "probability_high": f.probability_high,
                 "evidence_for": sorted(f.evidence_for),
                 "evidence_against": sorted(f.evidence_against),
-                "unknowns": sorted(f.unknowns),
+                # Audited descriptive history remains visible, but is not a forecast change.
+                "unknowns": sorted(x for x in f.unknowns if x not in descriptive_context),
             }
             for f in run.forecasts
         }

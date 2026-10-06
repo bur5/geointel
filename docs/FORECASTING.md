@@ -107,3 +107,32 @@ confirmed event; a candidate indicator is not Evidence/Event; and article volume
 ## News boundaries
 
 News relevance does not verify an event and article volume is never a probability, base rate, or risk score. Candidate indicators still require independent reporting chains and analyst review and remain neither Event nor Evidence. Successful delayed discovery does not provide forecast-signal coverage or validated current operational-event coverage; sparse synthesis remains unquantified while not incorrectly describing available delayed leads as simply “offline mode.”
+
+
+## v0.1.8 descriptive historical context
+
+The provider-neutral historical taxonomy is separate from the unchanged four-category forecast
+contract. Analyst retains the typed `HistoricalConflictProfile` and summarizes safely mapped
+types and unresolved observation counts without repeating rows. Per-category forecast/synthesis
+unknowns describe matching historical observation counts; these do not reduce uncertainty or
+assert recurrence. Internationalized internal conflict is a separate historical category and
+is not silently collapsed into a forecast category.
+
+Historical presence, shares of retrieved observations, years since latest observation,
+observation counts, distinct observed years and fatalities are descriptive inputs only. They
+are neither risk scores nor LOW/MEDIUM/HIGH current-risk labels. There is no calibrated GEOINTEL
+probability mechanism in this release: synthesis clears uncalibrated numeric bounds and the
+pipeline refuses to persist numeric synthesis probabilities from any routed model. Existing
+low confidence remains a statement of uncertainty, not a historical risk classification.
+
+The mandatory deterministic historical review also runs at the pipeline boundary, independently
+of the routed Red Team model. It checks mapping audit completeness and reviewed mapping rules,
+unresolved loss, historical count/episode/fatality confusion, probability/current/escalation
+claims, reference/coverage confusion and unvalidated annualized rates. Findings remain persisted
+and synthesis must incorporate them. Narrative checks use explicit positive patterns and do not
+claim exhaustive natural-language understanding.
+
+Future calibrated models may consume these features only with an explicit target definition,
+validated exposure and retrieval completeness, dataset-specific missingness handling, dependence
+controls, held-out backtesting and calibration assessment. A retrieved-observation share is not
+an annual or recurrence probability. See [historical profiles](HISTORICAL_BASE_RATES.md).
