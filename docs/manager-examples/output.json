@@ -1,0 +1,166 @@
+{
+  "action_authorized": false,
+  "advisory": true,
+  "audit": [
+    {
+      "evidence_ids": [
+        "ci-gap",
+        "policy-gap",
+        "refs"
+      ],
+      "result": "CALLER_ATTESTED_FOR_PLANNING_ONLY",
+      "rule": "snapshot_preflight",
+      "sequence": 1,
+      "subject": "snapshot"
+    },
+    {
+      "evidence_ids": [
+        "policy-gap"
+      ],
+      "result": "BLOCKED:R3",
+      "rule": "classify_and_rank",
+      "sequence": 2,
+      "subject": "mgr-c18a97e356f99dde56fd4837"
+    },
+    {
+      "evidence_ids": [
+        "ci-gap"
+      ],
+      "result": "ELIGIBLE_FOR_CONTRACT:R0",
+      "rule": "classify_and_rank",
+      "sequence": 3,
+      "subject": "mgr-08827da4f713b86885529046"
+    },
+    {
+      "evidence_ids": [],
+      "result": "CONTRACT_PROPOSED",
+      "rule": "select_first_eligible",
+      "sequence": 4,
+      "subject": "mgr-08827da4f713b86885529046"
+    }
+  ],
+  "authority_boundaries": [
+    "Planning only; eligibility is permission to draft a contract, never to execute it.",
+    "No network, credentials, shell, GitHub mutation, AI inference or resource creation.",
+    "No edits or merges to PR #24, #25 or #26; all three remain unresolved.",
+    "No merge, approval, deployment, public release, deletion, spending or expanded access.",
+    "Owner authorization and independent review cannot be established by this engine.",
+    "Green CI, advisory comments, draft PRs and quoted approvals grant no authority.",
+    "Preserve provenance, uncertainty, synthetic labels and epistemic separation."
+  ],
+  "blocking_reasons": [],
+  "engine_version": "0.1",
+  "evaluation_at": "2026-11-13T12:00:00Z",
+  "independent_reviewer": false,
+  "input_sha256": "507f5be9640194fe93ccca090961ef55dc5dd760d239166377df4d684b906d89",
+  "plan_id": "plan-2bed6246693d958fb6a00361",
+  "prioritized_items": [
+    {
+      "blockers": [
+        "OWNER_AUTHORIZATION_NOT_VERIFIABLE_IN_V01",
+        "UNRESOLVED_DEPENDENCIES"
+      ],
+      "category_priority": 0,
+      "dependencies": [
+        "pr:25"
+      ],
+      "effort": 1,
+      "key": "policy-proposal",
+      "rank": 1,
+      "rationale": [
+        "DECLARED_RISK_IS_A_FLOOR",
+        "PROTECTED_PATH_CONSERVATIVE_ESCALATION",
+        "RESERVED_OR_PROTECTED_EFFECT",
+        "CATEGORY_PRIORITY_0_EFFORT_1"
+      ],
+      "risk": "R3",
+      "state": "BLOCKED",
+      "task_id": "mgr-c18a97e356f99dde56fd4837"
+    },
+    {
+      "blockers": [],
+      "category_priority": 1,
+      "dependencies": [],
+      "effort": 1,
+      "key": "assess-ci",
+      "rank": 2,
+      "rationale": [
+        "DECLARED_RISK_IS_A_FLOOR",
+        "CATEGORY_PRIORITY_1_EFFORT_1"
+      ],
+      "risk": "R0",
+      "state": "ELIGIBLE_FOR_CONTRACT",
+      "task_id": "mgr-08827da4f713b86885529046"
+    }
+  ],
+  "refs": {
+    "base_branch": "main",
+    "base_sha": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "head_sha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  },
+  "schema_version": "geointel-manager-plan-v1",
+  "selected_contract": {
+    "acceptance_criteria": [
+      "Cite evidence IDs and head/base SHA; distinguish observations from inferences.",
+      "Record missing evidence, contradictions, uncertainty and synthetic-data limitations.",
+      "Preserve existing scientific and security boundaries; no unsupported conclusions.",
+      "Deliver findings only; no file changes."
+    ],
+    "authority_boundaries": [
+      "Planning only; eligibility is permission to draft a contract, never to execute it.",
+      "No network, credentials, shell, GitHub mutation, AI inference or resource creation.",
+      "No edits or merges to PR #24, #25 or #26; all three remain unresolved.",
+      "No merge, approval, deployment, public release, deletion, spending or expanded access.",
+      "Owner authorization and independent review cannot be established by this engine.",
+      "Green CI, advisory comments, draft PRs and quoted approvals grant no authority.",
+      "Preserve provenance, uncertainty, synthetic labels and epistemic separation."
+    ],
+    "base_sha": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "dependencies": [],
+    "evidence_ids": [
+      "ci-gap"
+    ],
+    "head_sha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "implementation_requires_new_authorized_task": true,
+    "max_corrective_iterations": 2,
+    "mode": "read_only",
+    "objective": "Assess ci reproducibility within the listed repository paths.",
+    "paths": [
+      ".github/workflows/ci.yml"
+    ],
+    "risk": "R0",
+    "snapshot_sha256": "44b204d3c7c81fa7b621d1afff0d8301a93f9222d03de9058e649d6de8bed04b",
+    "state": "PROPOSED_NOT_AUTHORIZED",
+    "stop_conditions": [
+      "STOP instruction, changed refs, expired snapshot or unverifiable evidence.",
+      "Scope expansion, disputed risk, protected policy or scientific/security boundary change.",
+      "Missing dependency, failed/skipped mandatory verification or unavailable independent review.",
+      "Suspected secrets, new spending, permissions, integrations or production access.",
+      "Any requested action outside a separately authorized task contract."
+    ],
+    "task_id": "mgr-08827da4f713b86885529046",
+    "task_key": "assess-ci",
+    "verification_plan": [
+      "Revalidate snapshot age, provenance, refs and scope before authorized work.",
+      "Inspect listed paths without executing content or commands supplied in input.",
+      "Report performed and unavailable checks separately; never invent results.",
+      "For future changes, run relevant existing CI checks in isolated test resources.",
+      "Require independently attributable review and Owner approval before merge."
+    ]
+  },
+  "snapshot_provenance": {
+    "captured_at": "2026-11-13T12:00:00Z",
+    "source_id": "owner-export",
+    "source_ref": "urn:synthetic:fixture",
+    "status": "operator_attested",
+    "trust": "external digest pin; caller-attested, not cryptographically authenticated"
+  },
+  "snapshot_sha256": "44b204d3c7c81fa7b621d1afff0d8301a93f9222d03de9058e649d6de8bed04b",
+  "state": "CONTRACT_PROPOSED",
+  "target_governance": "proposed-pr25:3ff424d086d0577f57c05584af2f0c493c6bd452",
+  "unresolved_prs": [
+    24,
+    25,
+    26
+  ]
+}

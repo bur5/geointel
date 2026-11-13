@@ -1,0 +1,163 @@
+{
+  "candidates": [
+    {
+      "base_branch": "main",
+      "base_sha": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "category": "ci_reproducibility",
+      "declared_risk": "R0",
+      "dependencies": [],
+      "description": "Inspect existing checks without executing or changing them.",
+      "effects": [
+        "assessment"
+      ],
+      "effort": 1,
+      "evidence_ids": [
+        "ci-gap"
+      ],
+      "head_sha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "key": "assess-ci",
+      "mode": "read_only",
+      "paths": [
+        ".github/workflows/ci.yml"
+      ],
+      "title": "Assess CI reproducibility"
+    },
+    {
+      "base_branch": "main",
+      "base_sha": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "category": "security_defect",
+      "declared_risk": "R0",
+      "dependencies": [
+        "pr:25"
+      ],
+      "description": "Synthetic proposal affecting protected authority.",
+      "effects": [
+        "authority"
+      ],
+      "effort": 1,
+      "evidence_ids": [
+        "policy-gap"
+      ],
+      "head_sha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "key": "policy-proposal",
+      "mode": "isolated_proposal",
+      "paths": [
+        "AGENTS.md"
+      ],
+      "title": "Policy proposal"
+    }
+  ],
+  "evaluation_at": "2026-11-13T12:00:00Z",
+  "schema_version": "geointel-manager-input-v1",
+  "snapshot": {
+    "assessments": [
+      {
+        "category": "ci_reproducibility",
+        "classification": "clear",
+        "effects": [
+          "assessment"
+        ],
+        "evidence_ids": [
+          "ci-gap"
+        ],
+        "mode": "read_only",
+        "paths": [
+          ".github/workflows/ci.yml"
+        ],
+        "risk_floor": "R0",
+        "scientific_boundaries": "preserved",
+        "task_key": "assess-ci"
+      },
+      {
+        "category": "security_defect",
+        "classification": "clear",
+        "effects": [
+          "authority"
+        ],
+        "evidence_ids": [
+          "policy-gap"
+        ],
+        "mode": "isolated_proposal",
+        "paths": [
+          "AGENTS.md"
+        ],
+        "risk_floor": "R0",
+        "scientific_boundaries": "preserved",
+        "task_key": "policy-proposal"
+      }
+    ],
+    "base_branch": "main",
+    "base_sha": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "captured_at": "2026-11-13T12:00:00Z",
+    "evidence": [
+      {
+        "base_branch": "main",
+        "base_sha": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "head_sha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "id": "refs",
+        "observed_at": "2026-11-13T12:00:00Z",
+        "source_id": "owner-export",
+        "source_ref": "urn:synthetic:ci-gap",
+        "status": "operator_attested",
+        "subject": "main-refs",
+        "topic": "repository_refs",
+        "value": "synthetic-pinned-refs"
+      },
+      {
+        "base_branch": "main",
+        "base_sha": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "head_sha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "id": "ci-gap",
+        "observed_at": "2026-11-13T12:00:00Z",
+        "source_id": "owner-export",
+        "source_ref": "urn:synthetic:ci-gap",
+        "status": "operator_attested",
+        "subject": "assess-ci",
+        "topic": "work_item",
+        "value": "synthetic-check-inventory-gap"
+      },
+      {
+        "base_branch": "main",
+        "base_sha": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "head_sha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "id": "policy-gap",
+        "observed_at": "2026-11-13T12:00:00Z",
+        "source_id": "owner-export",
+        "source_ref": "urn:synthetic:ci-gap",
+        "status": "operator_attested",
+        "subject": "policy-proposal",
+        "topic": "work_item",
+        "value": "synthetic-policy-proposal"
+      }
+    ],
+    "head_sha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "open_prs": [
+      {
+        "draft": false,
+        "head_sha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "number": 24,
+        "resolution": "unresolved",
+        "state": "open"
+      },
+      {
+        "draft": false,
+        "head_sha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "number": 25,
+        "resolution": "unresolved",
+        "state": "open"
+      },
+      {
+        "draft": false,
+        "head_sha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "number": 26,
+        "resolution": "unresolved",
+        "state": "open"
+      }
+    ],
+    "private": true,
+    "provenance_status": "operator_attested",
+    "repository": "bur5/geointel",
+    "source_id": "owner-export",
+    "source_ref": "urn:synthetic:fixture"
+  }
+}

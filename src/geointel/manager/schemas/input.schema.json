@@ -1,0 +1,545 @@
+{
+  "$defs": {
+    "Assessment": {
+      "additionalProperties": false,
+      "properties": {
+        "category": {
+          "enum": [
+            "security_defect",
+            "integrity_defect",
+            "ci_reproducibility",
+            "infrastructure_blocker",
+            "documentation",
+            "product_improvement"
+          ],
+          "title": "Category",
+          "type": "string"
+        },
+        "classification": {
+          "enum": [
+            "clear",
+            "uncertain",
+            "disputed"
+          ],
+          "title": "Classification",
+          "type": "string"
+        },
+        "effects": {
+          "items": {
+            "enum": [
+              "assessment",
+              "documentation",
+              "maintenance",
+              "forecast_model",
+              "evidence_processing",
+              "architecture",
+              "persistence",
+              "security_implementation",
+              "protected_policy",
+              "authority",
+              "workflow_gate",
+              "reviewer_identity",
+              "permissions",
+              "secrets",
+              "security_boundary",
+              "scientific_integrity",
+              "deletion",
+              "spending",
+              "deployment",
+              "public_release",
+              "external_integration"
+            ],
+            "type": "string"
+          },
+          "maxItems": 20,
+          "minItems": 1,
+          "title": "Effects",
+          "type": "array"
+        },
+        "evidence_ids": {
+          "items": {
+            "pattern": "^[a-z][a-z0-9_-]{0,63}$",
+            "type": "string"
+          },
+          "maxItems": 20,
+          "minItems": 1,
+          "title": "Evidence Ids",
+          "type": "array"
+        },
+        "mode": {
+          "enum": [
+            "read_only",
+            "isolated_proposal",
+            "reserved_action"
+          ],
+          "title": "Mode",
+          "type": "string"
+        },
+        "paths": {
+          "items": {
+            "maxLength": 200,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_./-]+$",
+            "type": "string"
+          },
+          "maxItems": 20,
+          "minItems": 1,
+          "title": "Paths",
+          "type": "array"
+        },
+        "risk_floor": {
+          "enum": [
+            "R0",
+            "R1",
+            "R2",
+            "R3"
+          ],
+          "title": "Risk Floor",
+          "type": "string"
+        },
+        "scientific_boundaries": {
+          "enum": [
+            "preserved",
+            "unknown",
+            "violation"
+          ],
+          "title": "Scientific Boundaries",
+          "type": "string"
+        },
+        "task_key": {
+          "pattern": "^[a-z][a-z0-9_-]{0,63}$",
+          "title": "Task Key",
+          "type": "string"
+        }
+      },
+      "required": [
+        "category",
+        "mode",
+        "paths",
+        "effects",
+        "task_key",
+        "risk_floor",
+        "classification",
+        "scientific_boundaries",
+        "evidence_ids"
+      ],
+      "title": "Assessment",
+      "type": "object"
+    },
+    "Candidate": {
+      "additionalProperties": false,
+      "properties": {
+        "base_branch": {
+          "const": "main",
+          "title": "Base Branch",
+          "type": "string"
+        },
+        "base_sha": {
+          "pattern": "^[0-9a-f]{40}$",
+          "title": "Base Sha",
+          "type": "string"
+        },
+        "category": {
+          "enum": [
+            "security_defect",
+            "integrity_defect",
+            "ci_reproducibility",
+            "infrastructure_blocker",
+            "documentation",
+            "product_improvement"
+          ],
+          "title": "Category",
+          "type": "string"
+        },
+        "declared_risk": {
+          "enum": [
+            "R0",
+            "R1",
+            "R2",
+            "R3"
+          ],
+          "title": "Declared Risk",
+          "type": "string"
+        },
+        "dependencies": {
+          "items": {
+            "pattern": "^(pr:(24|25|26)|task:[a-z][a-z0-9_-]{0,63})$",
+            "type": "string"
+          },
+          "maxItems": 20,
+          "title": "Dependencies",
+          "type": "array"
+        },
+        "description": {
+          "maxLength": 2000,
+          "minLength": 1,
+          "title": "Description",
+          "type": "string"
+        },
+        "effects": {
+          "items": {
+            "enum": [
+              "assessment",
+              "documentation",
+              "maintenance",
+              "forecast_model",
+              "evidence_processing",
+              "architecture",
+              "persistence",
+              "security_implementation",
+              "protected_policy",
+              "authority",
+              "workflow_gate",
+              "reviewer_identity",
+              "permissions",
+              "secrets",
+              "security_boundary",
+              "scientific_integrity",
+              "deletion",
+              "spending",
+              "deployment",
+              "public_release",
+              "external_integration"
+            ],
+            "type": "string"
+          },
+          "maxItems": 20,
+          "minItems": 1,
+          "title": "Effects",
+          "type": "array"
+        },
+        "effort": {
+          "maximum": 5,
+          "minimum": 1,
+          "title": "Effort",
+          "type": "integer"
+        },
+        "evidence_ids": {
+          "items": {
+            "pattern": "^[a-z][a-z0-9_-]{0,63}$",
+            "type": "string"
+          },
+          "maxItems": 20,
+          "minItems": 1,
+          "title": "Evidence Ids",
+          "type": "array"
+        },
+        "head_sha": {
+          "pattern": "^[0-9a-f]{40}$",
+          "title": "Head Sha",
+          "type": "string"
+        },
+        "key": {
+          "pattern": "^[a-z][a-z0-9_-]{0,63}$",
+          "title": "Key",
+          "type": "string"
+        },
+        "mode": {
+          "enum": [
+            "read_only",
+            "isolated_proposal",
+            "reserved_action"
+          ],
+          "title": "Mode",
+          "type": "string"
+        },
+        "paths": {
+          "items": {
+            "maxLength": 200,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_./-]+$",
+            "type": "string"
+          },
+          "maxItems": 20,
+          "minItems": 1,
+          "title": "Paths",
+          "type": "array"
+        },
+        "title": {
+          "maxLength": 2000,
+          "minLength": 1,
+          "title": "Title",
+          "type": "string"
+        }
+      },
+      "required": [
+        "head_sha",
+        "base_sha",
+        "base_branch",
+        "category",
+        "mode",
+        "paths",
+        "effects",
+        "key",
+        "title",
+        "description",
+        "declared_risk",
+        "dependencies",
+        "evidence_ids",
+        "effort"
+      ],
+      "title": "Candidate",
+      "type": "object"
+    },
+    "Evidence": {
+      "additionalProperties": false,
+      "properties": {
+        "base_branch": {
+          "const": "main",
+          "title": "Base Branch",
+          "type": "string"
+        },
+        "base_sha": {
+          "pattern": "^[0-9a-f]{40}$",
+          "title": "Base Sha",
+          "type": "string"
+        },
+        "head_sha": {
+          "pattern": "^[0-9a-f]{40}$",
+          "title": "Head Sha",
+          "type": "string"
+        },
+        "id": {
+          "pattern": "^[a-z][a-z0-9_-]{0,63}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "observed_at": {
+          "pattern": "^\\d{4}-\\d\\d-\\d\\dT\\d\\d:\\d\\d:\\d\\dZ$",
+          "title": "Observed At",
+          "type": "string"
+        },
+        "source_id": {
+          "pattern": "^[a-z][a-z0-9_-]{0,63}$",
+          "title": "Source Id",
+          "type": "string"
+        },
+        "source_ref": {
+          "maxLength": 300,
+          "minLength": 1,
+          "pattern": "^(urn:[A-Za-z0-9._:/-]+|https://github\\.com/bur5/geointel/[A-Za-z0-9._/#-]+)$",
+          "title": "Source Ref",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "operator_attested",
+            "observed",
+            "unknown",
+            "conflicting"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "subject": {
+          "pattern": "^[a-z][a-z0-9_-]{0,63}$",
+          "title": "Subject",
+          "type": "string"
+        },
+        "topic": {
+          "enum": [
+            "repository_refs",
+            "work_item",
+            "ci",
+            "review",
+            "other"
+          ],
+          "title": "Topic",
+          "type": "string"
+        },
+        "value": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Value",
+          "type": "string"
+        }
+      },
+      "required": [
+        "head_sha",
+        "base_sha",
+        "base_branch",
+        "id",
+        "source_id",
+        "source_ref",
+        "observed_at",
+        "topic",
+        "subject",
+        "value",
+        "status"
+      ],
+      "title": "Evidence",
+      "type": "object"
+    },
+    "PullRequest": {
+      "additionalProperties": false,
+      "properties": {
+        "draft": {
+          "title": "Draft",
+          "type": "boolean"
+        },
+        "head_sha": {
+          "pattern": "^[0-9a-f]{40}$",
+          "title": "Head Sha",
+          "type": "string"
+        },
+        "number": {
+          "enum": [
+            24,
+            25,
+            26
+          ],
+          "title": "Number",
+          "type": "integer"
+        },
+        "resolution": {
+          "const": "unresolved",
+          "title": "Resolution",
+          "type": "string"
+        },
+        "state": {
+          "const": "open",
+          "title": "State",
+          "type": "string"
+        }
+      },
+      "required": [
+        "number",
+        "head_sha",
+        "state",
+        "draft",
+        "resolution"
+      ],
+      "title": "PullRequest",
+      "type": "object"
+    },
+    "Snapshot": {
+      "additionalProperties": false,
+      "properties": {
+        "assessments": {
+          "items": {
+            "$ref": "#/$defs/Assessment"
+          },
+          "maxItems": 32,
+          "title": "Assessments",
+          "type": "array"
+        },
+        "base_branch": {
+          "const": "main",
+          "title": "Base Branch",
+          "type": "string"
+        },
+        "base_sha": {
+          "pattern": "^[0-9a-f]{40}$",
+          "title": "Base Sha",
+          "type": "string"
+        },
+        "captured_at": {
+          "pattern": "^\\d{4}-\\d\\d-\\d\\dT\\d\\d:\\d\\d:\\d\\dZ$",
+          "title": "Captured At",
+          "type": "string"
+        },
+        "evidence": {
+          "items": {
+            "$ref": "#/$defs/Evidence"
+          },
+          "maxItems": 100,
+          "minItems": 1,
+          "title": "Evidence",
+          "type": "array"
+        },
+        "head_sha": {
+          "pattern": "^[0-9a-f]{40}$",
+          "title": "Head Sha",
+          "type": "string"
+        },
+        "open_prs": {
+          "items": {
+            "$ref": "#/$defs/PullRequest"
+          },
+          "maxItems": 3,
+          "minItems": 3,
+          "title": "Open Prs",
+          "type": "array"
+        },
+        "private": {
+          "const": true,
+          "title": "Private",
+          "type": "boolean"
+        },
+        "provenance_status": {
+          "enum": [
+            "operator_attested",
+            "unverifiable"
+          ],
+          "title": "Provenance Status",
+          "type": "string"
+        },
+        "repository": {
+          "const": "bur5/geointel",
+          "title": "Repository",
+          "type": "string"
+        },
+        "source_id": {
+          "pattern": "^[a-z][a-z0-9_-]{0,63}$",
+          "title": "Source Id",
+          "type": "string"
+        },
+        "source_ref": {
+          "maxLength": 300,
+          "minLength": 1,
+          "pattern": "^(urn:[A-Za-z0-9._:/-]+|https://github\\.com/bur5/geointel/[A-Za-z0-9._/#-]+)$",
+          "title": "Source Ref",
+          "type": "string"
+        }
+      },
+      "required": [
+        "head_sha",
+        "base_sha",
+        "base_branch",
+        "repository",
+        "private",
+        "source_id",
+        "source_ref",
+        "provenance_status",
+        "captured_at",
+        "evidence",
+        "assessments",
+        "open_prs"
+      ],
+      "title": "Snapshot",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "candidates": {
+      "items": {
+        "$ref": "#/$defs/Candidate"
+      },
+      "maxItems": 32,
+      "title": "Candidates",
+      "type": "array"
+    },
+    "evaluation_at": {
+      "pattern": "^\\d{4}-\\d\\d-\\d\\dT\\d\\d:\\d\\d:\\d\\dZ$",
+      "title": "Evaluation At",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "geointel-manager-input-v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "snapshot": {
+      "$ref": "#/$defs/Snapshot"
+    }
+  },
+  "required": [
+    "schema_version",
+    "evaluation_at",
+    "snapshot",
+    "candidates"
+  ],
+  "title": "PlanningInput",
+  "type": "object"
+}

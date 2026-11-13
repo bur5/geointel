@@ -1,0 +1,458 @@
+{
+  "$defs": {
+    "AuditEntry": {
+      "additionalProperties": false,
+      "properties": {
+        "evidence_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Evidence Ids",
+          "type": "array"
+        },
+        "result": {
+          "title": "Result",
+          "type": "string"
+        },
+        "rule": {
+          "title": "Rule",
+          "type": "string"
+        },
+        "sequence": {
+          "title": "Sequence",
+          "type": "integer"
+        },
+        "subject": {
+          "title": "Subject",
+          "type": "string"
+        }
+      },
+      "required": [
+        "sequence",
+        "rule",
+        "subject",
+        "result",
+        "evidence_ids"
+      ],
+      "title": "AuditEntry",
+      "type": "object"
+    },
+    "Contract": {
+      "additionalProperties": false,
+      "properties": {
+        "acceptance_criteria": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Acceptance Criteria",
+          "type": "array"
+        },
+        "authority_boundaries": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Authority Boundaries",
+          "type": "array"
+        },
+        "base_sha": {
+          "pattern": "^[0-9a-f]{40}$",
+          "title": "Base Sha",
+          "type": "string"
+        },
+        "dependencies": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Dependencies",
+          "type": "array"
+        },
+        "evidence_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Evidence Ids",
+          "type": "array"
+        },
+        "head_sha": {
+          "pattern": "^[0-9a-f]{40}$",
+          "title": "Head Sha",
+          "type": "string"
+        },
+        "implementation_requires_new_authorized_task": {
+          "const": true,
+          "title": "Implementation Requires New Authorized Task",
+          "type": "boolean"
+        },
+        "max_corrective_iterations": {
+          "const": 2,
+          "title": "Max Corrective Iterations",
+          "type": "integer"
+        },
+        "mode": {
+          "enum": [
+            "read_only",
+            "isolated_proposal",
+            "reserved_action"
+          ],
+          "title": "Mode",
+          "type": "string"
+        },
+        "objective": {
+          "title": "Objective",
+          "type": "string"
+        },
+        "paths": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Paths",
+          "type": "array"
+        },
+        "risk": {
+          "enum": [
+            "R0",
+            "R1",
+            "R2",
+            "R3"
+          ],
+          "title": "Risk",
+          "type": "string"
+        },
+        "snapshot_sha256": {
+          "title": "Snapshot Sha256",
+          "type": "string"
+        },
+        "state": {
+          "const": "PROPOSED_NOT_AUTHORIZED",
+          "title": "State",
+          "type": "string"
+        },
+        "stop_conditions": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Stop Conditions",
+          "type": "array"
+        },
+        "task_id": {
+          "title": "Task Id",
+          "type": "string"
+        },
+        "task_key": {
+          "title": "Task Key",
+          "type": "string"
+        },
+        "verification_plan": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Verification Plan",
+          "type": "array"
+        }
+      },
+      "required": [
+        "task_id",
+        "state",
+        "task_key",
+        "snapshot_sha256",
+        "head_sha",
+        "base_sha",
+        "risk",
+        "objective",
+        "mode",
+        "paths",
+        "dependencies",
+        "evidence_ids",
+        "acceptance_criteria",
+        "verification_plan",
+        "stop_conditions",
+        "authority_boundaries",
+        "max_corrective_iterations",
+        "implementation_requires_new_authorized_task"
+      ],
+      "title": "Contract",
+      "type": "object"
+    },
+    "RankedItem": {
+      "additionalProperties": false,
+      "properties": {
+        "blockers": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Blockers",
+          "type": "array"
+        },
+        "category_priority": {
+          "title": "Category Priority",
+          "type": "integer"
+        },
+        "dependencies": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Dependencies",
+          "type": "array"
+        },
+        "effort": {
+          "title": "Effort",
+          "type": "integer"
+        },
+        "key": {
+          "title": "Key",
+          "type": "string"
+        },
+        "rank": {
+          "title": "Rank",
+          "type": "integer"
+        },
+        "rationale": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Rationale",
+          "type": "array"
+        },
+        "risk": {
+          "enum": [
+            "R0",
+            "R1",
+            "R2",
+            "R3"
+          ],
+          "title": "Risk",
+          "type": "string"
+        },
+        "state": {
+          "enum": [
+            "ELIGIBLE_FOR_CONTRACT",
+            "BLOCKED"
+          ],
+          "title": "State",
+          "type": "string"
+        },
+        "task_id": {
+          "title": "Task Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "rank",
+        "key",
+        "task_id",
+        "risk",
+        "state",
+        "rationale",
+        "blockers",
+        "dependencies",
+        "category_priority",
+        "effort"
+      ],
+      "title": "RankedItem",
+      "type": "object"
+    },
+    "Refs": {
+      "additionalProperties": false,
+      "properties": {
+        "base_branch": {
+          "const": "main",
+          "title": "Base Branch",
+          "type": "string"
+        },
+        "base_sha": {
+          "pattern": "^[0-9a-f]{40}$",
+          "title": "Base Sha",
+          "type": "string"
+        },
+        "head_sha": {
+          "pattern": "^[0-9a-f]{40}$",
+          "title": "Head Sha",
+          "type": "string"
+        }
+      },
+      "required": [
+        "head_sha",
+        "base_sha",
+        "base_branch"
+      ],
+      "title": "Refs",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "action_authorized": {
+      "const": false,
+      "title": "Action Authorized",
+      "type": "boolean"
+    },
+    "advisory": {
+      "const": true,
+      "title": "Advisory",
+      "type": "boolean"
+    },
+    "audit": {
+      "items": {
+        "$ref": "#/$defs/AuditEntry"
+      },
+      "title": "Audit",
+      "type": "array"
+    },
+    "authority_boundaries": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Authority Boundaries",
+      "type": "array"
+    },
+    "blocking_reasons": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Blocking Reasons",
+      "type": "array"
+    },
+    "engine_version": {
+      "const": "0.1",
+      "title": "Engine Version",
+      "type": "string"
+    },
+    "evaluation_at": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Evaluation At"
+    },
+    "independent_reviewer": {
+      "const": false,
+      "title": "Independent Reviewer",
+      "type": "boolean"
+    },
+    "input_sha256": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Input Sha256"
+    },
+    "plan_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Plan Id"
+    },
+    "prioritized_items": {
+      "items": {
+        "$ref": "#/$defs/RankedItem"
+      },
+      "title": "Prioritized Items",
+      "type": "array"
+    },
+    "refs": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Refs"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "schema_version": {
+      "const": "geointel-manager-plan-v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "selected_contract": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Contract"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "snapshot_provenance": {
+      "anyOf": [
+        {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "type": "object"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Snapshot Provenance"
+    },
+    "snapshot_sha256": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Snapshot Sha256"
+    },
+    "state": {
+      "enum": [
+        "CONTRACT_PROPOSED",
+        "BLOCKED"
+      ],
+      "title": "State",
+      "type": "string"
+    },
+    "target_governance": {
+      "title": "Target Governance",
+      "type": "string"
+    },
+    "unresolved_prs": {
+      "items": {
+        "type": "integer"
+      },
+      "title": "Unresolved Prs",
+      "type": "array"
+    }
+  },
+  "required": [
+    "schema_version",
+    "engine_version",
+    "state",
+    "advisory",
+    "action_authorized",
+    "independent_reviewer",
+    "plan_id",
+    "snapshot_sha256",
+    "input_sha256",
+    "evaluation_at",
+    "snapshot_provenance",
+    "refs",
+    "target_governance",
+    "unresolved_prs",
+    "blocking_reasons",
+    "authority_boundaries",
+    "prioritized_items",
+    "selected_contract",
+    "audit"
+  ],
+  "title": "Plan",
+  "type": "object"
+}
