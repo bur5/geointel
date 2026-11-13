@@ -1,0 +1,569 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "geointel-pr-evidence-v1"
+    },
+    "advisory": {
+      "const": true
+    },
+    "repository": {
+      "const": "bur5/geointel"
+    },
+    "pr_number": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 1
+    },
+    "candidate": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "head_sha": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "head_repository": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "base_branch": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "base_sha": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "event_merge_sha": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "head_sha",
+        "head_repository",
+        "base_branch",
+        "base_sha",
+        "event_merge_sha"
+      ]
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "workflow_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "workflow_sha": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "run_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "run_attempt": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "actor": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "api": {
+          "const": "https://api.github.com"
+        },
+        "producer": {
+          "const": "github-actions-workflow-author-controlled"
+        },
+        "event": {
+          "type": "string"
+        },
+        "started_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "completed_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "snapshot_count": {
+          "const": 1
+        },
+        "ci_workflow_id": {
+          "const": 363226887
+        },
+        "ci_workflow_path": {
+          "const": ".github/workflows/ci.yml"
+        },
+        "ci_baseline_blob": {
+          "const": "7418c8175a5f398351de27338d0006fb0795f369"
+        }
+      },
+      "required": [
+        "workflow_ref",
+        "workflow_sha",
+        "run_id",
+        "run_attempt",
+        "actor",
+        "api",
+        "producer",
+        "event",
+        "started_at",
+        "completed_at",
+        "snapshot_count",
+        "ci_workflow_id",
+        "ci_workflow_path",
+        "ci_baseline_blob"
+      ]
+    },
+    "independently_verified": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "observed_only": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "not_verified": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "observed_refs": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "before": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "head_sha": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "base_sha": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "base_branch": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              },
+              "required": [
+                "head_sha",
+                "base_sha",
+                "base_branch"
+              ]
+            }
+          ]
+        },
+        "after": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "head_sha": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "base_sha": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "base_branch": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              },
+              "required": [
+                "head_sha",
+                "base_sha",
+                "base_branch"
+              ]
+            }
+          ]
+        }
+      },
+      "required": [
+        "before",
+        "after"
+      ]
+    },
+    "ci_run": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "id": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "minimum": 1
+            },
+            "attempt": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "minimum": 1
+            },
+            "workflow_id": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "minimum": 1
+            },
+            "path": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "event": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "head_sha": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "status": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "conclusion": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "created_at": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "updated_at": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "url": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          "required": [
+            "id",
+            "attempt",
+            "workflow_id",
+            "path",
+            "event",
+            "head_sha",
+            "status",
+            "conclusion",
+            "created_at",
+            "updated_at",
+            "url"
+          ]
+        }
+      ]
+    },
+    "checks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "enum": [
+              "test (3.11)",
+              "test (3.12)",
+              "postgres-integration"
+            ]
+          },
+          "state": {
+            "$ref": "#/$defs/state"
+          },
+          "evidence": {
+            "anyOf": [
+              {
+                "type": "null"
+              },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "job_id": {
+                    "type": [
+                      "integer",
+                      "null"
+                    ],
+                    "minimum": 1
+                  },
+                  "run_id": {
+                    "type": [
+                      "integer",
+                      "null"
+                    ],
+                    "minimum": 1
+                  },
+                  "run_attempt": {
+                    "type": [
+                      "integer",
+                      "null"
+                    ],
+                    "minimum": 1
+                  },
+                  "head_sha": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "status": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "conclusion": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "started_at": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "completed_at": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "url": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "check_run_id": {
+                    "type": [
+                      "integer",
+                      "null"
+                    ],
+                    "minimum": 1
+                  },
+                  "app_id": {
+                    "type": [
+                      "integer",
+                      "null"
+                    ],
+                    "minimum": 1
+                  },
+                  "steps": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "number": {
+                          "type": "integer",
+                          "minimum": 1
+                        },
+                        "status": {
+                          "type": "string"
+                        },
+                        "conclusion": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "number",
+                        "status",
+                        "conclusion"
+                      ]
+                    }
+                  }
+                },
+                "required": [
+                  "job_id",
+                  "run_id",
+                  "run_attempt",
+                  "head_sha",
+                  "status",
+                  "conclusion",
+                  "started_at",
+                  "completed_at",
+                  "url",
+                  "check_run_id",
+                  "app_id",
+                  "steps"
+                ]
+              }
+            ]
+          }
+        },
+        "required": [
+          "name",
+          "state",
+          "evidence"
+        ]
+      },
+      "minItems": 3,
+      "maxItems": 3
+    },
+    "ignored_commit_statuses": {
+      "const": true
+    },
+    "issues": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "evidence_complete": {
+      "type": "boolean"
+    },
+    "observation_state": {
+      "$ref": "#/$defs/state"
+    }
+  },
+  "required": [
+    "schema_version",
+    "advisory",
+    "repository",
+    "pr_number",
+    "candidate",
+    "provenance",
+    "independently_verified",
+    "observed_only",
+    "not_verified",
+    "observed_refs",
+    "ci_run",
+    "checks",
+    "ignored_commit_statuses",
+    "issues",
+    "evidence_complete",
+    "observation_state"
+  ],
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:geointel:pr-evidence:v1",
+  "title": "Advisory PR metadata observation; never approval or merge readiness",
+  "$defs": {
+    "state": {
+      "enum": [
+        "success",
+        "failure",
+        "pending",
+        "skipped",
+        "unknown"
+      ]
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "evidence_complete": {
+            "const": true
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "issues": {
+            "maxItems": 0
+          },
+          "observation_state": {
+            "const": "success"
+          },
+          "checks": {
+            "items": {
+              "properties": {
+                "state": {
+                  "const": "success"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}
