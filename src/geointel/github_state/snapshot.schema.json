@@ -1,0 +1,794 @@
+{
+  "$defs": {
+    "CI": {
+      "additionalProperties": false,
+      "properties": {
+        "attempt": {
+          "exclusiveMinimum": 0,
+          "title": "Attempt",
+          "type": "integer"
+        },
+        "conclusion": {
+          "anyOf": [
+            {
+              "maxLength": 200,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Conclusion"
+        },
+        "created_at": {
+          "pattern": "^\\d{4}-\\d\\d-\\d\\dT\\d\\d:\\d\\d:\\d\\dZ$",
+          "title": "Created At",
+          "type": "string"
+        },
+        "head_sha": {
+          "pattern": "^[0-9a-f]{40}$",
+          "title": "Head Sha",
+          "type": "string"
+        },
+        "historical_checkout_verified": {
+          "const": false,
+          "title": "Historical Checkout Verified",
+          "type": "boolean"
+        },
+        "jobs": {
+          "items": {
+            "$ref": "#/$defs/Job"
+          },
+          "maxItems": 300,
+          "title": "Jobs",
+          "type": "array"
+        },
+        "path": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Path",
+          "type": "string"
+        },
+        "reported_base_branch": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Reported Base Branch",
+          "type": "string"
+        },
+        "reported_base_sha": {
+          "pattern": "^[0-9a-f]{40}$",
+          "title": "Reported Base Sha",
+          "type": "string"
+        },
+        "run_id": {
+          "exclusiveMinimum": 0,
+          "title": "Run Id",
+          "type": "integer"
+        },
+        "state": {
+          "enum": [
+            "success",
+            "failure",
+            "pending",
+            "skipped",
+            "unknown"
+          ],
+          "title": "State",
+          "type": "string"
+        },
+        "status": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Status",
+          "type": "string"
+        },
+        "updated_at": {
+          "pattern": "^\\d{4}-\\d\\d-\\d\\dT\\d\\d:\\d\\d:\\d\\dZ$",
+          "title": "Updated At",
+          "type": "string"
+        },
+        "workflow_id": {
+          "exclusiveMinimum": 0,
+          "title": "Workflow Id",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "run_id",
+        "attempt",
+        "workflow_id",
+        "path",
+        "head_sha",
+        "reported_base_sha",
+        "reported_base_branch",
+        "status",
+        "conclusion",
+        "state",
+        "created_at",
+        "updated_at",
+        "historical_checkout_verified",
+        "jobs"
+      ],
+      "title": "CI",
+      "type": "object"
+    },
+    "Compatibility": {
+      "additionalProperties": false,
+      "properties": {
+        "owner_authorization_verified": {
+          "const": false,
+          "title": "Owner Authorization Verified",
+          "type": "boolean"
+        },
+        "payload": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Payload"
+        },
+        "reasons": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Reasons",
+          "type": "array"
+        },
+        "state": {
+          "enum": [
+            "BLOCKED",
+            "STRUCTURAL_FIXTURE_COMPATIBLE_ONLY"
+          ],
+          "title": "State",
+          "type": "string"
+        },
+        "target": {
+          "const": "pr27:6b7108de3865692381d9003b9231cdfa4eb92da8",
+          "title": "Target",
+          "type": "string"
+        }
+      },
+      "required": [
+        "target",
+        "state",
+        "reasons",
+        "payload",
+        "owner_authorization_verified"
+      ],
+      "title": "Compatibility",
+      "type": "object"
+    },
+    "Job": {
+      "additionalProperties": false,
+      "properties": {
+        "app_id": {
+          "exclusiveMinimum": 0,
+          "title": "App Id",
+          "type": "integer"
+        },
+        "app_slug": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "App Slug",
+          "type": "string"
+        },
+        "attempt": {
+          "exclusiveMinimum": 0,
+          "title": "Attempt",
+          "type": "integer"
+        },
+        "check_run_id": {
+          "exclusiveMinimum": 0,
+          "title": "Check Run Id",
+          "type": "integer"
+        },
+        "completed_at": {
+          "anyOf": [
+            {
+              "pattern": "^\\d{4}-\\d\\d-\\d\\dT\\d\\d:\\d\\d:\\d\\dZ$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Completed At"
+        },
+        "conclusion": {
+          "anyOf": [
+            {
+              "maxLength": 200,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Conclusion"
+        },
+        "head_sha": {
+          "pattern": "^[0-9a-f]{40}$",
+          "title": "Head Sha",
+          "type": "string"
+        },
+        "id": {
+          "exclusiveMinimum": 0,
+          "title": "Id",
+          "type": "integer"
+        },
+        "name": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "run_id": {
+          "exclusiveMinimum": 0,
+          "title": "Run Id",
+          "type": "integer"
+        },
+        "source_metadata_matched": {
+          "title": "Source Metadata Matched",
+          "type": "boolean"
+        },
+        "started_at": {
+          "anyOf": [
+            {
+              "pattern": "^\\d{4}-\\d\\d-\\d\\dT\\d\\d:\\d\\d:\\d\\dZ$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Started At"
+        },
+        "state": {
+          "enum": [
+            "success",
+            "failure",
+            "pending",
+            "skipped",
+            "unknown"
+          ],
+          "title": "State",
+          "type": "string"
+        },
+        "status": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Status",
+          "type": "string"
+        },
+        "test_execution_independently_verified": {
+          "const": false,
+          "title": "Test Execution Independently Verified",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "id",
+        "check_run_id",
+        "app_id",
+        "app_slug",
+        "name",
+        "head_sha",
+        "run_id",
+        "attempt",
+        "status",
+        "conclusion",
+        "state",
+        "started_at",
+        "completed_at",
+        "source_metadata_matched",
+        "test_execution_independently_verified"
+      ],
+      "title": "Job",
+      "type": "object"
+    },
+    "PullRequest": {
+      "additionalProperties": false,
+      "properties": {
+        "base_branch": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Base Branch",
+          "type": "string"
+        },
+        "base_sha": {
+          "pattern": "^[0-9a-f]{40}$",
+          "title": "Base Sha",
+          "type": "string"
+        },
+        "ci": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CI"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "content_handling": {
+          "const": "prose_excluded_from_snapshot_and_authority",
+          "title": "Content Handling",
+          "type": "string"
+        },
+        "draft": {
+          "title": "Draft",
+          "type": "boolean"
+        },
+        "head_repository": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Head Repository",
+          "type": "string"
+        },
+        "head_sha": {
+          "pattern": "^[0-9a-f]{40}$",
+          "title": "Head Sha",
+          "type": "string"
+        },
+        "number": {
+          "exclusiveMinimum": 0,
+          "title": "Number",
+          "type": "integer"
+        },
+        "reviews": {
+          "items": {
+            "$ref": "#/$defs/Review"
+          },
+          "maxItems": 300,
+          "title": "Reviews",
+          "type": "array"
+        },
+        "state": {
+          "const": "open",
+          "title": "State",
+          "type": "string"
+        },
+        "updated_at": {
+          "pattern": "^\\d{4}-\\d\\d-\\d\\dT\\d\\d:\\d\\d:\\d\\dZ$",
+          "title": "Updated At",
+          "type": "string"
+        }
+      },
+      "required": [
+        "number",
+        "state",
+        "draft",
+        "head_sha",
+        "head_repository",
+        "base_branch",
+        "base_sha",
+        "updated_at",
+        "ci",
+        "reviews",
+        "content_handling"
+      ],
+      "title": "PullRequest",
+      "type": "object"
+    },
+    "Repository": {
+      "additionalProperties": false,
+      "properties": {
+        "default_branch": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Default Branch",
+          "type": "string"
+        },
+        "default_sha": {
+          "pattern": "^[0-9a-f]{40}$",
+          "title": "Default Sha",
+          "type": "string"
+        },
+        "full_name": {
+          "const": "bur5/geointel",
+          "title": "Full Name",
+          "type": "string"
+        },
+        "id": {
+          "exclusiveMinimum": 0,
+          "title": "Id",
+          "type": "integer"
+        },
+        "private": {
+          "const": true,
+          "title": "Private",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "id",
+        "full_name",
+        "private",
+        "default_branch",
+        "default_sha"
+      ],
+      "title": "Repository",
+      "type": "object"
+    },
+    "Review": {
+      "additionalProperties": false,
+      "properties": {
+        "commit_id": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{40}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Commit Id"
+        },
+        "historical_base_verified": {
+          "const": false,
+          "title": "Historical Base Verified",
+          "type": "boolean"
+        },
+        "id": {
+          "exclusiveMinimum": 0,
+          "title": "Id",
+          "type": "integer"
+        },
+        "independence_verified": {
+          "const": false,
+          "title": "Independence Verified",
+          "type": "boolean"
+        },
+        "login": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Login",
+          "type": "string"
+        },
+        "owner_authorization_verified": {
+          "const": false,
+          "title": "Owner Authorization Verified",
+          "type": "boolean"
+        },
+        "stale_head": {
+          "title": "Stale Head",
+          "type": "boolean"
+        },
+        "state": {
+          "enum": [
+            "APPROVED",
+            "CHANGES_REQUESTED",
+            "COMMENTED",
+            "DISMISSED",
+            "PENDING"
+          ],
+          "title": "State",
+          "type": "string"
+        },
+        "submitted_at": {
+          "anyOf": [
+            {
+              "pattern": "^\\d{4}-\\d\\d-\\d\\dT\\d\\d:\\d\\d:\\d\\dZ$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Submitted At"
+        },
+        "user_id": {
+          "exclusiveMinimum": 0,
+          "title": "User Id",
+          "type": "integer"
+        },
+        "user_type": {
+          "enum": [
+            "User",
+            "Bot",
+            "Organization",
+            "Mannequin"
+          ],
+          "title": "User Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "user_id",
+        "login",
+        "user_type",
+        "state",
+        "commit_id",
+        "submitted_at",
+        "stale_head",
+        "historical_base_verified",
+        "independence_verified",
+        "owner_authorization_verified"
+      ],
+      "title": "Review",
+      "type": "object"
+    },
+    "Source": {
+      "additionalProperties": false,
+      "properties": {
+        "endpoint": {
+          "maxLength": 1500,
+          "minLength": 1,
+          "title": "Endpoint",
+          "type": "string"
+        },
+        "method": {
+          "const": "GET",
+          "title": "Method",
+          "type": "string"
+        },
+        "page": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Page"
+        },
+        "query": {
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              }
+            ]
+          },
+          "title": "Query",
+          "type": "object"
+        },
+        "received_at": {
+          "pattern": "^\\d{4}-\\d\\d-\\d\\dT\\d\\d:\\d\\d:\\d\\dZ$",
+          "title": "Received At",
+          "type": "string"
+        },
+        "request_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Request Id"
+        },
+        "response_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Response Sha256"
+        },
+        "sequence": {
+          "exclusiveMinimum": 0,
+          "title": "Sequence",
+          "type": "integer"
+        },
+        "server_date": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Server Date"
+        },
+        "status_code": {
+          "title": "Status Code",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "sequence",
+        "method",
+        "endpoint",
+        "page",
+        "query",
+        "status_code",
+        "request_id",
+        "server_date",
+        "received_at",
+        "response_sha256"
+      ],
+      "title": "Source",
+      "type": "object"
+    },
+    "Workflow": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "exclusiveMinimum": 0,
+          "title": "Id",
+          "type": "integer"
+        },
+        "path": {
+          "const": ".github/workflows/ci.yml",
+          "title": "Path",
+          "type": "string"
+        },
+        "state": {
+          "const": "active",
+          "title": "State",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "path",
+        "state"
+      ],
+      "title": "Workflow",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "action_authorized": {
+      "const": false,
+      "title": "Action Authorized",
+      "type": "boolean"
+    },
+    "advisory": {
+      "const": true,
+      "title": "Advisory",
+      "type": "boolean"
+    },
+    "ci_workflow": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Workflow"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "completed_at": {
+      "pattern": "^\\d{4}-\\d\\d-\\d\\dT\\d\\d:\\d\\d:\\d\\dZ$",
+      "title": "Completed At",
+      "type": "string"
+    },
+    "content_digest": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Content Digest"
+    },
+    "digest_role": {
+      "const": "integrity_only_not_authenticated_authorization",
+      "title": "Digest Role",
+      "type": "string"
+    },
+    "issues": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Issues",
+      "type": "array"
+    },
+    "manager_v01": {
+      "$ref": "#/$defs/Compatibility"
+    },
+    "observations_complete": {
+      "title": "Observations Complete",
+      "type": "boolean"
+    },
+    "producer": {
+      "const": "geointel-github-collector/0.2",
+      "title": "Producer",
+      "type": "string"
+    },
+    "pull_requests": {
+      "items": {
+        "$ref": "#/$defs/PullRequest"
+      },
+      "maxItems": 25,
+      "title": "Pull Requests",
+      "type": "array"
+    },
+    "repository": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Repository"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "schema_version": {
+      "const": "geointel-github-observations-v0.2",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "sources": {
+      "items": {
+        "$ref": "#/$defs/Source"
+      },
+      "maxItems": 200,
+      "title": "Sources",
+      "type": "array"
+    },
+    "started_at": {
+      "pattern": "^\\d{4}-\\d\\d-\\d\\dT\\d\\d:\\d\\d:\\d\\dZ$",
+      "title": "Started At",
+      "type": "string"
+    },
+    "state": {
+      "enum": [
+        "OBSERVED",
+        "BLOCKED"
+      ],
+      "title": "State",
+      "type": "string"
+    },
+    "transport": {
+      "enum": [
+        "https-github-rest",
+        "mock"
+      ],
+      "title": "Transport",
+      "type": "string"
+    },
+    "trust_boundary": {
+      "const": "api_metadata_observation_not_independent_review_or_owner_approval",
+      "title": "Trust Boundary",
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema_version",
+    "state",
+    "observations_complete",
+    "advisory",
+    "action_authorized",
+    "producer",
+    "transport",
+    "started_at",
+    "completed_at",
+    "repository",
+    "ci_workflow",
+    "pull_requests",
+    "sources",
+    "issues",
+    "trust_boundary",
+    "content_digest",
+    "digest_role",
+    "manager_v01"
+  ],
+  "title": "Snapshot",
+  "type": "object"
+}

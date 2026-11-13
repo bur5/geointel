@@ -1,0 +1,55 @@
+{
+  "candidates": [],
+  "evaluation_at": "2026-11-13T12:00:00Z",
+  "schema_version": "geointel-manager-input-v1",
+  "snapshot": {
+    "assessments": [],
+    "base_branch": "main",
+    "base_sha": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "captured_at": "2026-11-13T12:00:00Z",
+    "evidence": [
+      {
+        "base_branch": "main",
+        "base_sha": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "head_sha": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "id": "observed-default-refs",
+        "observed_at": "2026-11-13T12:00:00Z",
+        "source_id": "github-state-collector",
+        "source_ref": "urn:geointel:github-observations-v02",
+        "status": "observed",
+        "subject": "default-refs",
+        "topic": "repository_refs",
+        "value": "api-observation-not-owner-attestation"
+      }
+    ],
+    "head_sha": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "open_prs": [
+      {
+        "draft": false,
+        "head_sha": "0000000000000000000000000000000000000018",
+        "number": 24,
+        "resolution": "unresolved",
+        "state": "open"
+      },
+      {
+        "draft": true,
+        "head_sha": "0000000000000000000000000000000000000019",
+        "number": 25,
+        "resolution": "unresolved",
+        "state": "open"
+      },
+      {
+        "draft": true,
+        "head_sha": "000000000000000000000000000000000000001a",
+        "number": 26,
+        "resolution": "unresolved",
+        "state": "open"
+      }
+    ],
+    "private": true,
+    "provenance_status": "unverifiable",
+    "repository": "bur5/geointel",
+    "source_id": "github-state-collector",
+    "source_ref": "urn:geointel:github-observations-v02"
+  }
+}
