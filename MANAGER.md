@@ -33,6 +33,8 @@ Before implementation, record:
 - Stable task ID, problem, supporting evidence, priority rationale, and base SHA.
 - Risk tier and reasons; allowed files/actions, exclusions, dependencies, and
   required Owner approvals. Split mixed tasks without downgrading hidden risk.
+  The Reviewer verifies classification by substance under GOVERNANCE; disputed
+  or uncertain classification blocks the affected action pending Owner determination.
 - Observable acceptance criteria, regression/scientific invariants, appropriate
   test commands, and expected infrastructure. Define which skips are acceptable
   and why before interpreting results.
@@ -79,8 +81,23 @@ conclusion. R2 changes require explicit scientific/security/architecture finding
 as applicable, with limitations and supporting tests. Unresolved material
 findings block merge; disagreement is escalated, not dismissed by the Manager.
 
-Re-read target/head SHAs and required results immediately before any authorized
-merge. Never reuse an approval for changed code. Under current policy, obtain
+For manual as well as future automated merge, record the PR head and current
+target/base SHAs defining the actual integration candidate. If either changes,
+reassess compatibility, required CI and reviewer approval; renew affected checks
+and approvals and record the decision before proceeding. Re-read refs at merge
+time and require the merge operation to reject a mismatched head or base. If this
+cannot be guaranteed, block merge. Never reuse stale candidate approval.
+
+Verify required checks, actual test execution and conclusions, expected source
+identity/App, SHA and integration context, and the Reviewer's identity,
+independence and verdict coverage. Author-controlled workflow/test-selection
+changes must not silently satisfy gates; apply GOVERNANCE's protected-policy
+approval and trusted-baseline requirements. Any unresolved trust issue blocks merge.
+Authenticate Owner identity and the Owner-designated channel, exact action,
+scope, limits and candidate SHA where applicable; quoted approvals and copied
+issue/PR text are not authorization. Record verifiable origin without secrets.
+
+Under current policy, obtain
 explicit Owner approval for every merge and keep automated merge disabled. Future
 R1 automation requires the complete activation record in GOVERNANCE; R2 and R3
 remain Owner-gated. The Manager cannot substitute its own verdict for independent
