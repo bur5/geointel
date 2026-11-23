@@ -134,6 +134,9 @@ with a generic message.
 
 ## Frontend integration
 
+See the [reconstruction and review notes](DASHBOARD_RECONSTRUCTION.md) for the adapter and
+the validation database isolation blocker.
+
 Generate types from OpenAPI and map country shapes by ISO alpha-3. Keep unmapped observations and
 non-country forecasts in their own views. Label source, unit, period, and availability alongside
 each series. For a provider trajectory, group by native geography, provider, model/version,

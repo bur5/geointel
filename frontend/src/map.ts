@@ -19,7 +19,7 @@ export const countryNames = new Map(geography.features
   .map((country) => [String(country.id), country.properties.name]));
 export const countries = [...countryNames].sort((a, b) => a[1].localeCompare(b[1]));
 
-export function drawMap(container: HTMLElement, selected: string, scores: Map<string, number>, select: (id: string) => void) {
+export function drawMap(container: HTMLElement, selected: string, scores: Map<string, number> | null, select: (id: string) => void) {
   const svg = container.querySelector<SVGSVGElement>('svg')!;
   const layer = svg.querySelector<SVGGElement>('g')!;
   const tooltip = container.querySelector<HTMLElement>('.tooltip')!;
@@ -31,12 +31,12 @@ export function drawMap(container: HTMLElement, selected: string, scores: Map<st
   const paths = geography.features.filter((country) => country.properties.name !== 'Antarctica');
   for (const country of paths) {
     const id = String(country.id);
-    const score = scores.get(id);
+    const score = scores?.get(id);
     const shape = document.createElementNS(ns, 'path');
     shape.setAttribute('d', path(country) ?? '');
     shape.setAttribute('class', 'country ' + (score === undefined ? '' : band(score).toLowerCase()) + (id === selected ? ' selected' : ''));
     if (country.id != null) shape.dataset.country = id;
-    const label = country.properties.name + ' · ' + (score === undefined ? 'Data unavailable' : 'Synthetic score ' + score + '/100');
+    const label = country.properties.name + (scores === null ? '' : ' · ' + (score === undefined ? 'Data unavailable' : 'Synthetic score ' + score + '/100'));
     const title = document.createElementNS(ns, 'title');
     title.textContent = label;
     shape.append(title);

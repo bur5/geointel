@@ -1,6 +1,9 @@
 import './style.css';
-import { band, fixtureDate, fixtures, loadForecasts, months, provenance } from './data';
-import type { Fixture, Forecast } from './data';
+import { band, fixtureDate, fixtures, months, provenance } from './data';
+import type { Fixture } from './data';
+import countryCodes from './country-codes.json';
+import { coverageCard, loadCoverage, loadSeries, rowCard, series, seriesKeys } from './dashboard';
+import type { Series } from './dashboard';
 import { countries, countryNames, drawMap } from './map';
 
 const pages = [
@@ -13,21 +16,24 @@ const pages = [
 ] as const;
 type Page = typeof pages[number][0];
 type Mode = 'demo' | 'api';
+const validationDatabase = import.meta.env.DEV && import.meta.env.VITE_GEOINTEL_VALIDATION === '1';
 
 const root = document.querySelector<HTMLElement>('#app')!;
-let mode: Mode = new URLSearchParams(location.search).get('mode') === 'api' ? 'api' : 'demo';
+let mode: Mode = new URLSearchParams(location.search).get('mode') === 'demo' ? 'demo' : 'api';
 let country = '804';
 let riskCountry = '';
 let period = 6;
 let briefCountry = '';
 let briefRegion = '';
 let briefSince = '';
-let abandonForecasts: AbortController | undefined;
+let abandonDashboard: AbortController | undefined;
 let updateMapSelection: ((id: string) => void) | undefined;
 const messages: { question: string; country: string }[] = [];
 
 const available = () => mode === 'demo' ? fixtures : [];
-const name = (id: string) => countryNames.get(id) ?? 'Unknown geography';
+const name = (id: string) => mode === 'api'
+  ? (regionNames.of(codesByNumeric[id].alpha2) ?? isoCountry(id))
+  : countryNames.get(id) ?? 'Unknown geography';
 const score = (item: Fixture) => item.history.at(-1)!;
 const sorted = () => [...available()].sort((a, b) => score(b) - score(a));
 const currentPage = (): Page => pages.find(([key]) => '#' + key === location.hash)?.[0] ?? 'overview';
@@ -45,8 +51,16 @@ const unavailable = (subject: string) => state(subject + ' unavailable', 'Curren
 const options = (items: readonly (readonly [string, string])[], selected: string) => items
   .map(([value, label]) => '<option value="' + escape(value) + '"' + (value === selected ? ' selected' : '') + '>' + escape(label) + '</option>').join('');
 const countryOptions = (selected: string, all = false) => options(all ? [['', 'All countries'], ...countries] : countries, selected);
-const list = (items: string[]) => items.length
-  ? '<ul>' + items.map((item) => '<li>' + escape(item) + '</li>').join('') + '</ul>' : '<p class="muted">Unavailable</p>';
+const codesByNumeric: Readonly<Record<string, { alpha2: string; alpha3: string }>> = countryCodes;
+const isoCountry = (numeric: string) => codesByNumeric[numeric].alpha3;
+const regionNames = new Intl.DisplayNames(['en'], { type: 'region', fallback: 'none' });
+const apiCountries = Object.keys(countryCodes).map((numeric) =>
+  [numeric, regionNames.of(codesByNumeric[numeric].alpha2) ?? isoCountry(numeric)] as const
+).sort((a, b) => a[1].localeCompare(b[1]));
+const apiPanels = (keys: readonly (Series | 'coverage')[], scoped = false) => keys.map((key) =>
+  `<section class="panel section-body"><h2>${key === 'coverage' ? 'Coverage' : series[key][0]}</h2>
+    <div class="stack" data-dashboard="${key}" data-scope="${scoped ? 'country' : 'global'}" aria-live="polite"></div></section>`
+).join('');
 
 function chart(values: number[], labels: string[], description: string) {
   const points = values.map((value, i) => [28 + i * 284 / (values.length - 1), 104 - value * .86]);
@@ -64,6 +78,11 @@ function scoreDefinition() {
 }
 
 function countryPanel() {
+  if (mode === 'api') return `<section class="panel section-body country-panel">
+    <h2 id="country-heading">${escape(name(country))} · ${escape(isoCountry(country))}</h2>
+    <label class="field country-field">Select country<select data-field="country">${options(apiCountries, country)}</select></label>
+    <div class="stack">${apiPanels(['coverage', ...seriesKeys], true)}</div>
+  </section>`;
   const item = available().find((entry) => entry.id === country);
   return `<section class="panel country-panel" aria-labelledby="country-heading">
     <div class="panel-heading"><div><span class="eyebrow">COUNTRY INTELLIGENCE</span><h2 id="country-heading">${escape(name(country))}</h2><p>${item?.region ?? 'Country / territory'} · ISO numeric ${escape(country)}</p></div>${item ? synthetic : ''}</div>
@@ -74,7 +93,7 @@ function countryPanel() {
       <div class="country-section"><h3>Synthetic recent events</h3>${eventList([item], 6, false)}</div>
       <div class="country-section"><h3>Forecast information</h3>${item.projection ? `<p>Synthetic 1-month index projection: <strong>${item.projection.low}–${item.projection.high}</strong>. Illustrative bounds. Statistical confidence unavailable.</p>` : state('Forecast unavailable', 'This fixture has no projection.')}</div>
       <div class="country-section"><h3>Source and freshness</h3><p><a href="#fixture-source" data-source>[${provenance}]</a><br>Fixture snapshot · ${date(fixtureDate)} UTC<br>Real-world source freshness unavailable.</p></div>`
-      : mode === 'demo' ? state('Country data unavailable', 'This geography has no synthetic indicators, events, or forecast in the fixture.') : unavailable('Country indicators, events and forecasts')}
+      : state('Country data unavailable', 'This geography has no synthetic indicators, events, or forecast in the fixture.')}
     </section>`;
 }
 
@@ -87,7 +106,7 @@ function eventList(items: Fixture[], window: number, showNames = true) {
 
 function riskMap() {
   return `<section class="panel map-panel" aria-labelledby="map-title">
-    <div class="panel-heading"><div><h2 id="map-title">Geographic risk distribution</h2><p>${mode === 'demo' ? 'Synthetic conflict-risk index · 01 Mar 2025' : 'Country risk unavailable from the current API'}</p></div></div>
+    <div class="panel-heading"><div><h2 id="map-title">${mode === 'demo' ? 'Geographic risk distribution' : 'Country map'}</h2><p>${mode === 'demo' ? 'Synthetic conflict-risk index · 01 Mar 2025' : 'Select a country to inspect stored records'}</p></div></div>
     <div class="map-stage" id="map">
       <svg viewBox="0 0 900 440" tabindex="0" role="img" aria-label="World country boundaries. Zoom with the map controls and pan with arrow keys. Use Select country for keyboard selection."><g></g></svg>
       <div class="tooltip" aria-hidden="true" hidden></div>
@@ -95,9 +114,9 @@ function riskMap() {
         <button data-map="in" aria-label="Zoom in">+</button><button data-map="out" aria-label="Zoom out">−</button><button data-map="reset" aria-label="Reset map">↺</button>
       </div>
     </div>
-    <div class="map-legend" aria-label="Risk legend">
-      ${mode === 'demo' ? '<span><i class="low"></i>Low · 0–44</span><span><i class="elevated"></i>Elevated · 45–69</span><span><i class="high"></i>High · 70–100</span>' : ''}<span><i></i>Unavailable</span>
-    </div>
+    ${mode === 'demo' ? `<div class="map-legend" aria-label="Risk legend">
+      <span><i class="low"></i>Low · 0–44</span><span><i class="elevated"></i>Elevated · 45–69</span><span><i class="high"></i>High · 70–100</span><span><i></i>Unavailable</span>
+    </div>` : ''}
     <div class="map-credit">Boundaries · Natural Earth / World Atlas</div>
   </section>`;
 }
@@ -110,6 +129,11 @@ function watchlist() {
 }
 
 function overview() {
+  if (mode === 'api') return `<div class="stack">
+    ${apiPanels(['coverage'])}
+    <div class="filters"><a href="#country">Open country selector</a></div>
+    ${riskMap()}
+  </div>`;
   const items = available();
   return `<div class="metrics">
     <div><span>COUNTRIES WITH READINGS</span><strong>${items.length || '—'}</strong><small>${items.length ? 'Synthetic fixture coverage' : 'Coverage unavailable'}</small></div>
@@ -120,7 +144,7 @@ function overview() {
 }
 
 function riskView() {
-  if (mode === 'api') return unavailable('Risk distribution, trends and event timeline');
+  if (mode === 'api') return `<div class="stack">${apiPanels(['observations', 'ucdp_observations'])}</div>`;
   const items = sorted().filter((item) => !riskCountry || item.id === riskCountry);
   const trend = items.length ? months.map((_, index) => Math.round(items.reduce((sum, item) => sum + item.history[index], 0) / items.length)) : [];
   return `<div class="filters"><label class="field">Country<select data-field="risk-country">${countryOptions(riskCountry, true)}</select></label>
@@ -154,23 +178,8 @@ function briefings() {
     </details></article>`).join('') : state('No matching briefings', 'Adjust the country, region, or publication date.')}</div>`;
 }
 
-function forecastCard(row: Forecast) {
-  const range = row.probability_low === null || row.probability_high === null ? 'Unavailable' :
-    new Intl.NumberFormat('en', { style: 'percent', maximumFractionDigits: 2 }).formatRange(row.probability_low, row.probability_high);
-  return `<article class="panel section-body forecast"><span class="tag">API forecast</span><h2>${escape(row.question)}</h2>
-    <p class="muted">${escape(row.conflict_type)} · ${row.horizon_months} month(s) · Version ${row.version}</p>
-    <dl><dt>Probability interval</dt><dd>${range}</dd><dt>Reported confidence</dt><dd>${escape(row.confidence)}</dd>
-    <dt>Generated</dt><dd><time datetime="${escape(row.created_at)}">${escape(row.created_at)}</time></dd>
-    <dt>Provenance</dt><dd>Analysis run ${escape(row.analysis_run_id)} · Forecast ${escape(row.id)}</dd></dl>
-    <p>${escape(row.rationale)}</p><details><summary>Evidence and uncertainty</summary>
-      <h3>Evidence for</h3>${list(row.evidence_for)}<h3>Evidence against</h3>${list(row.evidence_against)}
-      <h3>Unknowns</h3>${list(row.unknowns)}<h3>Resolution criteria</h3>${list(row.resolution_criteria)}
-      <h3>Change conditions</h3>${list(row.change_conditions)}
-    </details></article>`;
-}
-
 function forecasts() {
-  if (mode === 'api') return '<div id="forecast-results" class="stack" aria-live="polite"></div>';
+  if (mode === 'api') return `<div class="stack">${apiPanels(['predictions', 'assessments'])}</div>`;
   return `<div class="notice">These synthetic projections illustrate the index display. They have no probability or calibrated confidence.</div>
     <div class="two-col">${sorted().filter((item) => item.projection).map((item) => `<article class="panel section-body forecast">${synthetic}
       <h2>${escape(name(item.id))}</h2><p>${item.region} · 1-month horizon</p><dl><dt>Illustrative index interval</dt><dd>${item.projection!.low}–${item.projection!.high} / 100</dd>
@@ -219,9 +228,9 @@ function analyst() {
 }
 
 const descriptions: Record<Page, string> = {
-  overview: 'Explore country coverage and conflict-risk indicators.',
+  overview: 'Explore record availability and navigate by country.',
   country: 'Review geographic context, historical readings and evidence.',
-  risk: 'Compare geographic distribution, trends and escalation indicators.',
+  risk: 'Browse stored operational and UCDP observations.',
   forecasts: 'Inspect forecast horizons, confidence and uncertainty.',
   briefings: 'Browse country reports and their supporting evidence.',
   analyst: 'Explore the selected country through a conversational interface.',
@@ -230,7 +239,7 @@ const descriptions: Record<Page, string> = {
 const views: Record<Page, () => string> = { overview, country: countryPanel, risk: riskView, forecasts, briefings, analyst };
 
 function render() {
-  abandonForecasts?.abort();
+  abandonDashboard?.abort();
   updateMapSelection = undefined;
   const page = currentPage();
   const title = pages.find(([key]) => key === page)![1];
@@ -240,10 +249,10 @@ function render() {
     <nav aria-label="Global navigation">${pages.map(([key, label, icon]) => `<a href="#${key}" ${key === page ? 'aria-current="page"' : ''}><span aria-hidden="true">${icon}</span>${label}</a>`).join('')}</nav>
     <div class="sidebar-footer"><span class="status-dot"></span> Frontend v0.1</div>
   </aside><div class="shell">
-    <header class="topbar"><span>Intelligence workspace</span><div><span class="status-label"><i></i>${mode === 'demo' ? 'Synthetic data' : 'Backend data only'}</span>
+    <header class="topbar"><span>Intelligence workspace</span><div><span class="status-label"><i></i>${mode === 'demo' || validationDatabase ? 'Synthetic data' : 'Stored records'}</span>
       <label class="mode">Data mode<select data-field="mode">${options([['demo', 'Demo mode'], ['api', 'API mode']], mode)}</select></label></div></header>
     <main id="workspace" tabindex="-1"><header class="page-heading"><h1>${title}</h1><p>${descriptions[page]}</p></header>
-      <div class="notice ${mode === 'api' ? 'api' : ''}"><strong>${mode === 'demo' ? 'Demonstration environment' : 'API environment'}</strong><span>${mode === 'demo' ? 'All displayed indicators, events and projections are synthetic.' : 'Forecasts use the configured backend. Other data depends on compatible API contracts.'}</span></div>
+      <div class="notice ${mode === 'api' ? 'api' : ''}"><strong>${mode === 'demo' ? 'Demonstration environment' : validationDatabase ? 'Synthetic validation database' : 'API environment'}</strong><span>${mode === 'demo' ? 'All displayed indicators, events and projections are synthetic.' : validationDatabase ? 'All records in this local database are test fixtures.' : 'Records come from the configured dashboard database. Verify its source before using records as evidence.'}</span></div>
       ${views[page]()}
     </main></div>
     <dialog id="fixture-source" aria-labelledby="source-title">
@@ -251,26 +260,58 @@ function render() {
       <h2 id="source-title">${provenance}</h2><p>Fixed synthetic snapshot dated ${date(fixtureDate)} UTC. The frontend fixture supplies illustrative readings, event descriptions and index projections. It has no external sources or live refresh.</p>
     </dialog>`;
   const map = root.querySelector<HTMLElement>('#map');
-  if (map) updateMapSelection = drawMap(map, country, new Map(available().map((item) => [item.id, score(item)])), selectCountry);
-  if (page === 'forecasts' && mode === 'api') void renderApiForecasts();
+  if (map) updateMapSelection = drawMap(map, country, mode === 'demo' ? new Map(fixtures.map((item) => [item.id, score(item)])) : null, selectCountry);
+  if (mode === 'api') bindDashboardPanels();
 }
 
-async function renderApiForecasts() {
-  const node = root.querySelector<HTMLElement>('#forecast-results')!;
+function bindDashboardPanels() {
   const controller = new AbortController();
-  abandonForecasts = controller;
-  node.innerHTML = state('Loading forecasts', 'Requesting records from the configured GEOINTEL API.');
-  try {
-    const rows = await loadForecasts(AbortSignal.any([controller.signal, AbortSignal.timeout(12000)]));
-    if (!controller.signal.aborted) node.innerHTML = rows.length ? rows.map(forecastCard).join('') : state('No forecasts', 'The backend returned no forecast records.');
-  } catch {
-    if (!controller.signal.aborted) node.innerHTML = state('Forecast API unavailable', 'The request failed or the response was invalid. <button data-retry>Retry</button>', 'alert');
-  }
+  abandonDashboard = controller;
+  root.querySelectorAll<HTMLElement>('[data-dashboard]').forEach((node) => {
+    const key = node.dataset.dashboard as Series | 'coverage';
+    const scope = node.dataset.scope === 'country' ? isoCountry(country) : '';
+    let offset = 0;
+    let next: number | null = null;
+    let cards = '';
+    async function load() {
+      node.innerHTML = cards + state('Loading records', 'Requesting stored dashboard data.');
+      try {
+        if (key === 'coverage') {
+          const coverage = await loadCoverage(scope, controller.signal);
+          if (!controller.signal.aborted) node.innerHTML = coverageCard(coverage, escape);
+          return;
+        }
+        const page = await loadSeries(key, scope, offset, controller.signal);
+        if (controller.signal.aborted) return;
+        next = page.next_offset;
+        cards += page.items.map((row) => rowCard(key, row, escape)).join('');
+        node.innerHTML = cards + (page.availability === 'missing' ? state('No records', 'No stored records match this selection.')
+          : next === null ? state('End of results', 'No further page is available for this query.')
+          : '<button type="button" data-next>Load more</button>');
+      } catch {
+        if (!controller.signal.aborted) node.innerHTML = cards + state('Dashboard request failed',
+          'The service was unavailable or returned an invalid response. <button type="button" data-retry>Retry</button>', 'alert');
+      }
+    }
+    node.addEventListener('click', (event) => {
+      const button = (event.target as Element).closest('button');
+      if (button?.hasAttribute('data-next') && next !== null) {
+        offset = next;
+        void load();
+      }
+      if (button?.hasAttribute('data-retry')) void load();
+    });
+    void load();
+  });
 }
 
 function selectCountry(id: string) {
-  if (!countryNames.has(id)) return;
+  if (mode === 'api' ? !Object.hasOwn(codesByNumeric, id) : !countryNames.has(id)) return;
   country = id;
+  if (mode === 'api' && currentPage() === 'overview') {
+    location.hash = 'country';
+    return;
+  }
   const panel = root.querySelector('#country-panel');
   if (panel) {
     const restoreFocus = panel.contains(document.activeElement);
@@ -294,7 +335,7 @@ function sendMessage(question: string) {
 }
 
 root.addEventListener('click', (event) => {
-  const control = (event.target as Element).closest<HTMLElement>('[data-pick], [data-source], [data-prompt], [data-retry]');
+  const control = (event.target as Element).closest<HTMLElement>('[data-pick], [data-source], [data-prompt]');
   if (!control) return;
   if (control.dataset.pick) {
     selectCountry(control.dataset.pick);
@@ -305,7 +346,6 @@ root.addEventListener('click', (event) => {
     root.querySelector<HTMLDialogElement>('dialog')?.showModal();
   }
   if (control.dataset.prompt !== undefined) sendMessage(prompts[Number(control.dataset.prompt)]);
-  if (control.hasAttribute('data-retry')) void renderApiForecasts();
 });
 
 root.addEventListener('change', (event) => {
@@ -316,8 +356,8 @@ root.addEventListener('change', (event) => {
   if (field === 'mode') {
     mode = target.value === 'api' ? 'api' : 'demo';
     const url = new URL(location.href);
-    if (mode === 'api') url.searchParams.set('mode', 'api');
-    else url.searchParams.delete('mode');
+    if (mode === 'demo' && !countryNames.has(country)) country = '804';
+    url.searchParams.set('mode', mode);
     history.replaceState(null, '', url);
   }
   if (field === 'risk-country') riskCountry = target.value;
