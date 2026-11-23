@@ -2,6 +2,10 @@
 
 import hashlib
 import json
+from collections.abc import Iterator
+from dataclasses import dataclass, field
+from datetime import datetime
+from itertools import chain
 from typing import Annotated, Literal, Self
 
 from pydantic import Field, model_validator
@@ -15,9 +19,11 @@ from geointel.historical_validation.audit import (
     Record,
     Reference,
     Registration,
+    SnapshotEvidence,
     StudyConstraints,
     UTCDateTime,
     audit_fold,
+    snapshot_inventory,
 )
 
 # The historical panel adapter is required before any scored attachment is supported.
@@ -25,7 +31,14 @@ NoComparisons = Annotated[tuple[object, ...], Field(max_length=0)]
 
 
 def _canonical_digest(record: Record) -> str:
-    canonical = json.dumps(record.model_dump(mode="json"), sort_keys=True, separators=(",", ":"))
+    def omit_legacy_defaults(fields: dict[str, object]) -> dict[str, object]:
+        # Before snapshot metadata supported versions, an unknown version was absent.
+        if "dataset_version" in fields and fields["dataset_version"] is None:
+            del fields["dataset_version"]
+        return fields
+
+    data = json.loads(record.model_dump_json(), object_hook=omit_legacy_defaults)
+    canonical = json.dumps(data, sort_keys=True, separators=(",", ":"))
     return hashlib.sha256(canonical.encode()).hexdigest()
 
 
@@ -67,12 +80,24 @@ class OutcomePublication(OutcomeVintage):
     availability_evidence: Reference
     available_at: UTCDateTime
 
+    def snapshot_declaration(self) -> SnapshotEvidence:
+        return SnapshotEvidence(
+            snapshot=self.outcome_snapshot,
+            dataset_version=self.dataset_version,
+            availability_evidence=self.availability_evidence,
+            available_at=self.available_at,
+        )
+
 
 class PanelSlot(EvaluationCase):
     exclusion_reason: Reference | None = None
 
     def evaluation_case(self) -> EvaluationCase:
         return EvaluationCase.model_validate(self.model_dump(exclude={"exclusion_reason"}))
+
+
+def _case_order(case: EvaluationCase) -> tuple[str, datetime, datetime, datetime]:
+    return case.geography_id, case.origin, case.window_start, case.window_end
 
 
 class EvaluationPanel(Record):
@@ -86,18 +111,12 @@ class EvaluationPanel(Record):
         return self
 
     def digest(self) -> str:
-        slots = tuple(
-            sorted(
-                self.slots,
-                key=lambda slot: (
-                    slot.geography_id,
-                    slot.origin,
-                    slot.window_start,
-                    slot.window_end,
-                ),
-            )
+        return _canonical_digest(self.canonical())
+
+    def canonical(self) -> "EvaluationPanel":
+        return EvaluationPanel(
+            snapshot=self.snapshot, slots=tuple(sorted(self.slots, key=_case_order))
         )
-        return _canonical_digest(EvaluationPanel(snapshot=self.snapshot, slots=slots))
 
 
 class ReportRequest(Record):
@@ -136,7 +155,12 @@ class ReportRequest(Record):
                 or fold.geography_id not in geography_ids
             ):
                 raise ValueError("fold target, horizon or geography differs from report plan")
+        _check_outcome_version(self.outcomes, snapshot_inventory(self.snapshot_declarations()))
         return self
+
+    def snapshot_declarations(self) -> Iterator[SnapshotEvidence]:
+        for fold in self.folds:
+            yield from fold.snapshot_declarations()
 
 
 EvidenceStatus = Literal["demonstration", "descriptive", "provenance_review_required", "blocked"]
@@ -146,7 +170,7 @@ PublicationStatus = Literal["unverified", "verified"]
 
 def _panel_check(
     plan: ReportPlan, panel: EvaluationPanel | None, audits: tuple[Audit, ...]
-) -> tuple[PanelStatus, tuple[EvaluationCase, ...]]:
+) -> tuple[Literal["unverified", "incomplete", "complete"], tuple[EvaluationCase, ...]]:
     cases = {audit.evaluation_case for audit in audits}
     if len(cases) != len(audits):
         raise ValueError("duplicate evaluation cases")
@@ -170,11 +194,11 @@ def _panel_check(
     missing = tuple(
         case for case, reason in expected.items() if reason is None and case not in cases
     )
-    return ("incomplete" if missing else "verified"), missing
+    return ("incomplete" if missing else "complete"), missing
 
 
-def _status(mode: EvidenceMode, audits: tuple[Audit, ...], panel: PanelStatus) -> EvidenceStatus:
-    if panel == "incomplete" or any(audit.findings for audit in audits):
+def _status(mode: EvidenceMode, audits: tuple[Audit, ...], *, incomplete: bool) -> EvidenceStatus:
+    if incomplete or any(audit.findings for audit in audits):
         return "blocked"
     if mode == "synthetic":
         return "demonstration"
@@ -184,7 +208,7 @@ def _status(mode: EvidenceMode, audits: tuple[Audit, ...], panel: PanelStatus) -
 
 
 class BenchmarkReport(Record):
-    schema_version: Literal[3] = 3
+    schema_version: Literal[3, 4] = 4
     report_type: Literal["historical_validation_manifest"] = "historical_validation_manifest"
     input_sha256: Digest
     evidence_mode: EvidenceMode
@@ -203,7 +227,9 @@ class BenchmarkReport(Record):
 
     @model_validator(mode="after")
     def check_status(self) -> Self:
-        if self.evidence_status != _status(self.evidence_mode, self.audits, self.panel_status):
+        if self.evidence_status != _status(
+            self.evidence_mode, self.audits, incomplete=self.panel_status == "incomplete"
+        ):
             raise ValueError("evidence status conflicts with mode or audit findings")
         if (
             self.registration.snapshot != self.plan.plan_snapshot
@@ -212,24 +238,44 @@ class BenchmarkReport(Record):
             raise ValueError("registration does not match the immutable report plan")
         if self.evidence_mode != self.registration.evidence_mode:
             raise ValueError("report evidence mode differs from registered evidence mode")
-        if (self.panel_status, self.missing_panel_slots) != _panel_check(
-            self.plan, self.resolved_panel, self.audits
-        ):
+        coverage, missing = _panel_check(self.plan, self.resolved_panel, self.audits)
+        structural_panel = "incomplete" if coverage == "incomplete" else "unverified"
+        panel_claims = {structural_panel}
+        if self.schema_version == 3 and coverage == "complete":
+            panel_claims.add("verified")
+        if self.panel_status not in panel_claims or self.missing_panel_slots != missing:
             raise ValueError("panel status conflicts with panel accounting")
-        if self.outcome_publication is None:
-            if self.outcome_publication_status != "unverified":
+        if self.outcome_publication is not None:
+            _check_publication(self.plan, self.outcomes, self.outcome_publication)
+        if self.outcome_publication_status == "verified":
+            if self.outcome_publication is None:
                 raise ValueError("missing outcome publication evidence")
-        else:
-            if (
-                self.outcome_publication.dataset_version != self.outcomes.dataset_version
-                or self.outcome_publication.outcome_snapshot != self.outcomes.outcome_snapshot
-            ):
-                raise ValueError("publication evidence refers to a different outcome vintage")
-            if self.outcome_publication.available_at > self.plan.outcome_as_of:
-                raise ValueError("outcome vintage was unavailable at the outcome freeze")
-            if self.outcome_publication_status != "verified":
-                raise ValueError("outcome publication status conflicts with evidence")
+            if self.schema_version != 3:
+                raise ValueError("publication verification requires external evidence")
+        # Legacy wire claims carry no authority, including when loaded from a model instance.
+        object.__setattr__(self, "panel_status", structural_panel)
+        object.__setattr__(self, "outcome_publication_status", "unverified")
         return self
+
+
+def _check_publication(
+    plan: ReportPlan, outcomes: OutcomeVintage, publication: OutcomePublication
+) -> None:
+    if (
+        publication.dataset_version != outcomes.dataset_version
+        or publication.outcome_snapshot != outcomes.outcome_snapshot
+    ):
+        raise ValueError("publication evidence refers to a different outcome vintage")
+    if publication.available_at > plan.outcome_as_of:
+        raise ValueError("outcome vintage was unavailable at the outcome freeze")
+
+
+def _check_outcome_version(
+    outcomes: OutcomeVintage, inventory: dict[str, SnapshotEvidence]
+) -> None:
+    snapshot = inventory.get(outcomes.outcome_snapshot)
+    if snapshot is not None and snapshot.dataset_version not in (None, outcomes.dataset_version):
+        raise ValueError(f"conflicting snapshot declarations for {snapshot.snapshot!r}")
 
 
 def build_report(
@@ -239,7 +285,7 @@ def build_report(
     resolved_panel: EvaluationPanel | None = None,
     verified_outcome_publication: OutcomePublication | None = None,
 ) -> BenchmarkReport:
-    """Build a manifest using evidence obtained independently of the request.
+    """Build a structural manifest using resolver-supplied receipt, panel and publication.
 
     The caller verifies receipt and publication authenticity at their sources.
     The panel content is checked against the digest in the registered plan.
@@ -252,20 +298,109 @@ def build_report(
     mode = verified_registration.evidence_mode
     if resolved_panel is not None:
         resolved_panel = EvaluationPanel.model_validate(resolved_panel)
+    if verified_outcome_publication is not None:
+        verified_outcome_publication = OutcomePublication.model_validate(
+            verified_outcome_publication
+        )
+        _check_publication(request.plan, request.outcomes, verified_outcome_publication)
+    published = (
+        (verified_outcome_publication.snapshot_declaration(),)
+        if verified_outcome_publication is not None
+        else ()
+    )
+    _check_outcome_version(
+        request.outcomes, snapshot_inventory(chain(request.snapshot_declarations(), published))
+    )
+    if resolved_panel is not None:
+        resolved_panel = resolved_panel.canonical()
     panel_status, missing_slots = _panel_check(request.plan, resolved_panel, audits)
     return BenchmarkReport(
         input_sha256=_canonical_digest(request),
         evidence_mode=mode,
-        evidence_status=_status(mode, audits, panel_status),
+        evidence_status=_status(mode, audits, incomplete=panel_status == "incomplete"),
         plan=request.plan,
         outcomes=request.outcomes,
         registration=verified_registration,
         resolved_panel=resolved_panel,
-        panel_status=panel_status,
+        panel_status="incomplete" if panel_status == "incomplete" else "unverified",
         missing_panel_slots=missing_slots,
         outcome_publication=verified_outcome_publication,
-        outcome_publication_status="verified" if verified_outcome_publication else "unverified",
+        outcome_publication_status="unverified",
         audits=audits,
         comparisons=(),
         limitations=request.limitations,
+    )
+
+
+@dataclass(frozen=True, slots=True)
+class VerifiedReport:
+    """Verification result for exact normalized report content."""
+
+    report_sha256: str
+    panel_status: Literal["incomplete", "verified"]
+    outcome_publication_status: Literal["verified"] = field(default="verified", init=False)
+
+    def matches(self, report: BenchmarkReport) -> bool:
+        """Check whether this result applies to the supplied manifest."""
+        try:
+            return self.report_sha256 == _report_digest(BenchmarkReport.model_validate(report))
+        except ValueError:
+            return False
+
+
+def _report_digest(report: BenchmarkReport) -> str:
+    panel = report.resolved_panel
+    canonical = report.model_copy(
+        update={
+            "resolved_panel": panel.canonical() if panel is not None else None,
+            "missing_panel_slots": tuple(sorted(report.missing_panel_slots, key=_case_order)),
+        }
+    )
+    return _canonical_digest(canonical)
+
+
+def verify_report_v1(
+    report: BenchmarkReport,
+    *,
+    original_request: ReportRequest,
+    registration: Registration,
+    required_panel: EvaluationPanel,
+    evidence_mode: EvidenceMode,
+    outcome_publication: OutcomePublication,
+    source_snapshots: tuple[SnapshotEvidence, ...],
+) -> VerifiedReport:
+    """Recompute and compare using records independently authenticated by the caller."""
+    report = BenchmarkReport.model_validate(report)
+    request = ReportRequest.model_validate(original_request)
+    registration = Registration.model_validate(registration)
+    publication = OutcomePublication.model_validate(outcome_publication)
+    panel = EvaluationPanel.model_validate(required_panel)
+    if registration.evidence_mode != evidence_mode:
+        raise ValueError("trusted evidence mode differs from the registration")
+    expected = build_report(
+        request,
+        verified_registration=registration,
+        resolved_panel=panel,
+        verified_outcome_publication=publication,
+    )
+    if report.audits != expected.audits:
+        raise ValueError("report audits differ from those recomputed from the original request")
+    expected_sources = snapshot_inventory(
+        chain(request.snapshot_declarations(), (publication.snapshot_declaration(),))
+    )
+    resolved_sources = snapshot_inventory(
+        SnapshotEvidence.model_validate(source) for source in source_snapshots
+    )
+    if any(resolved_sources.get(key) != value for key, value in expected_sources.items()):
+        raise ValueError(
+            "source snapshot evidence differs from the original request or publication"
+        )
+    digest = _report_digest(report)
+    if digest != _report_digest(
+        expected.model_copy(update={"schema_version": report.schema_version})
+    ):
+        raise ValueError("report content differs from the manifest rebuilt from trusted evidence")
+    return VerifiedReport(
+        report_sha256=digest,
+        panel_status="incomplete" if expected.missing_panel_slots else "verified",
     )

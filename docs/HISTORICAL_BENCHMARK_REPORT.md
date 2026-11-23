@@ -20,7 +20,7 @@ Preserve the metadata alongside the scoring artifact.
 ## Machine-readable manifest
 
 Validate inputs with `ReportRequest` and pass an independently verified
-`Registration` receipt to `build_report` to produce a schema-version 3 manifest.
+`Registration` receipt to `build_report` to produce a schema-version 4 manifest.
 The receipt must come from an immutable registry or independently verified
 timestamp evidence and must identify the exact registered plan digest, availability
 instant, evidence reference and registered evidence mode. Every fold must use that
@@ -38,8 +38,15 @@ must be available at or after maturity and by fit or calibration. The evaluation
 outcome freeze must be at or after test-window maturity. Development cases are
 unique within a fold by geography, UTC origin and window endpoints, regardless
 of row key or split role. An omitted development geography inherits the fold's
-geography. Reused development snapshot references must agree on availability
-metadata within a fold.
+geography. Within a report, each immutable snapshot ID has one set of
+availability metadata across all folds, development features and labels, evaluation
+features, forecasts, the receipt and the outcome publication. Comparisons use UTC
+instants and include dataset version and actual forecast issue time where declared.
+An omitted version in a legacy record leaves that metadata unspecified. Known
+versions must agree with each other and with the outcome version wherever the
+same snapshot is used. Use separate immutable references for distinct vintages.
+A single dataset snapshot may serve multiple cases and geographies. Case origins,
+windows and simulated replay clocks describe the cases or replay runs.
 
 Before registration, use `EvaluationPanel.digest()` to bind the panel snapshot
 and its complete slot roster in the plan's `panel_sha256`. A slot includes the
@@ -49,21 +56,23 @@ The digest uses UTC instants and canonical slot order. Supply the artifact as
 slots are rejected. Registered exclusions remain visible in the resolved panel,
 and any missing required slot is listed and blocks the report. When the panel
 cannot be resolved, or the plan carries only a snapshot reference, panel integrity
-is unverified and missing/excluded totals cannot be inferred from submitted folds.
+remains unverified and missing/excluded totals cannot be inferred from submitted folds.
 
 The `outcomes` block identifies the realized vintage, which may be selected and
 published after registration. Pass `verified_outcome_publication` only after
 independently confirming the availability timestamp and evidence reference for
 that exact dataset version and snapshot. Availability at the freeze passes,
-and later availability is rejected. Without independently verified publication
-evidence the manifest records an unverified status. Publication verification
-does not establish per-case outcome completeness or accuracy.
+and later availability is rejected. Publication verification establishes
+availability of the exact outcome vintage. Per-case outcome completeness
+and accuracy require separate checks.
 
 The request hash covers the normalized request, including the one outcome vintage,
 and preserves list order. Any fold finding blocks the report. Both the request and
 report schemas require an empty `comparisons` array until a verified adapter exists.
 Clean historical and prospective manifests retain `provenance_review_required`.
-Freeze the original input and the independent receipt for reproduction.
+Freeze the original request, independent receipt, panel roster, publication, and
+source records for reproduction. Existing plan, panel and request digests retain
+their semantics. A declared dataset version participates in the request digest.
 
 The following example uses the synthetic fixtures and produces a demonstration
 manifest with no empirical scores.
@@ -88,6 +97,36 @@ panel = EvaluationPanel.model_validate_json(
 print(build_report(request, verified_registration=receipt, resolved_panel=panel).model_dump_json(indent=2))
 PYCODE
 ```
+
+## Verifying a saved manifest
+
+`BenchmarkReport.model_validate` and `model_validate_json` parse structural
+manifests. Schema version 4 records `unverified` for panel and publication checks,
+or `incomplete` where the embedded roster accounts for missing required slots.
+Schema-version 3 files still parse, with embedded verification claims downgraded.
+`build_report` retains its signature and returns a structural manifest. Callers
+that used its `verified` statuses should migrate to `verify_report_v1`.
+
+Pass the parsed report and the independently preserved `original_request`,
+authenticated `registration`, registered `required_panel`, trusted
+`evidence_mode`, authenticated `outcome_publication`, and `source_snapshots`
+to `verify_report_v1`. Supply source snapshots as `SnapshotEvidence` records
+resolved independently, including the exact snapshot ID, availability time and
+evidence reference, dataset version where declared, and actual issue time for
+forecast snapshots. Use `ReportRequest.snapshot_declarations()` to enumerate
+which references and fields need resolution. The verifier recomputes all audits
+and panel accounting, checks publication and source metadata, and compares the
+rebuilt manifest with the supplied one. It relies on the caller to authenticate
+the independent records and their source identities.
+
+Verification returns a frozen `VerifiedReport` whose digest covers the normalized
+manifest content. Keep this result in the trusted caller. For a saved manifest,
+rerun verification from independent evidence. Use `result.matches(report)` before reusing a prior result with
+a manifest. Changes to the normalized content require re-verification. A verified result can still report an incomplete panel or coexist
+with blocked audit findings. Provenance review remains required for clean
+historical or prospective manifests. Synthetic examples are illustrative.
+Empirical performance claims require independently authenticated forecast
+and outcome archives, plus an eligible scoring analysis.
 
 ## PR #34 adapter requirements
 

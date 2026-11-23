@@ -15,6 +15,7 @@ from geointel.historical_validation.report import (
     ReportPlan,
     ReportRequest,
     build_report,
+    verify_report_v1,
 )
 
 FIXTURES = Path(__file__).parent / "fixtures"
@@ -176,7 +177,9 @@ def add_second_fold(payload):
 
 def test_one_failed_fold_blocks_report(payload):
     second = add_second_fold(payload)
-    second["feature_inputs"][0]["available_at"] = "2000-01-10T00:00:01Z"
+    second["feature_inputs"][0].update(
+        snapshot="synthetic:late-second-feature", available_at="2000-01-10T00:00:01Z"
+    )
     report = render(payload, register_synthetic_plan(payload))
     assert report.evidence_status == "blocked"
     assert not report.comparisons
@@ -425,9 +428,9 @@ def test_registered_panel_accounts_for_present_missing_and_excluded_slots(payloa
     reversed_panel = EvaluationPanel(snapshot=panel.snapshot, slots=panel.slots[::-1])
     assert reversed_panel.digest() == panel.digest()
     full = render(payload, receipt, resolved_panel=reversed_panel)
-    assert full.panel_status == "verified"
+    assert full.panel_status == "unverified"
     assert not full.missing_panel_slots
-    assert full.resolved_panel.slots[0].exclusion_reason == "Registered coverage exclusion"
+    assert full.resolved_panel == panel.canonical()
     payload["folds"].pop()
     partial = render(payload, receipt, resolved_panel=panel)
     assert partial.panel_status == "incomplete"
@@ -487,7 +490,7 @@ def test_verified_outcome_vintage_must_be_published_by_freeze(payload):
     publication = OutcomePublication.model_validate(declared)
     assert publication.available_at > registration().available_at
     report = render(payload, verified_outcome_publication=publication)
-    assert report.outcome_publication_status == "verified"
+    assert report.outcome_publication_status == "unverified"
     assert report.outcome_publication == publication
     assert not report.comparisons
     assert render(payload).outcome_publication_status == "unverified"
@@ -523,11 +526,257 @@ def test_canonical_development_duplicates_and_geographic_units(payload):
     assert not render(payload).audits[0].findings
 
     alias["label"]["availability_evidence"] = "conflicting-log"
-    assert [finding.code for finding in render(payload).audits[0].findings] == [
-        "conflicting_development_vintage"
-    ]
+    with pytest.raises(ValidationError, match="conflicting snapshot declarations"):
+        render(payload)
+    constraints = StudyConstraints.model_validate(payload["plan"]["constraints"])
+    assert [
+        finding.code for finding in audit_fold(Fold.model_validate(fold), constraints).findings
+    ] == ["conflicting_development_vintage"]
     alias["geography_id"] = fold["geography_id"]
-    assert [finding.code for finding in render(payload).audits[0].findings] == [
+    assert [
+        finding.code for finding in audit_fold(Fold.model_validate(fold), constraints).findings
+    ] == [
         "duplicate_development_case",
         "conflicting_development_vintage",
     ]
+
+
+@pytest.fixture
+def trusted_evidence(payload):
+    panel = EvaluationPanel.model_validate_json(
+        (FIXTURES / "synthetic_benchmark_panel.json").read_bytes()
+    )
+    request = ReportRequest.model_validate(payload)
+    publication = OutcomePublication(
+        **request.outcomes.model_dump(),
+        availability_evidence="synthetic:publisher:release",
+        available_at=request.plan.outcome_as_of,
+    )
+    return dict(
+        original_request=request,
+        registration=registration(),
+        required_panel=panel,
+        evidence_mode="synthetic",
+        outcome_publication=publication,
+        source_snapshots=(*request.snapshot_declarations(), publication.snapshot_declaration()),
+    )
+
+
+def render_with_evidence(evidence):
+    return build_report(
+        evidence["original_request"],
+        verified_registration=evidence["registration"],
+        resolved_panel=evidence["required_panel"],
+        verified_outcome_publication=evidence["outcome_publication"],
+    )
+
+
+def test_reverify_serialized_manifest_with_external_evidence(trusted_evidence):
+    report = render_with_evidence(trusted_evidence)
+    parsed = BenchmarkReport.model_validate_json(report.model_dump_json())
+    assert parsed.panel_status == parsed.outcome_publication_status == "unverified"
+    result = verify_report_v1(parsed, **trusted_evidence)
+    assert result.panel_status == result.outcome_publication_status == "verified"
+    assert result.matches(parsed)
+    changed = parsed.model_copy(update={"limitations": ("Changed scientific limitations.",)})
+    assert not result.matches(changed)
+    with pytest.raises(ValueError, match="report content differs"):
+        verify_report_v1(changed, **trusted_evidence)
+
+
+def test_legacy_verification_flags_have_no_authority(trusted_evidence):
+    report = render_with_evidence(trusted_evidence)
+    for field in ("panel_status", "outcome_publication_status"):
+        with pytest.raises(ValidationError):
+            BenchmarkReport.model_validate(dict(report.model_dump(), **{field: "verified"}))
+    legacy = BenchmarkReport.model_validate(
+        dict(
+            report.model_dump(),
+            schema_version=3,
+            panel_status="verified",
+            outcome_publication_status="verified",
+        )
+    )
+    assert legacy.panel_status == legacy.outcome_publication_status == "unverified"
+    result = verify_report_v1(legacy, **trusted_evidence)
+    assert result.matches(legacy)
+    assert not result.matches(report)
+
+
+def test_verify_requires_original_request(trusted_evidence):
+    report = render_with_evidence(trusted_evidence)
+    del trusted_evidence["original_request"]
+    with pytest.raises(TypeError, match="original_request"):
+        verify_report_v1(report, **trusted_evidence)
+
+
+@pytest.mark.parametrize(
+    ("key", "field", "value", "message"),
+    [
+        ("registration", "availability_evidence", "unrelated", "verified registration"),
+        ("outcome_publication", "availability_evidence", "unrelated", "snapshot evidence differs"),
+    ],
+)
+def test_verification_rejects_incorrect_external_evidence(
+    trusted_evidence, key, field, value, message
+):
+    report = render_with_evidence(trusted_evidence)
+    trusted_evidence[key] = trusted_evidence[key].model_copy(update={field: value})
+    with pytest.raises(ValueError, match=message):
+        verify_report_v1(report, **trusted_evidence)
+
+
+def test_verify_rejects_audit_membership_changed_after_build(trusted_evidence):
+    report = render_with_evidence(trusted_evidence)
+    audit = report.audits[0].model_copy(update={"fold_key": "unregistered-fold"})
+    changed = BenchmarkReport.model_validate(dict(report.model_dump(), audits=(audit,)))
+    with pytest.raises(ValueError, match="audits differ"):
+        verify_report_v1(changed, **trusted_evidence)
+
+
+def test_verify_rejects_embedded_publication_with_different_evidence(trusted_evidence):
+    report = render_with_evidence(trusted_evidence)
+    publication = trusted_evidence["outcome_publication"].model_copy(
+        update={"availability_evidence": "unrelated-source"}
+    )
+    changed = BenchmarkReport.model_validate(
+        dict(report.model_dump(), outcome_publication=publication)
+    )
+    assert changed.outcome_publication_status == "unverified"
+    with pytest.raises(ValueError, match="report content differs"):
+        verify_report_v1(changed, **trusted_evidence)
+
+
+@pytest.mark.parametrize("change", ["missing", "timestamp", "version", "issue_time"])
+def test_verify_rejects_changed_source_metadata(trusted_evidence, change):
+    report = render_with_evidence(trusted_evidence)
+    snapshots = trusted_evidence["source_snapshots"]
+    forecast = next(source for source in snapshots if source.issued_at is not None)
+    other = tuple(source for source in snapshots if source.snapshot != forecast.snapshot)
+    updates = {
+        "timestamp": {"available_at": forecast.available_at + timedelta(microseconds=1)},
+        "version": {"dataset_version": "different"},
+        "issue_time": {"issued_at": forecast.issued_at - timedelta(microseconds=1)},
+    }
+    trusted_evidence["source_snapshots"] = (
+        other if change == "missing" else (*other, forecast.model_copy(update=updates[change]))
+    )
+    with pytest.raises(ValueError, match="source snapshot evidence differs"):
+        verify_report_v1(report, **trusted_evidence)
+
+
+def test_verification_rejects_incorrect_trusted_mode(trusted_evidence):
+    report = render_with_evidence(trusted_evidence)
+    with pytest.raises(ValueError, match="trusted evidence mode"):
+        verify_report_v1(report, **dict(trusted_evidence, evidence_mode="retrospective"))
+
+
+def test_cross_fold_label_timestamps_must_agree(payload):
+    first_label = payload["folds"][0]["development"][0]["label"]
+    first_label["available_at"] = "2000-01-05T00:00:00.000001Z"
+    payload["folds"][0]["fitted_at"] = "2000-01-05T00:00:00.000001Z"
+    second = add_second_fold(payload)
+    second["development"][0]["label"]["available_at"] = "2000-01-05T00:00:00Z"
+    receipt = register_synthetic_plan(payload)
+    constraints = StudyConstraints.model_validate(payload["plan"]["constraints"])
+    assert all(
+        not audit_fold(Fold.model_validate(fold), constraints).findings for fold in payload["folds"]
+    )
+    with pytest.raises(ValidationError, match="conflicting snapshot declarations"):
+        render(payload, receipt)
+
+
+@pytest.mark.parametrize(
+    "changes",
+    [
+        {"available_at": "2000-01-05T00:00:00.000001Z"},
+        {"dataset_version": "v2"},
+    ],
+)
+def test_development_evaluation_metadata_must_agree(payload, changes):
+    fold = payload["folds"][0]
+    label = fold["development"][0]["label"]
+    label["dataset_version"] = "v1"
+    fold["feature_inputs"] = [dict(label, **changes)]
+    constraints = StudyConstraints.model_validate(payload["plan"]["constraints"])
+    assert [
+        finding.code for finding in audit_fold(Fold.model_validate(fold), constraints).findings
+    ] == [
+        "conflicting_snapshot_declarations",
+    ]
+    with pytest.raises(ValidationError, match="conflicting snapshot declarations"):
+        render(payload)
+
+
+def test_outcome_snapshot_metadata_must_match_development(payload):
+    label = payload["folds"][0]["development"][0]["label"]
+    payload["outcomes"]["outcome_snapshot"] = label["snapshot"]
+    label["dataset_version"] = payload["outcomes"]["dataset_version"]
+    publication = OutcomePublication.model_validate(
+        dict(
+            payload["outcomes"],
+            available_at=label["available_at"],
+            availability_evidence=label["availability_evidence"],
+        )
+    )
+    render(payload, verified_outcome_publication=publication)
+    wrong_time = publication.model_copy(
+        update={"available_at": publication.available_at + timedelta(microseconds=1)}
+    )
+    with pytest.raises(ValueError, match="conflicting snapshot declarations"):
+        render(payload, verified_outcome_publication=wrong_time)
+    label["dataset_version"] = "different"
+    with pytest.raises(ValueError, match="conflicting snapshot declarations"):
+        render(payload)
+
+
+def test_repeated_snapshot_is_valid_across_roles_folds_and_geographies(payload):
+    first = payload["folds"][0]
+    first["feature_inputs"] = [deepcopy(first["development"][0]["label"])]
+    second = add_second_fold(payload)
+    second["feature_inputs"][0]["available_at"] = "2000-01-04T19:00:00-05:00"
+    report = render(payload, register_synthetic_plan(payload))
+    assert {audit.evaluation_case.geography_id for audit in report.audits} == {"EXAMPLE", "SECOND"}
+    assert all(not audit.findings for audit in report.audits)
+
+
+def test_complete_manifest_cannot_verify_against_incomplete_original(payload, trusted_evidence):
+    add_second_fold(payload)
+    panel = EvaluationPanel(
+        snapshot=payload["plan"]["panel_snapshot"],
+        slots=tuple(
+            Fold.model_validate(fold).evaluation_case().model_dump() for fold in payload["folds"]
+        ),
+    )
+    payload["plan"]["panel_sha256"] = panel.digest()
+    receipt = register_synthetic_plan(payload)
+    full_request = ReportRequest.model_validate(payload)
+    full_evidence = dict(
+        trusted_evidence,
+        original_request=full_request,
+        required_panel=panel,
+        registration=receipt,
+        source_snapshots=(
+            *full_request.snapshot_declarations(),
+            trusted_evidence["outcome_publication"].snapshot_declaration(),
+        ),
+    )
+    complete = render_with_evidence(full_evidence)
+    payload["folds"].pop()
+    partial_evidence = dict(full_evidence, original_request=ReportRequest.model_validate(payload))
+    incomplete = render_with_evidence(partial_evidence)
+    assert verify_report_v1(incomplete, **partial_evidence).panel_status == "incomplete"
+    assert incomplete.evidence_status == "blocked"
+    assert complete.panel_status == "unverified"
+    legacy_claim = BenchmarkReport.model_validate(
+        dict(
+            complete.model_dump(),
+            schema_version=3,
+            input_sha256=incomplete.input_sha256,
+            panel_status="verified",
+            outcome_publication_status="verified",
+        )
+    )
+    assert legacy_claim.panel_status == legacy_claim.outcome_publication_status == "unverified"
+    with pytest.raises(ValueError, match="audits differ"):
+        verify_report_v1(legacy_claim, **partial_evidence)

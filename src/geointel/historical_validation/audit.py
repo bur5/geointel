@@ -1,5 +1,6 @@
 """Validate declared availability and split boundaries for one rolling-origin fold."""
 
+from collections.abc import Iterable, Iterator
 from datetime import UTC, datetime, timedelta
 from typing import Annotated, Literal, Self
 
@@ -36,6 +37,23 @@ class Vintage(Record):
     snapshot: Reference
     availability_evidence: Reference
     available_at: UTCDateTime
+    dataset_version: Reference | None = None
+
+
+class SnapshotEvidence(Vintage):
+    """Availability metadata with a publication issue time where declared."""
+
+    issued_at: UTCDateTime | None = None
+
+    @classmethod
+    def from_vintage(cls, vintage: Vintage, *, issued_at: datetime | None = None) -> Self:
+        return cls(
+            snapshot=vintage.snapshot,
+            availability_evidence=vintage.availability_evidence,
+            available_at=vintage.available_at,
+            dataset_version=vintage.dataset_version,
+            issued_at=issued_at,
+        )
 
 
 class Registration(Vintage):
@@ -125,6 +143,53 @@ class Fold(Record):
             window_end=self.window_end,
         )
 
+    def snapshot_declarations(self) -> Iterator[SnapshotEvidence]:
+        for vintage in self.feature_inputs:
+            yield SnapshotEvidence.from_vintage(vintage)
+        for example in self.development:
+            for vintage in (*example.features, example.label):
+                yield SnapshotEvidence.from_vintage(vintage)
+        yield SnapshotEvidence.from_vintage(self.forecast, issued_at=self.issued_at)
+        yield SnapshotEvidence.from_vintage(self.protocol)
+
+
+def _conflicting_vintages(previous: Vintage, current: Vintage) -> bool:
+    return (
+        previous.available_at != current.available_at
+        or previous.availability_evidence != current.availability_evidence
+        or (
+            previous.dataset_version is not None
+            and current.dataset_version is not None
+            and previous.dataset_version != current.dataset_version
+        )
+    )
+
+
+def snapshot_inventory(
+    declarations: Iterable[SnapshotEvidence],
+) -> dict[str, SnapshotEvidence]:
+    """Combine metadata by immutable snapshot ID, retaining known optional fields."""
+    inventory: dict[str, SnapshotEvidence] = {}
+    for current in declarations:
+        previous = inventory.get(current.snapshot)
+        if previous is None:
+            inventory[current.snapshot] = current
+            continue
+        if _conflicting_vintages(previous, current) or (
+            previous.issued_at is not None
+            and current.issued_at is not None
+            and previous.issued_at != current.issued_at
+        ):
+            raise ValueError(f"conflicting snapshot declarations for {current.snapshot!r}")
+        inventory[current.snapshot] = SnapshotEvidence(
+            snapshot=current.snapshot,
+            availability_evidence=current.availability_evidence,
+            available_at=current.available_at,
+            dataset_version=previous.dataset_version or current.dataset_version,
+            issued_at=previous.issued_at or current.issued_at,
+        )
+    return inventory
+
 
 FindingCode = Literal[
     "fit_after_origin",
@@ -139,6 +204,7 @@ FindingCode = Literal[
     "duplicate_development_key",
     "duplicate_development_case",
     "conflicting_development_vintage",
+    "conflicting_snapshot_declarations",
     "calibration_step_missing",
     "calibration_examples_missing",
     "development_window_overlap",
@@ -255,7 +321,11 @@ def audit_fold(fold: Fold, constraints: StudyConstraints) -> Audit:
         cases.add(case)
         for vintage in (*example.features, example.label):
             previous = vintages.setdefault(vintage.snapshot, vintage)
-            add(previous != vintage, "conflicting_development_vintage", vintage.snapshot)
+            add(
+                _conflicting_vintages(previous, vintage),
+                "conflicting_development_vintage",
+                vintage.snapshot,
+            )
         add(
             not constraints._matches_window(
                 example.origin, example.window_start, example.window_end
@@ -297,6 +367,12 @@ def audit_fold(fold: Fold, constraints: StudyConstraints) -> Audit:
             example.label.snapshot,
         )
         add(example.label.available_at > fit_time, "label_after_fit", example.label.snapshot)
+
+    if not any(finding.code == "conflicting_development_vintage" for finding in findings):
+        try:
+            snapshot_inventory(fold.snapshot_declarations())
+        except ValueError:
+            findings.append(Finding(code="conflicting_snapshot_declarations", reference=fold.key))
 
     return Audit(
         fold_key=fold.key,
