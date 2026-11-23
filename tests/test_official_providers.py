@@ -217,7 +217,22 @@ def oauth_and_transport(handler):
     return client, transport, auth
 
 
-def test_acled_official_cursor_event_identity_fatalities_duplicate_and_bearer_secrecy():
+@pytest.mark.parametrize(
+    ("now", "expected_start", "expected_end"),
+    [
+        (datetime(2024, 12, 31, 23, 59, tzinfo=UTC), date(2024, 10, 2), date(2024, 12, 31)),
+        (datetime(2025, 1, 1, 0, 1, tzinfo=UTC), date(2024, 10, 3), date(2025, 1, 1)),
+    ],
+)
+def test_acled_official_cursor_event_identity_fatalities_duplicate_and_bearer_secrecy(
+    monkeypatch, now, expected_start, expected_end
+):
+    class FrozenDateTime(datetime):
+        @classmethod
+        def now(cls, tz=None):
+            return now.astimezone(tz)
+
+    monkeypatch.setattr("geointel.connectors.acled.datetime", FrozenDateTime)
     event_requests = []
 
     def handler(request):
@@ -247,8 +262,7 @@ def test_acled_official_cursor_event_identity_fatalities_duplicate_and_bearer_se
     for request in event_requests:
         start_text, end_text = request.url.params["event_date"].split("|")
         start, end = date.fromisoformat(start_text), date.fromisoformat(end_text)
-        assert end - start == timedelta(days=90)
-        assert end == date.today()
+        assert (start, end) == (expected_start, expected_end)
     assert all(
         request.headers["authorization"] == "Bearer test-access" for request in event_requests
     )

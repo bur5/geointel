@@ -30,8 +30,15 @@ ACLED_RECORD = {
 }
 
 
-def test_configuration_validation_and_disabled_defaults():
-    assert not Settings().acled_enabled and not Settings().cast_enabled
+def test_configuration_validation_and_disabled_defaults(monkeypatch):
+    # Exercise defaults and constructor overrides without developer environment or dotenv settings.
+    monkeypatch.setattr(
+        Settings,
+        "settings_customise_sources",
+        staticmethod(lambda settings_cls, init_settings, **sources: (init_settings,)),
+    )
+    defaults = Settings()
+    assert not defaults.acled_enabled and not defaults.cast_enabled
     with pytest.raises(ValidationError, match="ACLED_BASE_URL"):
         Settings(acled_enabled=True)
     with pytest.raises(ValidationError, match="CAST_BASE_URL"):
