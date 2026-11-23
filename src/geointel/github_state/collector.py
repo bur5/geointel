@@ -368,6 +368,13 @@ def collect_ci(reader, repo, workflow, pr, issues):
         if run["head_sha"] == pr["head"]["sha"]
         and run["event"] == "pull_request"
         and run["workflow_id"] == workflow.id
+        and any(
+            association["number"] == number
+            and association["head"]["sha"] == pr["head"]["sha"]
+            and association["base"]["sha"] == pr["base"]["sha"]
+            and association["base"]["ref"] == pr["base"]["ref"]
+            for association in run["pull_requests"]
+        )
     ]
     if not candidates:
         issues.append(f"MISSING_CI:{number}")

@@ -161,6 +161,17 @@ def review(pr, **changes):
     }
 
 
+def shared_head_server(base_branch="main"):
+    server = Server((24, 25))
+    shared_sha = server.prs[24]["head"]["sha"]
+    server.prs[25]["head"]["sha"] = shared_sha
+    server.prs[25]["base"]["ref"] = base_branch
+    server.runs[250]["head_sha"] = shared_sha
+    for job in server.jobs[250]:
+        job["head_sha"] = shared_sha
+    return server
+
+
 class CollectorTests(unittest.TestCase):
     def test_complete_dynamic_inventory_is_not_authority(self):
         server = Server((7, 24, 25, 26, 27))
@@ -217,6 +228,89 @@ class CollectorTests(unittest.TestCase):
         output = server.run()
         self.assertIn("MISSING_CI:24", output.issues)
         self.assertIsNone(output.pull_requests[0].ci)
+
+    def test_shared_head_newer_other_pr_run_does_not_hide_target_run(self):
+        for base in ["main", "release"]:
+            with self.subTest(other_base=base):
+                server = shared_head_server(base)
+                output = server.run()
+                self.assertEqual(output.state, "OBSERVED", output.issues)
+                self.assertEqual(
+                    {pr.number: pr.ci.run_id for pr in output.pull_requests}, {24: 240, 25: 250}
+                )
+
+    def test_shared_head_only_other_pr_has_ci_is_missing_target_evidence(self):
+        server = shared_head_server("release")
+        del server.runs[240]
+        output = server.run()
+        self.assertEqual(output.state, "BLOCKED")
+        self.assertIn("MISSING_CI:24", output.issues)
+        self.assertIsNone(output.pull_requests[0].ci)
+        self.assertEqual(output.pull_requests[1].ci.run_id, 250)
+
+    def test_run_list_association_must_match_head_and_both_base_fields(self):
+        for section, field, wrong_value in [
+            ("head", "sha", "c" * 40),
+            ("base", "sha", "c" * 40),
+            ("base", "ref", "release"),
+        ]:
+            with self.subTest(section=section, field=field):
+                server = Server((24,))
+                associations = copy.deepcopy(server.runs[240]["pull_requests"])
+                associations[0][section][field] = wrong_value
+                server.runs[240]["pull_requests"] = associations
+                output = server.run()
+                self.assertEqual(output.state, "BLOCKED")
+                self.assertIn("MISSING_CI:24", output.issues)
+
+    def test_newer_wrong_base_run_does_not_hide_matching_target_run(self):
+        for field, wrong_value in [("sha", "c" * 40), ("ref", "release")]:
+            with self.subTest(field=field):
+                server = shared_head_server("release")
+                stale = copy.deepcopy(server.runs[240])
+                stale["id"] = 260
+                stale["pull_requests"][0]["base"][field] = wrong_value
+                server.runs[260] = stale
+                output = server.run()
+                self.assertEqual(output.state, "OBSERVED", output.issues)
+                self.assertEqual(output.pull_requests[0].ci.run_id, 240)
+                self.assertFalse(
+                    any(path == PREFIX + "/actions/runs/260" for _, path, _ in server.calls)
+                )
+
+    def test_selected_run_detail_conflict_still_blocks(self):
+        server = Server((24,))
+
+        def override(req, count):
+            if req.url.path == PREFIX + "/actions/runs/240":
+                detail = copy.deepcopy(server.runs[240])
+                detail["pull_requests"][0]["base"]["sha"] = "c" * 40
+                return server.response(detail)
+
+        server.override = override
+        output = server.run()
+        self.assertEqual(output.state, "BLOCKED")
+        self.assertIn("CI_BINDING_MISMATCH:24", output.issues)
+
+    def test_newest_matching_target_failure_is_not_replaced_by_older_success(self):
+        server = shared_head_server()
+        newer = copy.deepcopy(server.runs[240])
+        newer.update(id=245, conclusion="failure")
+        server.runs[245] = newer
+        server.jobs[245] = copy.deepcopy(server.jobs[240])
+        for index, job in enumerate(server.jobs[245]):
+            job.update(
+                id=2450 + index,
+                run_id=245,
+                conclusion="failure",
+                check_run_url=f"https://api.github.com{PREFIX}/check-runs/{2450 + index}",
+            )
+        output = server.run()
+        self.assertEqual(output.state, "BLOCKED")
+        self.assertEqual(output.pull_requests[0].ci.run_id, 245)
+        self.assertEqual(output.pull_requests[0].ci.state, "failure")
+        self.assertIn("CI_RUN_NOT_SUCCESSFUL:24", output.issues)
+        self.assertEqual(output.pull_requests[1].ci.run_id, 250)
 
     def test_missing_job(self):
         server = Server((24,))
@@ -277,7 +371,9 @@ class CollectorTests(unittest.TestCase):
         server = Server((24,))
         server.runs[240]["pull_requests"] = copy.deepcopy(server.runs[240]["pull_requests"])
         server.runs[240]["pull_requests"][0]["base"]["sha"] = "c" * 40
-        self.assertIn("CI_BINDING_MISMATCH:24", server.run().issues)
+        output = server.run()
+        self.assertEqual(output.state, "BLOCKED")
+        self.assertIn("MISSING_CI:24", output.issues)
 
     def test_stale_review_is_not_approval(self):
         server = Server((24,))
