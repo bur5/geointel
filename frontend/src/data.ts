@@ -56,6 +56,22 @@ function validBound(value: unknown): value is number | null {
   return value === null || (typeof value === 'number' && value >= 0 && value <= 1);
 }
 
+const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const conflictTypes = new Set<unknown>([
+  'interstate_armed_conflict', 'internal_armed_conflict', 'one_sided_violence', 'major_political_violence',
+]);
+const confidenceLevels = new Set<unknown>(['low', 'medium', 'high']);
+
+function validTimestamp(value: unknown): boolean {
+  if (typeof value !== 'string') return false;
+  // PostgreSQL emits a zone. SQLite can return the same timestamp without one.
+  const parts = /^(\d{4}-\d{2}-\d{2})T(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d{1,6})?(Z|[+-]\d{2}:\d{2})?$/.exec(value);
+  if (!parts || !Number.isFinite(Date.parse(parts[2] ? value : value + 'Z'))) return false;
+  // Date.parse can roll invalid calendar days into the next month.
+  const day = new Date(parts[1] + 'T00:00:00Z');
+  return Number.isFinite(day.getTime()) && day.toISOString().slice(0, 10) === parts[1];
+}
+
 function isForecast(value: unknown): value is Forecast {
   if (!value || typeof value !== 'object') return false;
   const row = value as Record<string, unknown>;
@@ -63,10 +79,14 @@ function isForecast(value: unknown): value is Forecast {
   const high = row.probability_high;
   if (!validBound(low) || !validBound(high)) return false;
   if (low !== null && high !== null && low > high) return false;
-  return ['id', 'analysis_run_id', 'conflict_type', 'question', 'confidence', 'rationale', 'created_at']
-    .every((key) => typeof row[key] === 'string')
-    && Number.isFinite(Date.parse(String(row.created_at)))
-    && ['version', 'horizon_months'].every((key) => Number.isInteger(row[key]))
+  return typeof row.id === 'string' && uuid.test(row.id)
+    && typeof row.analysis_run_id === 'string' && uuid.test(row.analysis_run_id)
+    && conflictTypes.has(row.conflict_type) && confidenceLevels.has(row.confidence)
+    && typeof row.question === 'string' && typeof row.rationale === 'string'
+    && validTimestamp(row.created_at)
+    && typeof row.version === 'number' && Number.isSafeInteger(row.version) && row.version >= 1
+    && typeof row.horizon_months === 'number' && Number.isInteger(row.horizon_months)
+    && row.horizon_months >= 1 && row.horizon_months <= 120
     && ['evidence_for', 'evidence_against', 'unknowns', 'resolution_criteria', 'change_conditions']
       .every((key) => Array.isArray(row[key]) && row[key].every((item) => typeof item === 'string'));
 }
