@@ -79,10 +79,12 @@ def test_acled_exact_duplicates_are_deduplicated_and_retry_is_bounded():
         return httpx.Response(200, json={"events": [ACLED_RECORD, ACLED_RECORD]}, request=request)
 
     client = httpx.Client(transport=httpx.MockTransport(handler))
-    result = ACLEDConnector(
+    connector = ACLEDConnector(
         "https://example.test", "events", retries=1, client=client, sleep=lambda _: None
-    ).collect("Spain")
+    )
+    result = connector.collect("Spain")
     assert calls == 2 and len(result) == 1
+    assert connector.last_audit.duplicates == 1
     client.close()
 
 
@@ -176,6 +178,7 @@ def test_pipeline_separates_acled_events_and_cast_signals(client, session, monke
     assert metadata["recent_event_count"] == 1
     assert metadata["forecast_signal_count"] == 1
     assert [item["record_count"] for item in metadata["connector_outcomes"]] == [1, 1]
+    assert [item["duplicates_removed"] for item in metadata["connector_outcomes"]] == [1, 0]
     assert session.query(Event).count() == 1
     assert session.query(ForecastSignal).count() == 1
     assert session.query(Evidence).count() == 0

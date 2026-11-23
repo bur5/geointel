@@ -124,6 +124,7 @@ class AnalysisPipeline:
                     for item in records
                 ):
                     raise TypeError("connector returned an unsupported normalized record type")
+                received_count = len(records)
                 records = self._deduplicate(records, self._record_key)
                 evidence.extend(item for item in records if isinstance(item, NormalizedEvidence))
                 signals.extend(
@@ -147,6 +148,7 @@ class AnalysisPipeline:
                         "status": "recency_restricted" if restricted else "succeeded",
                         "succeeded": not restricted,
                         "record_count": len(records),
+                        "duplicates_removed": received_count - len(records),
                         "failure_reason": (
                             audit_public.get("failure_reason") if restricted else None
                         ),

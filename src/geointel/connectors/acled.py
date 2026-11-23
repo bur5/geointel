@@ -186,11 +186,16 @@ class ACLEDConnector:
         return normalized
 
     def _collect(self, client: httpx.Client, location: str) -> list[NormalizedOperationalEvent]:
+        audit = CollectionAudit(
+            "ACLED", "0.1.2", IntegrationMode.OPERATOR_ADAPTER, "acled-adapter-v1"
+        )
+        self.last_audit = audit
         url = f"{self.base_url}/{self.endpoint_path.lstrip('/')}"
         last: Exception | None = None
         attempts = 0
         for attempt in range(self.retries + 1):
             attempts = attempt + 1
+            audit.request_count = attempts
             try:
                 response = client.get(url, params={"location": location}, timeout=self.timeout)
                 if self._transient(response.status_code):
@@ -201,10 +206,14 @@ class ACLEDConnector:
                 if len(response.content) > 5_000_000:
                     raise ValueError("ACLED adapter response exceeds 5 MB")
                 records = self._records(response.json())
+                audit.received = len(records)
                 deduplicated: dict[str, NormalizedOperationalEvent] = {}
                 for raw in records:
                     item = self.normalize(raw, location, str(response.request.url))
                     deduplicated.setdefault(item.source_record_id, item)
+                audit.accepted = len(deduplicated)
+                audit.duplicates = audit.received - audit.accepted
+                audit.finish(CollectionStatus.SUCCEEDED)
                 return list(deduplicated.values())
             except (httpx.TransportError, httpx.HTTPStatusError) as exc:
                 last = exc
@@ -215,8 +224,10 @@ class ACLEDConnector:
                 if attempt < self.retries:
                     self._sleep(0.05 * (2**attempt))
             except (ValueError, ValidationError, TypeError) as exc:
+                audit.rejected += 1
                 last = exc
                 break
+        audit.finish(CollectionStatus.FAILED)
         raise ACLEDError(f"ACLED retrieval failed after {attempts} attempts: {last}") from last
 
     @staticmethod
