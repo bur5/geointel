@@ -5,6 +5,7 @@ GEOINTEL is a geopolitical decision-support and conflict early-warning foundatio
 ## What is included
 
 - Backwards-compatible FastAPI endpoints: `GET /health`, `POST /analysis`, `GET /analysis/{id}`, `GET /forecasts`, and `GET /forecasts/{id}`.
+- [Read-only dashboard API v1](docs/DASHBOARD_API.md) for observations, forecasts, and coverage.
 - Independent UCDP historical-evidence and VIEWS predictive-signal connectors, each with bounded retries, timeouts, validation, provenance, and per-connector outcomes.
 - A dedicated `forecast_signals` representation: VIEWS output is never stored as an observed Event or silently promoted to a GEOINTEL probability.
 - Deterministic offline reasoning, explicit missing-source and alignment limitations, four conflict categories, mandatory Red Team review, and append-only forecasts.
