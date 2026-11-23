@@ -1,5 +1,6 @@
 from datetime import date, datetime
 from enum import StrEnum
+from typing import Literal
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
@@ -165,6 +166,7 @@ class HistoricalDatasetCoverage(BaseModel):
     resolved_provider_geography_id: int | str | None = None
     earliest_observed_date: date | None = None
     latest_observed_date: date | None = None
+    coverage_start: date | None = None
     coverage_end: date | None = None
     reference_date: date | None = None
     reference_basis: str = "latest_observation_not_dataset_coverage"
@@ -209,7 +211,65 @@ class HistoricalBaseRateSummary(BaseModel):
     caveats: list[str]
 
 
+class NormalizedConflictType(StrEnum):
+    INTERSTATE_ARMED_CONFLICT = "INTERSTATE_ARMED_CONFLICT"
+    INTERNAL_ARMED_CONFLICT = "INTERNAL_ARMED_CONFLICT"
+    INTERNATIONALIZED_INTERNAL_ARMED_CONFLICT = "INTERNATIONALIZED_INTERNAL_ARMED_CONFLICT"
+    ONE_SIDED_VIOLENCE = "ONE_SIDED_VIOLENCE"
+    MAJOR_POLITICAL_VIOLENCE = "MAJOR_POLITICAL_VIOLENCE"
+    OTHER_OR_UNRESOLVED = "OTHER_OR_UNRESOLVED"
+
+
+class HistoricalTaxonomyMapping(BaseModel):
+    provider: str
+    provider_dataset: str | None = None
+    provider_original_category: str | None = None
+    provider_original_value: int | str | None = None
+    provider_original_categories: dict = Field(default_factory=dict)
+    provider_category_meaning: str | None = None
+    normalized_conflict_type: NormalizedConflictType
+    mapping_confidence: Literal["verified_direct", "unresolved"]
+    mapping_method_version: str
+    mapping_notes: list[str]
+    mapping_source: str | None = None
+    source_record_id: str | None = None
+    dataset_version: str | None = None
+    resource: str | None = None
+    requested_geography: str
+    observation_geography: str
+    resolved_provider_geography_id: int | str | None = None
+    temporal_role: str
+    coverage_index: str | None = None
+
+
+class HistoricalConflictFeatures(BaseModel):
+    observation_statistics: HistoricalObservationStatistics
+    fatality_statistics: HistoricalFatalityStatistics
+    historical_presence: bool
+    share_of_retrieved_historical_observations: float | None = Field(default=None, ge=0, le=1)
+    trailing_window_counts: dict[str, dict[str, int]] = Field(default_factory=dict)
+
+
+class HistoricalConflictProfile(BaseModel):
+    status: str
+    geography: str
+    analysis_date: date
+    method_version: str = "historical-conflict-profile-v1"
+    normalization_method_version: str = "provider-conflict-taxonomy-v1"
+    coverage: list[HistoricalDatasetCoverage] = Field(default_factory=list)
+    overall: HistoricalConflictFeatures
+    conflict_types: dict[NormalizedConflictType, HistoricalConflictFeatures]
+    unresolved_observation_count: int
+    normalization_audit: list[HistoricalTaxonomyMapping] = Field(default_factory=list)
+    annualized_rate_status: Literal[
+        "UNAVAILABLE_UNKNOWN_COVERAGE", "UNAVAILABLE_UNVALIDATED_DENOMINATOR"
+    ]
+    annualized_observation_rate: None = None
+    caveats: list[str]
+
+
 class AnalystOutput(BaseModel):
+    historical_conflict_profile: HistoricalConflictProfile | None = None
     historical_base_rate_summary: HistoricalBaseRateSummary | None = None
     observed_evidence: list[str]
     historical_evidence: list[str] = Field(default_factory=list)
@@ -236,6 +296,8 @@ class ForecastOutput(BaseModel):
 
 
 class RedTeamOutput(BaseModel):
+    taxonomy_normalization_concerns: list[str] = Field(default_factory=list)
+    historical_semantic_concerns: list[str] = Field(default_factory=list)
     temporal_leakage_concerns: list[str] = Field(default_factory=list)
     unsupported_claims: list[str] = Field(default_factory=list)
     missing_evidence: list[str] = Field(default_factory=list)

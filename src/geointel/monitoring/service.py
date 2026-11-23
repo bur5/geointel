@@ -21,6 +21,7 @@ from geointel.domain.models import (
     WatchlistTarget,
 )
 from geointel.domain.schemas import AnalysisRequest
+from geointel.pipeline.historical_review import historical_context
 
 CADENCES = {
     "hourly": timedelta(hours=1),
@@ -67,9 +68,17 @@ class ChangeDetector:
 
     def detect(self, previous: dict, current: dict) -> list[dict]:
         changes: list[dict] = []
-        self._compare_map(changes, "forecast_change", previous, current, "forecasts", True)
-        if "assessment_records" in previous and "assessment_records" in current:
-            previous = previous | previous["assessment_records"]
+        eligibility_baseline = (
+            "assessment_records" not in previous and "assessment_records" in current
+        )
+        historical_context_present = previous.get("has_history") or current.get("has_history")
+        model_changes_material = not (eligibility_baseline or historical_context_present)
+        self._compare_map(
+            changes, "forecast_change", previous, current, "forecasts", model_changes_material
+        )
+        if "assessment_records" in current:
+            # The first eligible projection is its own baseline during rollout.
+            previous = previous | previous.get("assessment_records", current["assessment_records"])
             current = current | current["assessment_records"]
         old_events, new_events = set(previous["event_ids"]), set(current["event_ids"])
         added = sorted(new_events - old_events)
@@ -107,12 +116,14 @@ class ChangeDetector:
                 "source_availability_change",
                 old_health,
                 new_health,
-                len(failed) >= 2,
+                len(failed) >= 2 and model_changes_material,
                 "Source health changed; this is data quality, not geopolitical escalation.",
                 [],
                 failed,
             )
-        self._compare_map(changes, "uncertainty_change", previous, current, "uncertainty", True)
+        self._compare_map(
+            changes, "uncertainty_change", previous, current, "uncertainty", model_changes_material
+        )
         self._compare_map(
             changes, "strategic_context_change", previous, current, "strategic_context", False
         )
@@ -352,6 +363,9 @@ class MonitoringService:
             attempt.source_availability = self._source_health(analysis)
             if previous:
                 before, current = self._snapshot(previous.analysis_run), self._snapshot(analysis)
+                attempt.baseline_established = (
+                    "assessment_records" not in before and "assessment_records" in current
+                )
                 for data in self.detector.detect(before, current):
                     change = DetectedChange(
                         monitoring_run_id=attempt.id,
@@ -404,7 +418,7 @@ class MonitoringService:
                 analysis
                 and analysis.status == "completed"
                 and analysis.horizon_months == target.horizon_months
-                and analysis.pipeline_version == __version__
+                and analysis.pipeline_version in {__version__, "0.1.7"}
                 and len(analysis.forecasts) == 4
             ):
                 return run
@@ -422,6 +436,13 @@ class MonitoringService:
 
     @staticmethod
     def _snapshot(run: AnalysisRun) -> dict:
+        metadata = run.collection_metadata or {}
+        profile = metadata.get("historical_conflict_profile")
+        descriptive_context = (
+            {historical_context(profile, f.conflict_type) for f in run.forecasts}
+            if profile
+            else set()
+        )
         forecasts = {
             f.conflict_type: {
                 "confidence": f.confidence,
@@ -429,7 +450,8 @@ class MonitoringService:
                 "probability_high": f.probability_high,
                 "evidence_for": sorted(f.evidence_for),
                 "evidence_against": sorted(f.evidence_against),
-                "unknowns": sorted(f.unknowns),
+                # Audited descriptive history remains visible, but is not a forecast change.
+                "unknowns": sorted(x for x in f.unknowns if x not in descriptive_context),
             }
             for f in run.forecasts
         }
@@ -480,6 +502,10 @@ class MonitoringService:
             }
         return {
             **assessment,
+            "has_history": bool(
+                metadata.get("historical_observation_count")
+                or metadata.get("historical_conflict_coverage_available")
+            ),
             "forecasts": forecasts,
             "changed_categories": list(forecasts),
             "event_ids": event_ids,

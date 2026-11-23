@@ -32,6 +32,7 @@ class UCDPRawRecord(BaseModel):
     country_id: int | None = None
     date_start: datetime | None = None
     date_end: datetime | None = None
+    coverage_start: date | None = None
     coverage_end: date | None = None
     reference_date: date | None = None
     type_of_violence: int | None = None
@@ -311,6 +312,9 @@ class UCDPConnector:
                 "requested_geography": location,
                 "resolved_ucdp_country_id": resolved_country.gw_code if resolved_country else None,
                 "date_end": record.date_end.isoformat() if record.date_end else None,
+                "coverage_start": (
+                    record.coverage_start.isoformat() if record.coverage_start else None
+                ),
                 "coverage_end": record.coverage_end.isoformat() if record.coverage_end else None,
                 "reference_date": (
                     record.reference_date.isoformat() if record.reference_date else None

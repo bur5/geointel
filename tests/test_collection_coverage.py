@@ -182,8 +182,7 @@ def test_historical_release_is_separate_from_operational_window(session, clock):
                         "id": 3,
                         "country": "Spain",
                         "country_id": 230,
-                        "date_start": "2024-03-02",
-                        "coverage_end": "2024-12-31",
+                        "date_start": "2026-11-22",
                     }
                 ],
             },
@@ -197,6 +196,8 @@ def test_historical_release_is_separate_from_operational_window(session, clock):
     assert decision.state == CoverageState.COMPLETE_WITH_RECORDS
     assert decision.verified_scope.kind == "historical_release"
     assert decision.provider_release == "25.1"
+    assert decision.verified_scope.start is decision.verified_scope.end is None
+    assert not run.analyst_output["observed_evidence"]
     assert decision.event_counts.confirmed is None
     assert run.collection_metadata["historical_conflict_coverage_available"] is True
     assert run.collection_metadata["current_operational_coverage_available"] is False
@@ -245,3 +246,46 @@ def test_verified_narrower_query_cannot_produce_assessment_zero(session, clock, 
     assert decision.verified_scope != decision.requested_scope
     assert "assessment_scope_unverified" in decision.gaps
     assert decision.event_counts.confirmed is None
+
+
+@pytest.mark.parametrize(
+    ("page", "state"),
+    [
+        ({"TotalPages": 0, "TotalCount": 0, "Result": []}, CoverageState.COMPLETE_EMPTY),
+        ({"TotalPages": 0, "Result": []}, CoverageState.UNKNOWN),
+    ],
+)
+def test_empty_historical_release_never_confirms_operational_zero(session, clock, page, state):
+    with httpx.Client(
+        transport=httpx.MockTransport(lambda _: httpx.Response(200, json=page))
+    ) as client:
+        connector = UCDPConnector(
+            "https://example.test", "25.1", client=client, official_api=True, access_token="fixture"
+        )
+        run, decision = load_collection(session, run_with(session, connector).id)
+    assert decision.state == state
+    assert decision.event_counts.confirmed is None
+    assert not run.collection_metadata["historical_observation_count"]
+    if state == CoverageState.COMPLETE_EMPTY:
+        assert decision.verified_scope.kind == "historical_release"
+        assert decision.verified_scope.start is decision.verified_scope.end is None
+
+
+def test_ineligible_events_are_persisted_but_excluded_from_reasoning(session, clock):
+    rows = [
+        {"event_id_cnty": "stale", "event_date": "2020-01-01", "country": "Spain"},
+        {"event_id_cnty": "other", "event_date": "2026-11-22", "country": "France"},
+    ]
+    payload = {"data": [dict(row, event_type="Battles") for row in rows]}
+    with httpx.Client(
+        transport=httpx.MockTransport(lambda _: httpx.Response(200, json=payload))
+    ) as client:
+        connector = ACLEDConnector(
+            "https://example.test", None, client=client, official_api=True, oauth=OAuth()
+        )
+        run, receipt = load_collection(session, run_with(session, connector).id)
+    assert {event.source_record_id for event in run.events} == {"stale", "other"}
+    assert receipt.event_counts.eligible == 0
+    assert receipt.event_counts.confirmed is None
+    assert all("excluded from assessment" in item for item in run.analyst_output["recent_events"])
+    assert len(run.analyst_output["recent_events"]) == 2

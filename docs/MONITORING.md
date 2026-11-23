@@ -41,8 +41,10 @@ reason and no fabricated analysis link. Connector failure is different: the norm
 complete and disclose missing inputs, so the monitoring run succeeds.
 
 The first successful run is a baseline and cannot alert. A prior run is comparable only when it is
-for the same target, completed, has the same horizon, exact compatible pipeline version, and the
-exact four-category forecast set. A horizon/version/taxonomy mismatch creates a new baseline.
+for the same target, completed, has the same horizon, a compatible pipeline version, and four
+forecasts. The historical-profile release can compare against v0.1.7 for rollout. The first snapshot
+with a v1 coverage decision establishes the eligibility baseline. An earlier legacy run can still
+provide source-health diagnostics. Legacy-to-legacy comparisons use the original rules.
 
 ## Structured changes and materiality
 
@@ -58,6 +60,14 @@ for event materiality; predictive change needs multiple providers; multiple miss
 may create a **data-quality** alert; corroborated stale-to-current recency may be material. An
 isolated event, duplicate provider ID, wording/order/timestamp change, one outage, strategic-only
 change, or first baseline is not independently material. Numeric magnitude is never invented.
+
+When either comparable snapshot records historical observations, forecast and uncertainty changes
+remain available as diagnostics. Model-only confidence changes cannot independently alert in those
+comparisons because the forecast schema cannot reliably attribute their causes. Source-health changes
+also remain diagnostic in those comparisons because historical retrieval can affect source health.
+Eligible operational events, predictive signals, and event recency continue to use their own
+materiality rules. A comparison without historical observations uses existing model-change rules
+after the eligibility baseline has been established.
 
 ## Alert engine and lifecycle
 

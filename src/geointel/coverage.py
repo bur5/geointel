@@ -190,6 +190,8 @@ def assess_record(
     geography = (
         "unknown" if not requested or not actual else ("pass" if requested == actual else "fail")
     )
+    if any("geographic mismatch" in note.casefold() for note in record.alignment_notes):
+        geography = "fail"
     retrieved = _utc(record.retrieved_at)
     checks: dict[str, Check] = {}
     if isinstance(record, NormalizedOperationalEvent):

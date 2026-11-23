@@ -297,6 +297,11 @@ def test_postgres_historical_summary_and_raw_provenance(session):
     session.expire_all()
     saved = session.get(AnalysisRun, run.id)
     summary = saved.collection_metadata["historical_base_rate_summary"]
+    profile = saved.collection_metadata["historical_conflict_profile"]
+    assert profile == saved.analyst_output["historical_conflict_profile"]
+    assert profile["overall"]["fatality_statistics"]["best_total"] == 2
+    assert profile["normalization_audit"][0]["source_record_id"] == "postgres-history"
+    assert profile["annualized_observation_rate"] is None
     assert summary["fatality_statistics"]["best_total"] == 2
     assert summary["coverage"][0]["coverage_end"] == "2025-12-31"
     assert not saved.collection_metadata["current_operational_coverage_available"]
