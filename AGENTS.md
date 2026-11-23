@@ -41,7 +41,7 @@ milestones. Corrections to PR #25 require their own authorized scope. Future
 executable milestones require a new authorized task contract and remain subject
 to all permanent governance, scientific, security and approval restrictions.
 Do not change or merge PR #24 without explicit Owner instructions. Automated
-merge remains disabled under the permanent activation requirements below.
+merge authority remains disabled.
 
 ## Testing obligations
 
@@ -76,9 +76,9 @@ limitations, and APPROVE / REQUEST_CHANGES / BLOCKED. Missing evidence is not a
 pass. Material unresolved findings block approval. Verify the risk classification
 against protected policy by substance; disputed or uncertain classification
 requires Owner determination before the affected action. Apply MANAGER.md's
-CI/review evidence and integration-candidate checks to manual as well as future
-automated merges. Head or base changes require reassessment and renewed applicable
-checks and approval; unresolved evidence-trust issues block merge.
+CI/review evidence and integration-candidate checks to every manual merge. Head
+or base changes require reassessment and renewed applicable checks and approval.
+Unresolved evidence-trust issues block merge.
 
 R2 enhanced review must examine model/evidence semantics, historical versus
 current temporal roles, source provenance, reporting versus observations,
@@ -91,13 +91,12 @@ docs/AGENT_RULES.md. A documentation change altering these controls is not R1.
 
 ## Approval gates and stop conditions
 
-Automated merge remains disabled until enforceable CI/review gates, verified
-cloud orchestration and rollback safeguards meet GOVERNANCE activation conditions
-and the Owner approves activation. Until then every merge needs explicit Owner
-approval plus valid CI and independent review. R2 merge and R3 reserved actions
-remain Owner-gated after activation. Production deployment, public release,
-irreversible deletion, spending and expanded permissions require explicit Owner
-approval before execution. Never bypass gates with admin privileges, self-review,
+Automated merge authority remains disabled. Every manual merge, including R1,
+requires explicit Owner approval of the integration candidate, successful required
+CI, and independent review. R2 merges also require enhanced independent review.
+R3 reserved actions require explicit Owner approval before execution, including production
+deployment, public release, irreversible deletion, spending, and expanded
+permissions. Never bypass gates with admin privileges, self-review,
 stale approvals, disabled checks, or direct pushes.
 
 On Owner STOP, suspected secret exposure, integrity violation, unauthorized

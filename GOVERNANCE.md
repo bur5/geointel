@@ -61,7 +61,7 @@ documentation changes are not automatically routine. Reclassify when scope grows
 | Tier | Examples | Implementation and merge policy |
 | --- | --- | --- |
 | R0: assessment | Read-only audit, planning | Manager may proceed within existing access; never disclose secrets. |
-| R1: routine reversible | Documentation that does not change protected policy, narrowly scoped maintenance without scientific/security behavior changes | Manager may select and Developer may implement in isolation. CI and independent review required. Eligible for future automated merge only after activation gates below. |
+| R1: routine reversible | Documentation that does not change protected policy, narrowly scoped maintenance without scientific/security behavior changes | Manager may select and Developer may implement in isolation. Manual merge requires explicit Owner approval, successful required CI, and independent review. |
 | R2: enhanced review | Forecast models, evidence processing, taxonomy, calibration, significant architecture, persistence/migration design, authentication or security-control changes | Isolated implementation within approved boundaries is allowed. Require enhanced independent review, explicit rationale and scientific/security validation as applicable. No automated merge under this policy; explicit Owner approval of the reviewed SHA is required. |
 | R3: Owner-reserved action | Irreversible data deletion, new spending/subscriptions, accounts, repositories, external API integrations, expanded permissions, production deployment, public release, changing repository privacy or protected policy | Obtain explicit Owner approval before the reserved action, including before creating resources or enabling integrations. Safe analysis and isolated proposals may be prepared first. Approval never waives CI, independent review, or security/scientific boundaries. |
 
@@ -79,12 +79,12 @@ recorded in issue/PR history with its authenticated origin; the record alone doe
 not authenticate the decision. If identity, channel or scope cannot be verified,
 block the action and request clarification through a verified Owner channel.
 
-### Current merge status and future activation
+### Manual merge requirements
 
-**All automated merge remains disabled. This documentation milestone enables no
-automation. Until activation is verified, every merge requires explicit Owner
-approval as well as successful required CI and independent review.** Missing
-reviewer infrastructure blocks merge; a green CI run alone is insufficient.
+**Every merge, including R1, requires explicit Owner approval of the integration
+candidate, successful required CI, and independent review. All merges are manual
+and automated merge authority remains disabled.** Missing independent review
+blocks merge. CI success provides test evidence only.
 This milestone PR itself changes protected policy and requires Owner approval.
 
 For every merge, including current manual merges, bind checks and review to the
@@ -104,13 +104,16 @@ gate baseline and require Owner approval before applying changes to that baselin
 Missing, skipped or stale mandatory evidence, or any unresolved evidence-trust
 issue, blocks merge. A green badge or copied review text is insufficient.
 
-The previous blanket Level 2 rule required explicit `APPROVE` for merge/deploy.
-The only prospective exception is R1 merge after the following controls are
-implemented, demonstrated, and recorded. R2 merge and all R3 actions remain
-Owner-gated; deployment and public release are never implied by merge approval.
+R2 merges also require enhanced independent review. R3 reserved actions require
+explicit Owner approval before execution. Deployment and public release each
+require separate approval.
 
-Activation requires all of the following, with evidence and Owner approval of
-the activation record:
+### Prerequisites for any future automation proposal
+
+Any proposal to grant autonomous R1 execution or merge authority requires
+separate Owner review as an R3 protected-policy change. Before considering such
+a proposal, verify the CI trust boundary and document evidence for the following
+controls. Completing these prerequisites grants no execution or merge authority.
 
 1. Enforceable protection of `main`, mandatory named CI checks, independently
    attributable review, no author-controlled bypass, and fail-closed handling of
@@ -125,9 +128,6 @@ the activation record:
    Recovery must not rely on destructive resets or unauthorised data deletion.
 5. An auditable eligibility decision and a least-privilege merge executor that
    cannot treat the Manager or Developer's self-review as independent approval.
-
-If any prerequisite becomes unavailable or uncertain, disable automated merge
-and return to Owner-gated operation; do not loosen checks to restore throughput.
 
 ## Scientific integrity
 
