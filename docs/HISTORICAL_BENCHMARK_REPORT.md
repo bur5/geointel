@@ -29,8 +29,10 @@ generate one from the plan at report time. The library has no registry client.
 The registered plan fixes the target version, horizon, geography and panel, and
 sets exact elapsed forecast lead, window duration, outcome maturity and embargo.
 Use UTC-equivalent durations (one day is 24 hours). Every fold supplies the same
-receipt, whose availability must strictly precede the earliest fold or development
-decision, including simulated origins in a historical replay. Development labels
+receipt, whose availability must strictly precede the earliest fold origin, forecast
+issuance used for the decision, fit, calibration, or development origin. For a replay
+the audit uses the simulated decision clocks and requires actual publication to
+follow or coincide with simulated forecast availability. Development labels
 must be available at or after maturity and by fit or calibration. The evaluation
 outcome freeze must be at or after test-window maturity. A separate `outcomes`
 block identifies the one realized outcome vintage, which may be published after

@@ -51,7 +51,7 @@ class StudyConstraints(Record):
     outcome_maturity: Duration
     embargo: Duration
 
-    def matches_window(self, origin: datetime, start: datetime, end: datetime) -> bool:
+    def _matches_window(self, origin: datetime, start: datetime, end: datetime) -> bool:
         return start - origin == self.forecast_lead and end - start == self.window_duration
 
 
@@ -114,6 +114,7 @@ FindingCode = Literal[
     "forecast_before_model_ready",
     "availability_before_issue",
     "forecast_after_origin",
+    "replay_publication_before_simulated_availability",
     "protocol_after_origin",
     "feature_after_cutoff",
     "duplicate_development_key",
@@ -140,6 +141,8 @@ class Audit(Record):
 
 def audit_fold(fold: Fold, constraints: StudyConstraints) -> Audit:
     """Check a supplied manifest. Its completeness and authenticity require review."""
+    fold = Fold.model_validate(fold)
+    constraints = StudyConstraints.model_validate(constraints)
     findings: list[Finding] = []
 
     def add(condition: bool, code: FindingCode, reference: str) -> None:
@@ -162,6 +165,11 @@ def audit_fold(fold: Fold, constraints: StudyConstraints) -> Audit:
             "availability_before_issue",
             fold.forecast.snapshot,
         )
+        add(
+            fold.issued_at < decision_availability,
+            "replay_publication_before_simulated_availability",
+            fold.forecast.snapshot,
+        )
     add(decision_issue < ready, "forecast_before_model_ready", fold.forecast.snapshot)
     add(
         fold.forecast.available_at < fold.issued_at,
@@ -174,14 +182,20 @@ def audit_fold(fold: Fold, constraints: StudyConstraints) -> Audit:
             "forecast_after_origin",
             fold.forecast.snapshot,
         )
-    first_decision = min((fold.origin, *(example.origin for example in fold.development)))
+    first_decision = min(
+        fold.origin,
+        decision_issue,
+        fold.fitted_at,
+        ready,
+        *(example.origin for example in fold.development),
+    )
     add(
         fold.protocol.available_at >= first_decision,
         "protocol_after_origin",
         fold.protocol.snapshot,
     )
     add(
-        not constraints.matches_window(fold.origin, fold.window_start, fold.window_end),
+        not constraints._matches_window(fold.origin, fold.window_start, fold.window_end),
         "study_window_mismatch",
         fold.key,
     )
@@ -208,7 +222,7 @@ def audit_fold(fold: Fold, constraints: StudyConstraints) -> Audit:
         add(example.key in keys, "duplicate_development_key", example.key)
         keys.add(example.key)
         add(
-            not constraints.matches_window(
+            not constraints._matches_window(
                 example.origin, example.window_start, example.window_end
             ),
             "study_window_mismatch",

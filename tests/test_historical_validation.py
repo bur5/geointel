@@ -349,3 +349,35 @@ def test_repeated_local_origins_are_distinct_cases_and_hashes(payload):
     first["origin"] = first["window_start"] = late
     first["window_end"] = late.astimezone(UTC) + timedelta(days=2)
     assert render(payload, receipt).input_sha256 != early_hash
+
+
+def test_registration_must_precede_fit_even_without_development_rows(payload):
+    fold = payload["folds"][0]
+    fold["development"] = []
+    fold["calibrated_at"] = None
+    fold["protocol"]["available_at"] = fold["fitted_at"]
+    report = render(payload, Registration.model_validate(fold["protocol"]))
+    assert report.evidence_status == "blocked"
+    assert [finding.code for finding in report.audits[0].findings] == ["protocol_after_origin"]
+
+
+def test_actual_replay_publication_cannot_precede_simulated_availability(payload):
+    fold = payload["folds"][0]
+    fold["mode"] = "historical_replay"
+    fold["issued_at"] = fold["forecast"]["available_at"] = "2000-01-09T23:59:59.999999Z"
+    fold["replay_clock"] = {"issued_at": fold["origin"], "available_at": fold["origin"]}
+    report = render(payload)
+    assert report.evidence_status == "blocked"
+    assert [finding.code for finding in report.audits[0].findings] == [
+        "replay_publication_before_simulated_availability",
+    ]
+
+
+def test_zero_lead_case_cannot_attach_pr34_scores(payload):
+    request = ReportRequest.model_validate(payload)
+    assert request.folds[0].origin == request.folds[0].window_start
+    assert render(payload).evidence_status == "demonstration"
+    # PR #34 requires origin < start. Its output cannot override that mismatch.
+    payload["comparisons"] = [{"case_indices": [0], "n": 1, "status": "comparable"}]
+    with pytest.raises(ValidationError, match="comparisons"):
+        ReportRequest.model_validate(payload)
