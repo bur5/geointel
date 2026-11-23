@@ -307,3 +307,20 @@ def test_postgres_historical_summary_and_raw_provenance(session):
         ]
         == "annual_historical"
     )
+
+
+def test_postgres_collection_coverage_json_round_trip(session):
+    from geointel.connectors.base import DisabledConnector
+    from geointel.coverage import CoverageDecision
+
+    model = OfflineModel()
+    pipeline = AnalysisPipeline(
+        session, ModelRouter(model, model, model), [DisabledConnector("ACLED")]
+    )
+    request = AnalysisRequest(location="Spain", question="Assess conflict risks", horizon_months=12)
+    run_id = pipeline.run(request).id
+    session.expunge_all()
+    persisted = session.get(AnalysisRun, run_id).collection_metadata
+    assert CoverageDecision.from_metadata(persisted).projection("ACLED")["state"] == "not_attempted"
+    assert persisted["collection_coverage"]["collections"][0]["event_counts"]["confirmed"] is None
+    assert persisted["connector_outcomes"][0]["status"] == "disabled"

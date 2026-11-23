@@ -38,7 +38,12 @@ class OfflineModel:
         news_reports = payload.get("news_reports", [])
         metadata = payload.get("collection_metadata", {})
         delayed_news = bool(metadata.get("delayed_news_discovery_coverage_available"))
-        operational = bool(metadata.get("current_operational_coverage_available"))
+        operational = bool(
+            payload.get(
+                "assessment_operational_records_available",
+                metadata.get("current_operational_coverage_available"),
+            )
+        )
         if output_type is AnalystOutput:
             result = AnalystOutput(
                 observed_evidence=[

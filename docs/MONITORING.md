@@ -80,6 +80,10 @@ conservative and remains future work.
 
 ## Source health, testing, and limitations
 
+The [collection coverage contract](COLLECTION_COVERAGE.md) defines the run-scoped
+coverage projection in source health reports and the assessment eligibility used
+to compare operational events and predictive signals.
+
 Each run reports UCDP, ACLED, VIEWS, CAST, and Strategic Knowledge independently as available,
 missing, failed, stale, mismatched, or disabled where supplied by collection metadata. Availability
 is not geopolitical risk and absence is not evidence of safety or escalation.

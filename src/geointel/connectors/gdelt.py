@@ -9,6 +9,7 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator
 
+from geointel.coverage import Scope
 from geointel.domain.schemas import NormalizedNewsReport
 from geointel.news.identity import canonicalize_article_url
 from geointel.providers.runtime import (
@@ -93,6 +94,9 @@ class GDELTConnector:
         end = self._now().astimezone(UTC).replace(microsecond=0)
         start = end - timedelta(days=90)
         query = build_location_query(location)
+        audit.query_scope = Scope(
+            kind="media", geography=location, start=start.date(), end=end.date()
+        )
         audit.provider_restrictions = {
             "effective_query": query,
             "window_start": start.isoformat(),

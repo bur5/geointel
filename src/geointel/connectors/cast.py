@@ -7,6 +7,7 @@ from typing import Any
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from geointel.connectors.views import VIEWSConnector, VIEWSError
+from geointel.coverage import Scope
 from geointel.domain.schemas import NormalizedForecastSignal
 from geointel.providers.acled_auth import ACLEDOAuthClient
 from geointel.providers.runtime import (
@@ -83,10 +84,10 @@ class CASTConnector(VIEWSConnector):
             "CAST", "0.1.2", IntegrationMode.OFFICIAL_API, "acled-cast-official-v1"
         )
         self.last_audit = audit
-        retrieval_url = None
+        audit.query_scope = Scope(kind="forecast", geography=location)
+        retrieval_urls: dict[str, str] = {}
 
         def fetch(cursor):
-            nonlocal retrieval_url
             payload, retrieval_url, _ = self.transport.get_json(
                 f"{self.base_url}/cast/read",
                 params={"country": location, "cursor": "0" if cursor is None else cursor},
@@ -100,15 +101,25 @@ class CASTConnector(VIEWSConnector):
             rows = payload["data"]
             if not all(isinstance(row, dict) for row in rows):
                 raise ValueError("CAST data contains a non-object")
+            if "next_cursor" not in payload:
+                audit.pagination_ambiguous = True
             next_cursor = payload.get("next_cursor")
-            if next_cursor is not None and not isinstance(next_cursor, (str, int)):
+            if isinstance(next_cursor, bool) or (
+                next_cursor is not None and not isinstance(next_cursor, (str, int))
+            ):
                 raise ValueError("CAST next_cursor is malformed")
+            for row in rows:
+                try:
+                    retrieval_urls.setdefault(self._row_identity(row), retrieval_url)
+                except KeyError:
+                    continue
             return rows, None if next_cursor is None else str(next_cursor)
 
         rows = paginate(
             fetch,
             identity=lambda row: self._row_identity(row),
             audit=audit,
+            initial_cursor="0",
             max_pages=self.max_pages,
             max_records=self.max_records,
         )
@@ -116,7 +127,9 @@ class CASTConnector(VIEWSConnector):
         for raw in rows:
             try:
                 signals.extend(
-                    self.normalize_official(raw, location, horizon_months, retrieval_url)
+                    self.normalize_official(
+                        raw, location, horizon_months, retrieval_urls[self._row_identity(raw)]
+                    )
                 )
             except (ValidationError, ValueError, TypeError) as exc:
                 audit.reject(exc)

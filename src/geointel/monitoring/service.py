@@ -11,6 +11,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from geointel import __version__
+from geointel.coverage import CoverageDecision
 from geointel.domain.models import (
     Alert,
     AnalysisRun,
@@ -67,6 +68,9 @@ class ChangeDetector:
     def detect(self, previous: dict, current: dict) -> list[dict]:
         changes: list[dict] = []
         self._compare_map(changes, "forecast_change", previous, current, "forecasts", True)
+        if "assessment_records" in previous and "assessment_records" in current:
+            previous = previous | previous["assessment_records"]
+            current = current | current["assessment_records"]
         old_events, new_events = set(previous["event_ids"]), set(current["event_ids"])
         added = sorted(new_events - old_events)
         if added:
@@ -442,13 +446,40 @@ class MonitoringService:
         strategic = sorted(str(x) for a in run.strategic_analyses for x in a.retrieved_claim_ids)
         event_ids = sorted(f"{e.source_id}:{e.source_record_id}" for e in run.events)
         event_sources = sorted({str(e.source_id) for e in run.events})
-        recencies = [e.provenance.get("alignment_status") for e in run.events]
-        recency = (
-            "current_corroborated"
-            if recencies.count("aligned") + recencies.count("current_window") >= 2
-            else (sorted(set(x for x in recencies if x)) or ["none"])[0]
-        )
+        recency = MonitoringService._event_recency(run.events)
+        decision = CoverageDecision.from_metadata(run.collection_metadata)
+        assessment = {}
+        if decision.evaluated_at is not None:
+            eligible = decision.eligibility()
+            events = [
+                event
+                for event in run.events
+                if event.source_record_id
+                and eligible.get(
+                    ("event", event.provenance.get("provider", ""), event.source_record_id)
+                )
+            ]
+            included = [
+                signal
+                for signal in run.forecast_signals
+                if eligible.get(("forecast", signal.provider, signal.source_record_id))
+            ]
+            assessment["assessment_records"] = {
+                "event_ids": sorted(
+                    f"{event.source_id}:{event.source_record_id}" for event in events
+                ),
+                "event_sources": sorted({str(event.source_id) for event in events}),
+                "signals": {
+                    f"{signal.provider}:{signal.source_record_id}": signals[
+                        f"{signal.provider}:{signal.source_record_id}"
+                    ]
+                    for signal in included
+                },
+                "signal_providers": sorted({signal.provider for signal in included}),
+                "recency": MonitoringService._event_recency(events),
+            }
         return {
+            **assessment,
             "forecasts": forecasts,
             "changed_categories": list(forecasts),
             "event_ids": event_ids,
@@ -457,11 +488,19 @@ class MonitoringService:
             "signal_providers": sorted({s.provider for s in run.forecast_signals}),
             "disagreements": disagreements,
             "source_health": outcomes,
+            "collection_coverage": decision.projection(),
             "uncertainty": {k: v["confidence"] for k, v in forecasts.items()},
             "strategic_context": strategic,
             "red_team": run.red_team_output or {},
             "recency": recency,
         }
+
+    @staticmethod
+    def _event_recency(events) -> str:
+        recencies = [event.provenance.get("alignment_status") for event in events]
+        if recencies.count("aligned") + recencies.count("current_window") >= 2:
+            return "current_corroborated"
+        return (sorted({value for value in recencies if value}) or ["none"])[0]
 
     @staticmethod
     def _bounded(value: str, maximum: int, label: str, allow_empty: bool = False) -> None:

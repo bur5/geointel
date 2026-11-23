@@ -9,6 +9,7 @@ from uuid import UUID
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from geointel.coverage import CoverageDecision
 from geointel.domain.models import AnalysisRun, Event, Source
 from geointel.geography import resolve_country
 
@@ -234,6 +235,7 @@ def source_health_report(
             .where(Event.analysis_run_id == analysis_run_id, Source.name == "ACLED")
         ).all()
         signals = list(run.forecast_signals)
+        decision = CoverageDecision.from_metadata(run.collection_metadata)
         metadata = run.collection_metadata.get("connector_outcomes", [])
         if not isinstance(metadata, list) or any(not isinstance(item, dict) for item in metadata):
             raise ValueError("malformed connector outcomes")
@@ -242,6 +244,7 @@ def source_health_report(
             outcomes.setdefault(item.get("connector"), []).append(item)
 
         acled = _report(events, run, as_of, thresholds["ACLED"], outcomes.get("ACLED", []))
+        acled["collection_coverage"] = decision.projection("ACLED")
         reports = {}
         providers = sorted({"VIEWS", "CAST", *(row.provider for row in signals)})
         for provider in providers:
@@ -254,6 +257,7 @@ def source_health_report(
                 else thresholds["ForecastSignal"],
                 outcomes.get(provider, []),
             )
+            reports[provider]["collection_coverage"] = decision.projection(provider)
 
     # Aggregate identities are provider-scoped. Use provider reports for duplicate checks
     # and to prevent one healthy provider from masking another provider's issues.
@@ -277,6 +281,7 @@ def source_health_report(
         "analysis_run_id": str(analysis_run_id),
         "as_of": as_of.isoformat(),
         "geography": geography,
+        "collection_coverage": decision.projection(),
         "sources": {
             "ACLED": acled,
             "VIEWS": reports["VIEWS"],

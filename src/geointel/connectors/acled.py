@@ -6,7 +6,9 @@ from typing import Any
 import httpx
 from pydantic import AliasChoices, BaseModel, ConfigDict, Field, ValidationError, field_validator
 
+from geointel.coverage import Scope, Verification
 from geointel.domain.schemas import NormalizedOperationalEvent
+from geointel.geography import resolve_country
 from geointel.providers.acled_auth import ACLEDOAuthClient
 from geointel.providers.runtime import (
     CollectionAudit,
@@ -117,9 +119,15 @@ class ACLEDConnector:
         # misrepresented as operational input. ACLED documents event_date BETWEEN.
         window_end = datetime.now(UTC).date()
         window_start = window_end - timedelta(days=90)
+        audit.query_scope = Scope(
+            kind="events", geography=location, start=window_start, end=window_end
+        )
         event_date_range = f"{window_start.isoformat()}|{window_end.isoformat()}"
 
+        explicit_unrestricted = True
+
         def fetch(cursor):
+            nonlocal explicit_unrestricted
             token = self.oauth.access_token()
             payload, request_url, _ = self.transport.get_json(
                 f"{self.base_url}/acled/read",
@@ -139,29 +147,47 @@ class ACLEDConnector:
             if restrictions is not None:
                 if not isinstance(restrictions, dict):
                     raise ValueError("ACLED data_query_restrictions is malformed")
-                audit.provider_restrictions = sanitize_mapping(restrictions)
+                audit.provider_restrictions.update(sanitize_mapping(restrictions))
+                audit.coverage_restricted |= any(
+                    self._recency_restricted({key: restrictions[key]})
+                    for key in {"date_recency", "data_recency"} & restrictions.keys()
+                )
+            explicit_unrestricted &= bool(
+                isinstance(restrictions, dict)
+                and restrictions
+                and all(
+                    isinstance(value, str) and value.strip().casefold() in {"none", "unrestricted"}
+                    for value in restrictions.values()
+                )
+                and not restrictions.keys() - {"date_recency", "data_recency"}
+            )
+            if "next_cursor" not in payload:
+                audit.pagination_ambiguous = True
             if not all(isinstance(row, dict) for row in rows):
                 raise ValueError("ACLED data contains a non-object")
             next_cursor = payload.get("next_cursor")
-            if next_cursor is not None and not isinstance(next_cursor, (str, int)):
+            if isinstance(next_cursor, bool) or (
+                next_cursor is not None and not isinstance(next_cursor, (str, int))
+            ):
                 raise ValueError("ACLED next_cursor is malformed")
             for row in rows:
                 if "event_id_cnty" in row:
-                    retrieval_urls[str(row["event_id_cnty"])] = request_url
+                    retrieval_urls.setdefault(str(row["event_id_cnty"]), request_url)
             return rows, None if next_cursor is None else str(next_cursor)
 
         rows = paginate(
             fetch,
             identity=lambda row: str(row["event_id_cnty"]),
             audit=audit,
+            initial_cursor="0",
             max_pages=self.max_pages,
             max_records=self.max_records,
         )
-        if not rows and self._recency_restricted(audit.provider_restrictions):
+        if audit.coverage_restricted and not audit.failure_category:
             audit.failure_category = FailureCategory.RECENCY_RESTRICTED
             audit.failure_reason = (
                 "ACLED provider access restricts data recency for the requested "
-                "operational window; an empty result must not be interpreted as absence of events"
+                "operational window; the response cannot establish absence of events"
             )
             audit.finish(CollectionStatus.PARTIAL)
 
@@ -183,6 +209,27 @@ class ACLEDConnector:
             error = ACLEDError(f"ACLED collection failed: {audit.failure_reason}")
             error.category = audit.failure_category
             raise error
+        try:
+            country = resolve_country(location)
+        except ValueError:
+            country = None
+        if (
+            audit.status == CollectionStatus.SUCCEEDED
+            and explicit_unrestricted
+            and not audit.pagination_ambiguous
+            and country is not None
+            and country.name == location
+            and all(
+                item.country.casefold() == location.casefold()
+                and window_start <= item.event_date.date() <= window_end
+                for item in normalized
+            )
+        ):
+            audit.verification = Verification(
+                scope=audit.query_scope,
+                basis="acled_explicit_unrestricted_recency_and_terminal_cursor",
+                pagination_exhausted=True,
+            )
         return normalized
 
     def _collect(self, client: httpx.Client, location: str) -> list[NormalizedOperationalEvent]:
@@ -190,6 +237,7 @@ class ACLEDConnector:
             "ACLED", "0.1.2", IntegrationMode.OPERATOR_ADAPTER, "acled-adapter-v1"
         )
         self.last_audit = audit
+        audit.query_scope = Scope(kind="events", geography=location)
         url = f"{self.base_url}/{self.endpoint_path.lstrip('/')}"
         last: Exception | None = None
         attempts = 0
@@ -207,6 +255,8 @@ class ACLEDConnector:
                     raise ValueError("ACLED adapter response exceeds 5 MB")
                 records = self._records(response.json())
                 audit.received = len(records)
+                audit.page_count = 1
+                audit.page_evidence.append({"page": 1, "row_count": len(records)})
                 deduplicated: dict[str, NormalizedOperationalEvent] = {}
                 for raw in records:
                     item = self.normalize(raw, location, str(response.request.url))

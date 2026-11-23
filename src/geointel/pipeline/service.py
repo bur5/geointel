@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 
 from geointel import __version__
 from geointel.connectors.base import DisabledConnector, EvidenceConnector
+from geointel.coverage import CoverageDecision, decide_collection
 from geointel.domain.models import (
     AnalysisRun,
     Event,
@@ -90,12 +91,17 @@ class AnalysisPipeline:
         news_reports: list[NormalizedNewsReport] = []
         connector_errors = []
         outcomes = []
+        batches = []
         for connector in self.connectors:
             connector_name = getattr(connector, "connector_name", type(connector).__name__)
             if connector_name == "NEWSAPI" and hasattr(connector, "rotation_index"):
                 # Persisted AnalysisRun identity is deterministic and advances between runs.
                 connector.rotation_index = rotation_sequence
             collected_at = datetime.now(UTC).isoformat()
+            received = []
+            unique = []
+            previous_scope = getattr(connector, "last_query_scope", None)
+            previous_audit = getattr(connector, "last_audit", None)
             if isinstance(connector, DisabledConnector):
                 outcomes.append(
                     {
@@ -108,6 +114,7 @@ class AnalysisPipeline:
                         "collection_timestamp": collected_at,
                     }
                 )
+                batches.append((connector_name, received, unique, None))
                 continue
             try:
                 records = connector.collect(request.location, request.horizon_months)
@@ -124,8 +131,10 @@ class AnalysisPipeline:
                     for item in records
                 ):
                     raise TypeError("connector returned an unsupported normalized record type")
+                received = records
                 received_count = len(records)
                 records = self._deduplicate(records, self._record_key)
+                unique = records
                 evidence.extend(item for item in records if isinstance(item, NormalizedEvidence))
                 signals.extend(
                     item for item in records if isinstance(item, NormalizedForecastSignal)
@@ -137,9 +146,13 @@ class AnalysisPipeline:
                     item for item in records if isinstance(item, NormalizedNewsReport)
                 )
                 audit = getattr(connector, "last_audit", None)
-                audit_public = audit.public() if audit is not None else None
+                audit_public = (
+                    audit.public() if audit is not None and audit is not previous_audit else None
+                )
                 restricted = bool(
-                    audit_public and audit_public.get("failure_category") == "RECENCY_RESTRICTED"
+                    audit_public
+                    and audit_public.get("failure_category") == "RECENCY_RESTRICTED"
+                    and not records
                 )
                 outcomes.append(
                     {
@@ -159,7 +172,9 @@ class AnalysisPipeline:
             except Exception as exc:
                 safe_error = self._safe_error(exc)
                 audit = getattr(connector, "last_audit", None)
-                audit_public = audit.public() if audit is not None else None
+                audit_public = (
+                    audit.public() if audit is not None and audit is not previous_audit else None
+                )
                 logger.warning(
                     "evidence_connector_failed",
                     extra={"connector": connector_name, "error": safe_error},
@@ -180,12 +195,47 @@ class AnalysisPipeline:
                         "collection_timestamp": collected_at,
                     }
                 )
+            scope = getattr(connector, "last_query_scope", None)
+            batches.append(
+                (connector_name, received, unique, scope if scope is not previous_scope else None)
+            )
+        evaluated_at = datetime.now(UTC)
+        coverage = CoverageDecision(evaluated_at=evaluated_at)
+        seen_events: set[tuple[str, str]] = set()
+        for index, ((connector_name, received, unique, query_scope), outcome) in enumerate(
+            zip(batches, outcomes, strict=True)
+        ):
+            entry = decide_collection(
+                collection_id=f"{run.id}:{index}",
+                connector=connector_name,
+                location=request.location,
+                horizon_months=request.horizon_months,
+                evaluated_at=evaluated_at,
+                outcome=outcome,
+                received=received,
+                unique=unique,
+                already_seen=seen_events,
+                adapter_query_scope=query_scope,
+            )
+            coverage.collections.append(entry)
+            seen_events.update(
+                (item.provider, item.record_id) for item in entry.records if item.kind == "event"
+            )
+        assessed = coverage.eligibility()
         evidence = self._deduplicate(evidence, self._record_key)
         historical = [item for item in evidence if is_historical(item)]
         current = [item for item in evidence if is_current(item)]
         base_rate = summarize_history(historical, request.location, datetime.now(UTC).date())
         signals = self._deduplicate(signals, self._record_key)
         events = self._deduplicate(events, self._record_key)
+        assessment_events = [
+            item for item in events if assessed.get(("event", item.provider, item.source_record_id))
+        ]
+        assessment_signals = [
+            item
+            for item in signals
+            if assessed.get(("forecast", item.provider, item.source_record_id))
+        ]
         all_news_observations = list(news_reports)
         report_relevance = [
             assess_report_relevance(item, request) for item in all_news_observations
@@ -339,6 +389,7 @@ class AnalysisPipeline:
             query["signal_family"] for plan in query_plans for query in plan["queries"]
         ]
         run.collection_metadata = {
+            "collection_coverage": coverage.model_dump(mode="json"),
             "connector_count": len(self.connectors),
             "evidence_count": len(evidence),
             "forecast_signal_count": len(signals),
@@ -411,7 +462,9 @@ class AnalysisPipeline:
             ),
             "collected_at": datetime.now(UTC).isoformat(),
         }
-        strategic_context = self._strategic_analysis(run, request, historical, events, signals)
+        strategic_context = self._strategic_analysis(
+            run, request, historical, assessment_events, assessment_signals
+        )
         # Reassign JSON after retrieval queries may have autoflushed the run.
         run.collection_metadata = {
             **run.collection_metadata,
@@ -422,7 +475,7 @@ class AnalysisPipeline:
             "observed_evidence": [x.model_dump(mode="json") for x in current],
             "historical_evidence": [x.model_dump(mode="json") for x in historical],
             "historical_base_rate_summary": base_rate.model_dump(mode="json"),
-            "recent_events": [x.model_dump(mode="json") for x in events],
+            "recent_events": [x.model_dump(mode="json") for x in assessment_events],
             "news_reports": [x.model_dump(mode="json") for x in news_reports],
             "story_clusters": [x.model_dump(mode="json") for x in clusters],
             "news_relevance_assessments": [x.model_dump(mode="json") for x in report_relevance],
@@ -442,9 +495,15 @@ class AnalysisPipeline:
             ],
             # Compatibility alias for structured providers implemented against v0.0.1.
             "evidence": [x.model_dump(mode="json") for x in current],
-            "predictive_signals": [x.model_dump(mode="json") for x in signals],
+            "predictive_signals": [x.model_dump(mode="json") for x in assessment_signals],
             "source_disagreements": self._alignment_disagreements(signals, events),
             "collection_metadata": run.collection_metadata,
+            "assessment_operational_records_available": bool(assessment_events or current),
+            "coverage_guardrails": [
+                "A confirmed zero is scoped to one verified provider query.",
+                "Provider retrieval coverage cannot establish absence of real-world events.",
+                "Legacy collection fields report ingestion and may include ineligible rows.",
+            ],
             "connector_errors": connector_errors,
             # Untrusted attributed interpretations stay separate from all empirical inputs.
             "strategic_context": strategic_context,
@@ -469,7 +528,29 @@ class AnalysisPipeline:
             SynthesisOutput,
         )
         synthesis.validate_red_team_incorporation(red)
-        run.analyst_output = analyst.model_dump(mode="json")
+        # The public analyst inventory includes retained records. Downstream reasoning above
+        # receives only assessment-eligible records and the typed coverage decision.
+        run.analyst_output = {
+            **analyst.model_dump(mode="json"),
+            "recent_events": [
+                *analyst.recent_events,
+                *(
+                    f"{item.provider} reported {item.event_type} on {item.event_date.isoformat()}; "
+                    "retained for audit and excluded from assessment."
+                    for item in events
+                    if not assessed.get(("event", item.provider, item.source_record_id))
+                ),
+            ],
+            "predictive_signals": [
+                *analyst.predictive_signals,
+                *(
+                    f"{item.provider} model output {item.source_record_id} for "
+                    f"{item.target_variable}; retained for audit and excluded from assessment."
+                    for item in signals
+                    if not assessed.get(("forecast", item.provider, item.source_record_id))
+                ),
+            ],
+        }
         run.red_team_output = red.model_dump(mode="json")
         run.synthesis_output = synthesis.model_dump(mode="json")
         run.status = "completed"
