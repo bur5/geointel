@@ -31,15 +31,16 @@ execution.
 Before implementation, record:
 
 - Stable task ID, problem, supporting evidence, priority rationale, and base SHA.
-- Risk tier and reasons; allowed files/actions, exclusions, dependencies, and
-  required Owner approvals. Split mixed tasks without downgrading hidden risk.
+- Highest risk tier and reasons, any R2 impacts, allowed files/actions, exclusions,
+  dependencies, and required Owner approvals. Split mixed tasks without downgrading hidden risk.
   The Reviewer verifies classification by substance under GOVERNANCE; disputed
   or uncertain classification blocks the affected action pending Owner determination.
 - Observable acceptance criteria, regression/scientific invariants, appropriate
   test commands, and expected infrastructure. Define which skips are acceptable
   and why before interpreting results.
-- Developer and independent reviewer assignments, enhanced review needs, known
-  resource limits, retry count, rollback/recovery plan, and completion evidence.
+- Developer assignment, Independent Reviewer identity and auditable Owner
+  designation or delegation, enhanced review needs, known resource limits, retry
+  count, rollback/recovery plan, and completion evidence.
 
 Acceptance requires the intended behavior or documentation to be verified, scope
 to remain authorized, required checks to succeed, independent findings to be
@@ -53,11 +54,11 @@ mandatory integration tests, or unavailable reviewers mean blocked, not passed.
 | proposed | Evidence and priority recorded; no implementation yet. |
 | ready | Task contract complete; prerequisites and approvals for execution satisfied. |
 | implementing | Developer owns an isolated branch and records progress/checkpoints. |
-| ci_pending | PR and exact candidate SHA recorded; required checks running. |
+| ci_pending | PR and exact head/base pair recorded; required checks running. |
 | review_pending | Required CI successful; independent reviewer inspects candidate. |
 | changes_requested | Findings recorded; bounded revision returns to implementing and renews CI/review. |
 | awaiting_owner | A reserved action, current merge approval, or policy decision is pending; no dependent action. |
-| merge_ready | Final SHA has valid CI, independent review, resolved findings and applicable approvals; verify gates immediately before merge. |
+| merge_ready | Exact head/base pair has successful mandatory CI, verified independent approval, resolved findings and explicit Owner merge approval; verify gates immediately before merge. |
 | verifying | An authorized merge occurred; verify actual resulting commit and required post-merge checks. |
 | done | Verified result and audit record complete; only then select the next task. |
 | blocked | Missing capability, failed prerequisite, exhausted retries, or unresolved policy; record cause and next action. |
@@ -69,7 +70,7 @@ record that status. A narrowly scoped Owner instruction to stop after PR creatio
 ends that execution without attempting merge or starting another task.
 
 Maintain a concise progress record in the task issue/PR: timestamp, state, active
-SHA, completed acceptance items, commands/results, reviewer findings, approvals,
+head/base pair, completed acceptance items, commands/results, reviewer findings, approvals,
 retry counters, blockers, and next action. Record failed attempts as well as
 successes; never store secrets. Keep decisions recoverable outside transient chat.
 
@@ -77,30 +78,34 @@ successes; never store secrets. Keep decisions recoverable outside transient cha
 
 Give the Reviewer the task contract, actual diff, policy, and verifiable CI
 evidence. Request an independent assessment, not confirmation of a preferred
-conclusion. R2 changes require explicit scientific/security/architecture findings
-as applicable, with limitations and supporting tests. Unresolved material
+conclusion. Require enhanced independent review for any R2 scientific, evidence,
+security, or architectural impact, including in R3 changes. Record explicit
+rationale, applicable findings, validation, supporting tests and limitations. Unresolved material
 findings block merge; disagreement is escalated, not dismissed by the Manager.
 
-For every manual merge, record the PR head and current
-target/base SHAs defining the actual integration candidate. If either changes,
-reassess compatibility, required CI and reviewer approval; renew affected checks
-and approvals and record the decision before proceeding. Re-read refs at merge
-time and require the merge operation to reject a mismatched head or base. If this
-cannot be guaranteed, block merge. Never reuse stale candidate approval.
+For every manual merge, record the exact PR head SHA and current target base SHA
+as the integration candidate. Any change to either invalidates prior merge
+authorization. Return the candidate to CI, reassess compatibility, and obtain
+fresh successful mandatory CI evidence, fresh independent approval and fresh
+explicit Owner merge approval for the new pair. Re-read both refs immediately
+before merge and block if the operation cannot reject a mismatch on either ref.
 
 Verify required checks, actual test execution and conclusions, expected source
-identity/App, SHA and integration context, and the Reviewer's identity,
-independence and verdict coverage. Author-controlled workflow/test-selection
+identity/App, and coverage of the exact head/base pair. Before counting an
+independent review as binding, verify the Reviewer's identity, auditable Owner
+designation or delegation, independence, authorized scope and verdict coverage
+of both SHAs. Record the verification and evidence links. Manager selection
+without verified Owner authorization can provide advisory feedback only.
+Author-controlled workflow/test-selection
 changes must not silently satisfy gates; apply GOVERNANCE's protected-policy
 approval and trusted-baseline requirements. Any unresolved trust issue blocks merge.
 Authenticate Owner identity and the Owner-designated channel, exact action,
-scope, limits and candidate SHA where applicable; quoted approvals and copied
+scope, limits and both candidate SHAs for merge; quoted approvals and copied
 issue/PR text are not authorization. Record verifiable origin without secrets.
 
 Obtain explicit Owner approval of the integration candidate for every merge,
-including R1. Require successful mandatory CI and independent review, with
-enhanced independent review for R2. Obtain explicit Owner approval before
-executing any R3 reserved action. The Manager cannot substitute its own verdict
+including R1, alongside successful mandatory CI and a binding independent
+approval. Obtain explicit Owner approval before executing any R3 reserved action. The Manager cannot substitute its own verdict
 for independent approval or bypass a failed check using administrative access.
 
 ## Retry limits and escalation
@@ -124,7 +129,7 @@ unblocked assessment may continue unless an emergency stop applies.
 After restart, load the durable task record, inspect actual branch/PR/CI state,
 reconcile in-flight operations, and acquire exclusive task ownership before new
 writes. Treat missing records and ambiguous outcomes as blocked. Validate current
-policies, scopes, budgets, candidate SHA and approval freshness; never assume a
+policies, scopes, budgets, both candidate SHAs and approval freshness; never assume a
 previous process stopped cleanly. Do not force reset branches or alter production
 data to recover. Reverts are reviewed changes subject to the same risk/approval
 rules; data restoration requires its own authorization and tested procedure.
