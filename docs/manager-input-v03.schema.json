@@ -1,0 +1,645 @@
+{
+  "$defs": {
+    "CI": {
+      "additionalProperties": false,
+      "properties": {
+        "run_id": {
+          "exclusiveMinimum": 0,
+          "title": "Run Id",
+          "type": "integer"
+        },
+        "attempt": {
+          "exclusiveMinimum": 0,
+          "title": "Attempt",
+          "type": "integer"
+        },
+        "workflow_id": {
+          "exclusiveMinimum": 0,
+          "title": "Workflow Id",
+          "type": "integer"
+        },
+        "path": {
+          "const": ".github/workflows/ci.yml",
+          "title": "Path",
+          "type": "string"
+        },
+        "head_sha": {
+          "pattern": "^[0-9a-f]{40}$",
+          "title": "Head Sha",
+          "type": "string"
+        },
+        "reported_base_sha": {
+          "pattern": "^[0-9a-f]{40}$",
+          "title": "Reported Base Sha",
+          "type": "string"
+        },
+        "reported_base_branch": {
+          "maxLength": 200,
+          "pattern": "^[^\\x00-\\x20\\x7f]+$",
+          "title": "Reported Base Branch",
+          "type": "string"
+        },
+        "status": {
+          "const": "completed",
+          "title": "Status",
+          "type": "string"
+        },
+        "conclusion": {
+          "const": "success",
+          "title": "Conclusion",
+          "type": "string"
+        },
+        "state": {
+          "const": "success",
+          "title": "State",
+          "type": "string"
+        },
+        "created_at": {
+          "pattern": "^[0-9]{4}(-[0-9]{2}){2}T[0-9]{2}(:[0-9]{2}){2}Z$",
+          "title": "Created At",
+          "type": "string"
+        },
+        "updated_at": {
+          "pattern": "^[0-9]{4}(-[0-9]{2}){2}T[0-9]{2}(:[0-9]{2}){2}Z$",
+          "title": "Updated At",
+          "type": "string"
+        },
+        "historical_checkout_verified": {
+          "const": false,
+          "title": "Historical Checkout Verified",
+          "type": "boolean"
+        },
+        "jobs": {
+          "items": {
+            "$ref": "#/$defs/Job"
+          },
+          "maxItems": 3,
+          "minItems": 3,
+          "title": "Jobs",
+          "type": "array"
+        }
+      },
+      "required": [
+        "run_id",
+        "attempt",
+        "workflow_id",
+        "path",
+        "head_sha",
+        "reported_base_sha",
+        "reported_base_branch",
+        "status",
+        "conclusion",
+        "state",
+        "created_at",
+        "updated_at",
+        "historical_checkout_verified",
+        "jobs"
+      ],
+      "title": "CI",
+      "type": "object"
+    },
+    "Job": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "exclusiveMinimum": 0,
+          "title": "Id",
+          "type": "integer"
+        },
+        "check_run_id": {
+          "exclusiveMinimum": 0,
+          "title": "Check Run Id",
+          "type": "integer"
+        },
+        "app_id": {
+          "const": 15368,
+          "title": "App Id",
+          "type": "integer"
+        },
+        "app_slug": {
+          "const": "github-actions",
+          "title": "App Slug",
+          "type": "string"
+        },
+        "name": {
+          "enum": [
+            "test (3.11)",
+            "test (3.12)",
+            "postgres-integration"
+          ],
+          "title": "Name",
+          "type": "string"
+        },
+        "head_sha": {
+          "pattern": "^[0-9a-f]{40}$",
+          "title": "Head Sha",
+          "type": "string"
+        },
+        "run_id": {
+          "exclusiveMinimum": 0,
+          "title": "Run Id",
+          "type": "integer"
+        },
+        "attempt": {
+          "exclusiveMinimum": 0,
+          "title": "Attempt",
+          "type": "integer"
+        },
+        "status": {
+          "const": "completed",
+          "title": "Status",
+          "type": "string"
+        },
+        "conclusion": {
+          "const": "success",
+          "title": "Conclusion",
+          "type": "string"
+        },
+        "state": {
+          "const": "success",
+          "title": "State",
+          "type": "string"
+        },
+        "started_at": {
+          "pattern": "^[0-9]{4}(-[0-9]{2}){2}T[0-9]{2}(:[0-9]{2}){2}Z$",
+          "title": "Started At",
+          "type": "string"
+        },
+        "completed_at": {
+          "pattern": "^[0-9]{4}(-[0-9]{2}){2}T[0-9]{2}(:[0-9]{2}){2}Z$",
+          "title": "Completed At",
+          "type": "string"
+        },
+        "source_metadata_matched": {
+          "const": true,
+          "title": "Source Metadata Matched",
+          "type": "boolean"
+        },
+        "test_execution_independently_verified": {
+          "const": false,
+          "title": "Test Execution Independently Verified",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "id",
+        "check_run_id",
+        "app_id",
+        "app_slug",
+        "name",
+        "head_sha",
+        "run_id",
+        "attempt",
+        "status",
+        "conclusion",
+        "state",
+        "started_at",
+        "completed_at",
+        "source_metadata_matched",
+        "test_execution_independently_verified"
+      ],
+      "title": "Job",
+      "type": "object"
+    },
+    "Observation": {
+      "additionalProperties": false,
+      "properties": {
+        "started_at": {
+          "pattern": "^[0-9]{4}(-[0-9]{2}){2}T[0-9]{2}(:[0-9]{2}){2}Z$",
+          "title": "Started At",
+          "type": "string"
+        },
+        "completed_at": {
+          "pattern": "^[0-9]{4}(-[0-9]{2}){2}T[0-9]{2}(:[0-9]{2}){2}Z$",
+          "title": "Completed At",
+          "type": "string"
+        },
+        "repository": {
+          "$ref": "#/$defs/Repository"
+        },
+        "ci_workflow": {
+          "$ref": "#/$defs/Workflow"
+        },
+        "pull_requests": {
+          "items": {
+            "$ref": "#/$defs/PullRequest"
+          },
+          "maxItems": 25,
+          "title": "Pull Requests",
+          "type": "array"
+        },
+        "sources": {
+          "items": {
+            "$ref": "#/$defs/Source"
+          },
+          "maxItems": 200,
+          "minItems": 1,
+          "title": "Sources",
+          "type": "array"
+        },
+        "content_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Content Digest",
+          "type": "string"
+        }
+      },
+      "required": [
+        "started_at",
+        "completed_at",
+        "repository",
+        "ci_workflow",
+        "pull_requests",
+        "sources",
+        "content_digest"
+      ],
+      "title": "Observation",
+      "type": "object"
+    },
+    "PullRequest": {
+      "additionalProperties": false,
+      "properties": {
+        "number": {
+          "exclusiveMinimum": 0,
+          "title": "Number",
+          "type": "integer"
+        },
+        "state": {
+          "const": "open",
+          "title": "State",
+          "type": "string"
+        },
+        "draft": {
+          "title": "Draft",
+          "type": "boolean"
+        },
+        "head_sha": {
+          "pattern": "^[0-9a-f]{40}$",
+          "title": "Head Sha",
+          "type": "string"
+        },
+        "head_repository": {
+          "maxLength": 200,
+          "pattern": "^[^\\x00-\\x20\\x7f]+$",
+          "title": "Head Repository",
+          "type": "string"
+        },
+        "base_branch": {
+          "maxLength": 200,
+          "pattern": "^[^\\x00-\\x20\\x7f]+$",
+          "title": "Base Branch",
+          "type": "string"
+        },
+        "base_sha": {
+          "pattern": "^[0-9a-f]{40}$",
+          "title": "Base Sha",
+          "type": "string"
+        },
+        "updated_at": {
+          "pattern": "^[0-9]{4}(-[0-9]{2}){2}T[0-9]{2}(:[0-9]{2}){2}Z$",
+          "title": "Updated At",
+          "type": "string"
+        },
+        "ci": {
+          "$ref": "#/$defs/CI"
+        },
+        "reviews": {
+          "items": {
+            "$ref": "#/$defs/Review"
+          },
+          "maxItems": 300,
+          "title": "Reviews",
+          "type": "array"
+        },
+        "content_handling": {
+          "const": "prose_excluded_from_snapshot_and_authority",
+          "title": "Content Handling",
+          "type": "string"
+        }
+      },
+      "required": [
+        "number",
+        "state",
+        "draft",
+        "head_sha",
+        "head_repository",
+        "base_branch",
+        "base_sha",
+        "updated_at",
+        "ci",
+        "reviews",
+        "content_handling"
+      ],
+      "title": "PullRequest",
+      "type": "object"
+    },
+    "Repository": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "const": 1375475901,
+          "title": "Id",
+          "type": "integer"
+        },
+        "full_name": {
+          "const": "bur5/geointel",
+          "title": "Full Name",
+          "type": "string"
+        },
+        "private": {
+          "const": true,
+          "title": "Private",
+          "type": "boolean"
+        },
+        "default_branch": {
+          "maxLength": 200,
+          "pattern": "^[^\\x00-\\x20\\x7f]+$",
+          "title": "Default Branch",
+          "type": "string"
+        },
+        "default_sha": {
+          "pattern": "^[0-9a-f]{40}$",
+          "title": "Default Sha",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "full_name",
+        "private",
+        "default_branch",
+        "default_sha"
+      ],
+      "title": "Repository",
+      "type": "object"
+    },
+    "Review": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "exclusiveMinimum": 0,
+          "title": "Id",
+          "type": "integer"
+        },
+        "user_id": {
+          "exclusiveMinimum": 0,
+          "title": "User Id",
+          "type": "integer"
+        },
+        "login": {
+          "maxLength": 200,
+          "pattern": "^[^\\x00-\\x20\\x7f]+$",
+          "title": "Login",
+          "type": "string"
+        },
+        "user_type": {
+          "enum": [
+            "User",
+            "Bot",
+            "Organization",
+            "Mannequin"
+          ],
+          "title": "User Type",
+          "type": "string"
+        },
+        "state": {
+          "enum": [
+            "APPROVED",
+            "CHANGES_REQUESTED",
+            "COMMENTED",
+            "DISMISSED",
+            "PENDING"
+          ],
+          "title": "State",
+          "type": "string"
+        },
+        "commit_id": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{40}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Commit Id"
+        },
+        "submitted_at": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9]{4}(-[0-9]{2}){2}T[0-9]{2}(:[0-9]{2}){2}Z$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Submitted At"
+        },
+        "stale_head": {
+          "title": "Stale Head",
+          "type": "boolean"
+        },
+        "historical_base_verified": {
+          "const": false,
+          "title": "Historical Base Verified",
+          "type": "boolean"
+        },
+        "independence_verified": {
+          "const": false,
+          "title": "Independence Verified",
+          "type": "boolean"
+        },
+        "owner_authorization_verified": {
+          "const": false,
+          "title": "Owner Authorization Verified",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "id",
+        "user_id",
+        "login",
+        "user_type",
+        "state",
+        "commit_id",
+        "submitted_at",
+        "stale_head",
+        "historical_base_verified",
+        "independence_verified",
+        "owner_authorization_verified"
+      ],
+      "title": "Review",
+      "type": "object"
+    },
+    "Source": {
+      "additionalProperties": false,
+      "properties": {
+        "sequence": {
+          "exclusiveMinimum": 0,
+          "title": "Sequence",
+          "type": "integer"
+        },
+        "method": {
+          "const": "GET",
+          "title": "Method",
+          "type": "string"
+        },
+        "endpoint": {
+          "pattern": "^/repos/bur5/geointel(?:/[^?# ]+)?$",
+          "title": "Endpoint",
+          "type": "string"
+        },
+        "page": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Page"
+        },
+        "query": {
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              }
+            ]
+          },
+          "title": "Query",
+          "type": "object"
+        },
+        "status_code": {
+          "const": 200,
+          "title": "Status Code",
+          "type": "integer"
+        },
+        "request_id": {
+          "maxLength": 200,
+          "pattern": "^[^\\x00-\\x20\\x7f]+$",
+          "title": "Request Id",
+          "type": "string"
+        },
+        "server_date": {
+          "pattern": "^[0-9]{4}(-[0-9]{2}){2}T[0-9]{2}(:[0-9]{2}){2}Z$",
+          "title": "Server Date",
+          "type": "string"
+        },
+        "received_at": {
+          "pattern": "^[0-9]{4}(-[0-9]{2}){2}T[0-9]{2}(:[0-9]{2}){2}Z$",
+          "title": "Received At",
+          "type": "string"
+        },
+        "response_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Response Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "sequence",
+        "method",
+        "endpoint",
+        "page",
+        "query",
+        "status_code",
+        "request_id",
+        "server_date",
+        "received_at",
+        "response_sha256"
+      ],
+      "title": "Source",
+      "type": "object"
+    },
+    "Workflow": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "exclusiveMinimum": 0,
+          "title": "Id",
+          "type": "integer"
+        },
+        "path": {
+          "const": ".github/workflows/ci.yml",
+          "title": "Path",
+          "type": "string"
+        },
+        "state": {
+          "const": "active",
+          "title": "State",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "path",
+        "state"
+      ],
+      "title": "Workflow",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "geointel-manager-input-v0.3",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "collector_revision": {
+      "const": "3ada4193588a4c6bcb21b23dd9330831cefd2d86",
+      "title": "Collector Revision",
+      "type": "string"
+    },
+    "observed_github": {
+      "$ref": "#/$defs/Observation"
+    },
+    "revalidation": {
+      "$ref": "#/$defs/Observation"
+    },
+    "untrusted_content": {
+      "const": "excluded",
+      "title": "Untrusted Content",
+      "type": "string"
+    },
+    "recommendation_authority": {
+      "const": "advisory_only",
+      "title": "Recommendation Authority",
+      "type": "string"
+    },
+    "authenticated_owner_decision": {
+      "title": "Authenticated Owner Decision",
+      "type": "null"
+    },
+    "autonomous_merge_enabled": {
+      "const": false,
+      "title": "Autonomous Merge Enabled",
+      "type": "boolean"
+    },
+    "action_authorized": {
+      "const": false,
+      "title": "Action Authorized",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "schema_version",
+    "collector_revision",
+    "observed_github",
+    "revalidation",
+    "untrusted_content",
+    "recommendation_authority",
+    "authenticated_owner_decision",
+    "autonomous_merge_enabled",
+    "action_authorized"
+  ],
+  "title": "ManagerInput",
+  "type": "object"
+}
