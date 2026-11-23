@@ -12,9 +12,14 @@
     "evaluation_start": "2000-01-10T00:00:00Z",
     "evaluation_end": "2000-01-13T00:00:00Z",
     "outcome_as_of": "2000-01-15T00:00:00Z",
-    "dataset_version": "synthetic:v1",
     "panel_snapshot": "synthetic:panel",
-    "outcome_snapshot": "synthetic:outcomes"
+    "constraints": {
+      "schema_version": 1,
+      "forecast_lead": "PT0S",
+      "window_duration": "P2D",
+      "outcome_maturity": "P1D",
+      "embargo": "P1D"
+    }
   },
   "folds": [
     {
@@ -28,7 +33,6 @@
       "window_end": "2000-01-12T00:00:00Z",
       "origin": "2000-01-10T00:00:00Z",
       "manifest": "synthetic:lineage",
-      "embargo": "P1D",
       "fitted_at": "2000-01-05T00:00:00Z",
       "calibrated_at": "2000-01-09T00:00:00Z",
       "feature_inputs": [
@@ -55,7 +59,8 @@
             "snapshot": "synthetic:train-label",
             "availability_evidence": "synthetic:train-label:log",
             "available_at": "2000-01-05T00:00:00Z"
-          }
+          },
+          "window_start": "2000-01-02T00:00:00Z"
         },
         {
           "key": "calibration-1",
@@ -73,7 +78,8 @@
             "snapshot": "synthetic:cal-label",
             "availability_evidence": "synthetic:cal-label:log",
             "available_at": "2000-01-09T00:00:00Z"
-          }
+          },
+          "window_start": "2000-01-06T00:00:00Z"
         }
       ],
       "forecast": {
@@ -85,11 +91,16 @@
       "protocol": {
         "snapshot": "synthetic:protocol",
         "availability_evidence": "synthetic:protocol:log",
-        "available_at": "2000-01-01T00:00:00Z"
+        "available_at": "2000-01-01T00:00:00Z",
+        "plan_sha256": "abf4884f614fe7630dc88549f8720366a7de34cb486171a6c2d4fd996b0812d9"
       }
     }
   ],
   "limitations": [
     "Synthetic timestamps and fictional units. No empirical forecast scores."
-  ]
+  ],
+  "outcomes": {
+    "dataset_version": "synthetic:v1",
+    "outcome_snapshot": "synthetic:outcomes"
+  }
 }

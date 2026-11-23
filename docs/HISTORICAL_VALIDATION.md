@@ -19,7 +19,7 @@ heads listed below. The foundation runs on that main without importing their cod
 
 ## Panel and target
 
-Freeze one protocol per estimand before scoring. Register the unit roster and boundary
+Freeze one protocol per estimand before the first relevant decision. Register the unit roster and boundary
 version (for example ISO country plus a dated geographic crosswalk), UTC origin cadence,
 eligibility, target ID/version, event and actor filters, severity criterion, outcome maturity
 lag, and exact half-open observation windows. An example target is first qualifying onset
@@ -31,8 +31,8 @@ roll admin1 forecasts into country scores.
 For each scheduled origin retain an expected slot regardless of whether a prediction was
 issued. Specify lead (origin to window start) and duration separately. An immediate
 30-day target can use `[origin, origin + 30 days)` once the handoff instant is defined.
-When exporting to #34, satisfy its strictly later-start requirement by specifying a
-later start in the protocol (for example cutoff 00:00 UTC, target starts 00:01 UTC).
+PR #34 accepts only studies whose registered window starts strictly after the cutoff.
+Use a compatible evaluator for a registered zero-lead study.
 Specify whether timestamps represent exact instants or date-only bounds. When a timestamp
 has only day precision, require its latest plausible instant to precede or equal the
 cutoff. Retain issuance, availability, retrieval and target dates separately.
@@ -86,7 +86,8 @@ unspecified semantics, and interval midpoints do not qualify.
   and boundaries, while independent review must verify archive authenticity, manifest
   completeness, coverage, transformations and absence of test-driven model selection.
   For a replay, fit/calibration timestamps represent simulated information freezes.
-  Retain the actual computation and publication times in the immutable run manifest.
+  Retain simulated forecast issue and availability in the replay clock, with the actual
+  computation and publication times in the immutable run manifest.
   A fixed external artifact still needs its availability and training lineage reviewed.
 - Outcome overlap within a test panel inflates effective sample size. Preserve cases
   for coverage reporting and account for dependence when estimating uncertainty.

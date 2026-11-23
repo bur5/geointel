@@ -1,9 +1,17 @@
 """Validate declared availability and split boundaries for one rolling-origin fold."""
 
-from datetime import timedelta
+from datetime import UTC, datetime, timedelta
 from typing import Annotated, Literal, Self
 
-from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, StringConstraints, model_validator
+from pydantic import (
+    AfterValidator,
+    AwareDatetime,
+    BaseModel,
+    ConfigDict,
+    Field,
+    StringConstraints,
+    model_validator,
+)
 
 Reference = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1)]
 EvidenceMode = Literal[
@@ -11,28 +19,60 @@ EvidenceMode = Literal[
 ]
 
 
+def _utc(value: datetime) -> datetime:
+    return value.astimezone(UTC)
+
+
+UTCDateTime = Annotated[AwareDatetime, AfterValidator(_utc)]
+Duration = Annotated[timedelta, Field(ge=timedelta(0))]
+Digest = Annotated[str, Field(pattern=r"^[a-f0-9]{64}$")]
+
+
 class Record(BaseModel):
-    model_config = ConfigDict(extra="forbid", frozen=True)
+    model_config = ConfigDict(extra="forbid", frozen=True, revalidate_instances="always")
 
 
 class Vintage(Record):
     snapshot: Reference
     availability_evidence: Reference
-    available_at: AwareDatetime
+    available_at: UTCDateTime
+
+
+class Registration(Vintage):
+    """Receipt for an immutable plan, issued by an independently verified source."""
+
+    plan_sha256: Digest
+
+
+class StudyConstraints(Record):
+    schema_version: Literal[1]
+    forecast_lead: Duration
+    window_duration: Annotated[timedelta, Field(gt=timedelta(0))]
+    outcome_maturity: Duration
+    embargo: Duration
+
+    def matches_window(self, origin: datetime, start: datetime, end: datetime) -> bool:
+        return start - origin == self.forecast_lead and end - start == self.window_duration
+
+
+class ReplayClock(Record):
+    issued_at: UTCDateTime
+    available_at: UTCDateTime
 
 
 class DevelopmentExample(Record):
     key: Reference
     role: Literal["train", "calibration"]
-    origin: AwareDatetime
-    window_end: AwareDatetime
+    origin: UTCDateTime
+    window_start: UTCDateTime
+    window_end: UTCDateTime
     features: Annotated[tuple[Vintage, ...], Field(min_length=1)]
     label: Vintage
 
     @model_validator(mode="after")
     def check_window(self) -> Self:
-        if self.origin >= self.window_end:
-            raise ValueError("development windows must end after their origin")
+        if not self.origin <= self.window_start < self.window_end:
+            raise ValueError("development window must be nonempty and start at or after origin")
         return self
 
 
@@ -44,24 +84,26 @@ class Fold(Record):
     geography_version: Reference
     geography_id: Reference
     horizon: Reference
-    window_start: AwareDatetime
-    window_end: AwareDatetime
+    window_start: UTCDateTime
+    window_end: UTCDateTime
     mode: EvidenceMode
-    origin: AwareDatetime
+    origin: UTCDateTime
     manifest: Reference
-    embargo: Annotated[timedelta, Field(ge=timedelta(0))]
-    fitted_at: AwareDatetime
-    calibrated_at: AwareDatetime | None
+    fitted_at: UTCDateTime
+    calibrated_at: UTCDateTime | None
     feature_inputs: Annotated[tuple[Vintage, ...], Field(min_length=1)]
     development: tuple[DevelopmentExample, ...]
     forecast: Vintage
-    issued_at: AwareDatetime
-    protocol: Vintage
+    issued_at: UTCDateTime
+    protocol: Registration
+    replay_clock: ReplayClock | None = None
 
     @model_validator(mode="after")
     def check_window(self) -> Self:
         if not self.origin <= self.window_start < self.window_end:
             raise ValueError("test window must be nonempty and start at or after origin")
+        if (self.replay_clock is not None) != (self.mode == "historical_replay"):
+            raise ValueError("historical replay requires a separate simulated forecast clock")
         return self
 
 
@@ -80,6 +122,8 @@ FindingCode = Literal[
     "development_window_overlap",
     "label_before_window_end",
     "label_after_fit",
+    "label_before_maturity",
+    "study_window_mismatch",
 ]
 
 
@@ -94,7 +138,7 @@ class Audit(Record):
     findings: tuple[Finding, ...]
 
 
-def audit_fold(fold: Fold) -> Audit:
+def audit_fold(fold: Fold, constraints: StudyConstraints) -> Audit:
     """Check a supplied manifest. Its completeness and authenticity require review."""
     findings: list[Finding] = []
 
@@ -108,28 +152,43 @@ def audit_fold(fold: Fold) -> Audit:
     add(
         ready > fold.origin and fold.calibrated_at is not None, "calibration_after_origin", fold.key
     )
-    add(fold.issued_at < ready, "forecast_before_model_ready", fold.forecast.snapshot)
+    decision_issue = fold.issued_at
+    decision_availability = fold.forecast.available_at
+    if fold.replay_clock:
+        decision_issue = fold.replay_clock.issued_at
+        decision_availability = fold.replay_clock.available_at
+        add(
+            decision_availability < decision_issue,
+            "availability_before_issue",
+            fold.forecast.snapshot,
+        )
+    add(decision_issue < ready, "forecast_before_model_ready", fold.forecast.snapshot)
     add(
         fold.forecast.available_at < fold.issued_at,
         "availability_before_issue",
         fold.forecast.snapshot,
     )
-    if fold.mode in {"historical_archive", "prospective"}:
+    if fold.mode != "retrospective":
         add(
-            fold.forecast.available_at > fold.origin,
+            decision_availability > fold.origin,
             "forecast_after_origin",
             fold.forecast.snapshot,
         )
-    if fold.mode == "prospective":
-        add(
-            fold.protocol.available_at > fold.origin,
-            "protocol_after_origin",
-            fold.protocol.snapshot,
-        )
+    first_decision = min((fold.origin, *(example.origin for example in fold.development)))
+    add(
+        fold.protocol.available_at >= first_decision,
+        "protocol_after_origin",
+        fold.protocol.snapshot,
+    )
+    add(
+        not constraints.matches_window(fold.origin, fold.window_start, fold.window_end),
+        "study_window_mismatch",
+        fold.key,
+    )
 
     for feature in fold.feature_inputs:
         add(
-            feature.available_at > min(fold.origin, fold.issued_at),
+            feature.available_at > min(fold.origin, decision_issue),
             "feature_after_cutoff",
             feature.snapshot,
         )
@@ -148,6 +207,13 @@ def audit_fold(fold: Fold) -> Audit:
     for example in fold.development:
         add(example.key in keys, "duplicate_development_key", example.key)
         keys.add(example.key)
+        add(
+            not constraints.matches_window(
+                example.origin, example.window_start, example.window_end
+            ),
+            "study_window_mismatch",
+            example.key,
+        )
         fit_time = fold.fitted_at
         next_partition = min(calibration_start, fold.origin)
         if example.role == "calibration":
@@ -160,7 +226,7 @@ def audit_fold(fold: Fold) -> Audit:
                 example.key,
             )
         add(
-            next_partition - example.window_end < fold.embargo,
+            next_partition - example.window_end < constraints.embargo,
             "development_window_overlap",
             example.key,
         )
@@ -173,6 +239,12 @@ def audit_fold(fold: Fold) -> Audit:
         add(
             example.label.available_at < example.window_end,
             "label_before_window_end",
+            example.label.snapshot,
+        )
+        add(
+            example.window_end <= example.label.available_at
+            and example.label.available_at - example.window_end < constraints.outcome_maturity,
+            "label_before_maturity",
             example.label.snapshot,
         )
         add(example.label.available_at > fit_time, "label_after_fit", example.label.snapshot)
