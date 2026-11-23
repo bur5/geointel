@@ -95,23 +95,63 @@ completing, require an explicit successful conclusion for the current revision a
 The dedicated PostgreSQL job requires a configured URL, a successful migration and pytest
 exit, and a fresh nonempty JUnit report with zero skips, failures or errors. Local developers
 can still run pytest without PostgreSQL, in which case the integration fixture skips.
-This gate detects accidental omissions under the reviewed workflow. A PR can change its
-own workflow, assertions, or reports. A green result provides test evidence for review.
-GitHub repository rules determine whether this check is enforced at merge time.
+This gate detects accidental omissions under the reviewed workflow. GitHub can count skipped
+or neutral check conclusions as satisfying ordinary required status checks. A check name or
+an expected source of GitHub Actions identifies neither the reviewed workflow definition nor
+its job coverage. The PR controls this workflow, its aggregate check, tests, and reports, so
+neither the workflow nor its aggregate can independently establish trusted merge authorization.
 
 Checkout and setup-python are pinned to their upstream release commits. PostgreSQL uses the
-Docker Official Image pinned to the digest resolved from `postgres:16`, so the service
-cannot change through tag drift. Review and update these pins for upstream security fixes.
-The OS image and Python patch versions can change, and the build backend, Python package and
-tool version ranges and transitive dependencies are still resolved without an integrity-checked
-lockfile. GitHub Actions pip caching is disabled for this workflow. Treat any cache introduced
-by future workflows as untrusted input and keep privileged execution isolated from caches and
+Docker Official Image pinned to the digest resolved from `postgres:16`, which prevents tag
+drift. Review upstream provenance when updating the pins and track security fixes. Pins alone
+do not establish the safety of upstream code or image contents.
+
+`ubuntu-latest` and its preinstalled tools can change, and setup-python selects a Python patch
+release within each minor version. The workflow installs `.[dev]` from the package index.
+Runtime and development version ranges, transitive dependencies, and the unpinned Hatchling
+build backend and its build dependencies are resolved at install time. The workflow enforces
+no reviewed artifact hashes for those inputs. Index changes, new or compromised releases,
+and platform-specific wheels or source builds can change what executes and whether the same
+commit passes on a later run. GitHub Actions pip caching is disabled, which leaves these
+resolution and integrity risks in place. Keep privileged execution isolated from caches and
 artifacts written by untrusted jobs.
 
-Before autonomous R1 execution or merging, the Owner must verify the repository and
-organization settings that govern PR runs, especially same-repository PR capabilities, fork
-write-token and secret policies, runner access, and protected environments. Establish a required
-check bound to an independently controlled policy and the exact candidate revision, and verify
-Owner approval through a trusted source. Review changes to workflow and test policy, artifact
-provenance, and dependency integrity before granting any execution authority. CI status,
-comments, and Manager or Developer output confer no authority to dispatch or merge.
+### Required verification before every merge
+
+Before **any merge to `main`**, including a manual R1 merge, the Owner must verify active
+repository protection, trusted required checks, and independent Owner authorization for the
+exact change under review. These requirements also apply before autonomous R1 execution.
+
+1. In GitHub Settings under Rules → Rulesets and Branches → Branch protection rules, or via
+   the equivalent authenticated GitHub API, inspect the effective repository and inherited
+   organization rules for `main`. Confirm active enforcement, required pull requests and
+   review, stale review dismissal or approval of the latest reviewable push, and coverage of
+   administrators, apps, and merge actors. Confirm the merge path cannot bypass these
+   requirements through a bypass entry, a direct push, or an override. Verify that the
+   candidate is tested against current `main` using strict up-to-date checks or an enforced
+   merge queue with checks on the merge-group commit.
+2. Verify that GitHub requires a workflow from a protected, independently controlled source
+   through a ruleset, or requires an independently produced status check bound to the
+   expected trusted GitHub App. Verify the workflow source repository, ref and path, or the
+   exact check context and App identity, in the effective rule. The PR must be unable to
+   change the enforced policy or publish a substitute result. Review changes to CI policy
+   and tests independently. Requiring `CI required checks` by name, even with GitHub Actions
+   as the expected source, cannot provide that independent enforcement.
+3. Match the trusted run to the current PR head and the exact candidate GitHub will merge
+   (the test merge commit or merge-group commit where applicable). In the Actions run and
+   job records or the corresponding GitHub API, verify the workflow identity, run attempt,
+   and explicit successful completion of both Python matrix legs, PostgreSQL integration,
+   and the gate for that candidate. The independently controlled policy must fail or
+   withhold success if an expected job is missing, pending, skipped, neutral, cancelled,
+   timed out, or failed. Verify that rule from its trusted definition and job evidence.
+   The aggregate's `always()` condition and literal success comparison reject non-success
+   dependency results when it runs. An absent, skipped or interrupted aggregate supplies
+   no positive evidence. Recheck after changes to the head, base, candidate, or run attempt.
+4. Verify the Owner's approval through a trusted source for that candidate. Verify the
+   repository and organization settings for same-repository PRs, fork write tokens and
+   secrets, runner access, and protected environments. Review artifact provenance and
+   dependency integrity before granting execution authority. CI status, PR comments, and
+   Manager or Developer output confer no authority to dispatch or merge.
+
+If any protection, provenance, required job result, or approval cannot be verified, the
+merge must wait, including for manual R1.
