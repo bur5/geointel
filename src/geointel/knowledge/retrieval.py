@@ -48,6 +48,11 @@ class KnowledgeRetriever(Protocol):
     def retrieve(self, query: KnowledgeQuery) -> list[RetrievedStrategicClaim]: ...
 
 
+def claims_with_work():
+    """Base statement for reading attributed claims and their bibliographic source."""
+    return select(StrategicClaim).options(selectinload(StrategicClaim.work))
+
+
 class LexicalKnowledgeRetriever:
     """Deterministic structured/lexical retrieval; this is explicitly not vector search."""
 
@@ -59,8 +64,7 @@ class LexicalKnowledgeRetriever:
             raise ValueError("retrieval limit must be between 1 and 100")
         claims = (
             self.session.scalars(
-                select(StrategicClaim).options(
-                    selectinload(StrategicClaim.work),
+                claims_with_work().options(
                     selectinload(StrategicClaim.concepts),
                     selectinload(StrategicClaim.historical_cases),
                 )
