@@ -19,7 +19,8 @@
       "window_duration": "P2D",
       "outcome_maturity": "P1D",
       "embargo": "P1D"
-    }
+    },
+    "panel_sha256": "5884b72388a31ec864d3627beee0d223e3d9ae5fed0717e134101cd567dfc81b"
   },
   "folds": [
     {
@@ -92,7 +93,8 @@
         "snapshot": "synthetic:protocol",
         "availability_evidence": "synthetic:protocol:log",
         "available_at": "2000-01-01T00:00:00Z",
-        "plan_sha256": "abf4884f614fe7630dc88549f8720366a7de34cb486171a6c2d4fd996b0812d9"
+        "plan_sha256": "34c2d2eff2639b3dba00c039a0ec7a95f3475f6e28e90ac2a70bf9d18aa586e8",
+        "evidence_mode": "synthetic"
       }
     }
   ],

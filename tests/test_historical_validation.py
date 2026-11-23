@@ -10,6 +10,8 @@ from pydantic import ValidationError
 from geointel.historical_validation.audit import Fold, Registration, StudyConstraints, audit_fold
 from geointel.historical_validation.report import (
     BenchmarkReport,
+    EvaluationPanel,
+    OutcomePublication,
     ReportPlan,
     ReportRequest,
     build_report,
@@ -29,10 +31,11 @@ def registration():
     )
 
 
-def render(payload, receipt=None):
+def render(payload, receipt=None, **evidence):
     return build_report(
         ReportRequest.model_validate(payload),
         verified_registration=receipt if receipt is not None else registration(),
+        **evidence,
     )
 
 
@@ -49,6 +52,8 @@ def test_synthetic_report_round_trip(payload):
     report = build_report(request, verified_registration=registration())
     assert report.evidence_mode == "synthetic"
     assert report.evidence_status == "demonstration"
+    assert report.panel_status == "unverified"
+    assert report.outcome_publication_status == "unverified"
     assert not report.audits[0].findings
     assert (
         report.model_dump_json()
@@ -99,10 +104,11 @@ def test_embargo_rejects_gap_even_with_mature_label(payload):
 def test_later_forecast_keeps_evidence_mode(payload, mode, status):
     fold = payload["folds"][0]
     fold["mode"] = mode
+    fold["protocol"]["evidence_mode"] = mode
     fold["issued_at"] = fold["forecast"]["available_at"] = "2001-01-10T00:00:00Z"
     if mode == "historical_replay":
         fold["replay_clock"] = {"issued_at": fold["origin"], "available_at": fold["origin"]}
-    report = render(payload)
+    report = render(payload, Registration.model_validate(fold["protocol"]))
     assert report.evidence_mode == mode
     assert report.evidence_status == status
 
@@ -113,6 +119,7 @@ def test_later_forecast_keeps_evidence_mode(payload, mode, status):
 def test_protocol_must_precede_first_development_decision(payload, mode):
     fold = payload["folds"][0]
     fold["mode"] = mode
+    fold["protocol"]["evidence_mode"] = mode
     fold["protocol"]["available_at"] = fold["development"][0]["origin"]
     report = render(payload, Registration.model_validate(fold["protocol"]))
     assert report.evidence_status == "blocked"
@@ -135,7 +142,7 @@ def test_incompatible_fold_is_rejected(payload, field):
 
 def test_mixed_evidence_modes_are_rejected(payload):
     payload["folds"].append(dict(payload["folds"][0], key="second", mode="retrospective"))
-    with pytest.raises(ValidationError, match="single evidence mode"):
+    with pytest.raises(ValidationError, match="differs from registered evidence mode"):
         ReportRequest.model_validate(payload)
 
 
@@ -308,12 +315,13 @@ def test_embargo_uses_elapsed_time_across_dst(payload, month, day, blocked):
 def test_replay_late_on_simulated_clock_blocks_comparison_eligibility(payload):
     fold = payload["folds"][0]
     fold["mode"] = "historical_replay"
+    fold["protocol"]["evidence_mode"] = fold["mode"]
     fold["issued_at"] = fold["forecast"]["available_at"] = "2001-01-10T00:00:00Z"
     fold["replay_clock"] = {
         "issued_at": fold["origin"],
         "available_at": "2000-01-10T00:00:01Z",
     }
-    report = render(payload)
+    report = render(payload, Registration.model_validate(fold["protocol"]))
     assert report.evidence_status == "blocked"
     assert report.audits[0].findings[0].code == "forecast_after_origin"
 
@@ -364,9 +372,10 @@ def test_registration_must_precede_fit_even_without_development_rows(payload):
 def test_actual_replay_publication_cannot_precede_simulated_availability(payload):
     fold = payload["folds"][0]
     fold["mode"] = "historical_replay"
+    fold["protocol"]["evidence_mode"] = fold["mode"]
     fold["issued_at"] = fold["forecast"]["available_at"] = "2000-01-09T23:59:59.999999Z"
     fold["replay_clock"] = {"issued_at": fold["origin"], "available_at": fold["origin"]}
-    report = render(payload)
+    report = render(payload, Registration.model_validate(fold["protocol"]))
     assert report.evidence_status == "blocked"
     assert [finding.code for finding in report.audits[0].findings] == [
         "replay_publication_before_simulated_availability",
@@ -381,3 +390,144 @@ def test_zero_lead_case_cannot_attach_pr34_scores(payload):
     payload["comparisons"] = [{"case_indices": [0], "n": 1, "status": "comparable"}]
     with pytest.raises(ValidationError, match="comparisons"):
         ReportRequest.model_validate(payload)
+
+
+def test_single_fold_cannot_switch_to_retrospective_under_same_receipt(payload):
+    fold = payload["folds"][0]
+    fold["mode"] = "retrospective"
+    fold["issued_at"] = fold["forecast"]["available_at"] = "2001-01-10T00:00:00Z"
+    with pytest.raises(ValidationError, match="differs from registered evidence mode"):
+        render(payload)
+    fold["protocol"]["evidence_mode"] = "retrospective"
+    with pytest.raises(ValueError, match="verified registration"):
+        render(payload)
+
+
+def test_registered_panel_accounts_for_present_missing_and_excluded_slots(payload):
+    second = add_second_fold(payload)
+    panel = EvaluationPanel(
+        snapshot=payload["plan"]["panel_snapshot"],
+        slots=(
+            Fold.model_validate(payload["folds"][0]).evaluation_case().model_dump(),
+            Fold.model_validate(second).evaluation_case().model_dump(),
+            dict(
+                geography_id=second["geography_id"],
+                origin="2000-01-11T00:00:00Z",
+                window_start="2000-01-11T00:00:00Z",
+                window_end="2000-01-13T00:00:00Z",
+                exclusion_reason="Registered coverage exclusion",
+            ),
+        ),
+    )
+    payload["plan"]["panel_sha256"] = panel.digest()
+    receipt = register_synthetic_plan(payload)
+
+    reversed_panel = EvaluationPanel(snapshot=panel.snapshot, slots=panel.slots[::-1])
+    assert reversed_panel.digest() == panel.digest()
+    full = render(payload, receipt, resolved_panel=reversed_panel)
+    assert full.panel_status == "verified"
+    assert not full.missing_panel_slots
+    assert full.resolved_panel.slots[0].exclusion_reason == "Registered coverage exclusion"
+    payload["folds"].pop()
+    partial = render(payload, receipt, resolved_panel=panel)
+    assert partial.panel_status == "incomplete"
+    assert partial.evidence_status == "blocked"
+    assert partial.missing_panel_slots == (panel.slots[1].evaluation_case(),)
+    assert render(payload, receipt).panel_status == "unverified"
+
+    substituted = EvaluationPanel(snapshot=panel.snapshot, slots=panel.slots[:1])
+    with pytest.raises(ValueError, match="differs from registered panel content"):
+        render(payload, receipt, resolved_panel=substituted)
+
+    fold = payload["folds"][0]
+    fold.update(
+        origin="2000-01-11T00:00:00Z",
+        window_start="2000-01-11T00:00:00Z",
+        window_end="2000-01-13T00:00:00Z",
+    )
+    with pytest.raises(ValueError, match="unregistered panel slot"):
+        render(payload, receipt, resolved_panel=panel)
+    fold["geography_id"] = second["geography_id"]
+    with pytest.raises(ValueError, match="excluded panel slot"):
+        render(payload, receipt, resolved_panel=panel)
+
+
+def test_bare_panel_reference_cannot_verify_panel(payload):
+    panel = EvaluationPanel.model_validate_json(
+        (FIXTURES / "synthetic_benchmark_panel.json").read_bytes()
+    )
+    del payload["plan"]["panel_sha256"]
+    receipt = register_synthetic_plan(payload)
+    assert render(payload, receipt).panel_status == "unverified"
+    with pytest.raises(ValueError, match="differs from registered panel content"):
+        render(payload, receipt, resolved_panel=panel)
+    with pytest.raises(ValidationError, match="duplicate registered panel slots"):
+        EvaluationPanel.model_validate(
+            dict(
+                snapshot=panel.snapshot,
+                slots=(
+                    panel.slots[0],
+                    dict(
+                        panel.slots[0].model_dump(),
+                        origin="2000-01-09T19:00:00-05:00",
+                        exclusion_reason="Cannot declare the same slot twice",
+                    ),
+                ),
+            )
+        )
+
+
+def test_verified_outcome_vintage_must_be_published_by_freeze(payload):
+    payload["outcomes"]["outcome_snapshot"] = "selected-after-registration"
+    declared = dict(
+        payload["outcomes"],
+        available_at="2000-01-14T19:00:00-05:00",
+        availability_evidence="synthetic:publisher:release",
+    )
+    publication = OutcomePublication.model_validate(declared)
+    assert publication.available_at > registration().available_at
+    report = render(payload, verified_outcome_publication=publication)
+    assert report.outcome_publication_status == "verified"
+    assert report.outcome_publication == publication
+    assert not report.comparisons
+    assert render(payload).outcome_publication_status == "unverified"
+
+    late = OutcomePublication.model_validate(
+        dict(declared, available_at="2000-01-15T00:00:00.000001Z")
+    )
+    with pytest.raises(ValueError, match="unavailable at the outcome freeze"):
+        render(payload, verified_outcome_publication=late)
+    wrong_vintage = OutcomePublication.model_validate(dict(declared, dataset_version="other"))
+    with pytest.raises(ValueError, match="different outcome vintage"):
+        render(payload, verified_outcome_publication=wrong_vintage)
+    with pytest.raises(ValidationError, match="missing outcome publication evidence"):
+        BenchmarkReport.model_validate(
+            dict(render(payload).model_dump(), outcome_publication_status="verified")
+        )
+
+
+def test_canonical_development_duplicates_and_geographic_units(payload):
+    fold = payload["folds"][0]
+    alias = deepcopy(fold["development"][0])
+    alias.update(
+        key="different-key",
+        geography_id=fold["geography_id"],
+        origin="2000-01-01T19:00:00-05:00",
+    )
+    fold["development"].append(alias)
+    report = render(payload)
+    assert report.evidence_status == "blocked"
+    assert [finding.code for finding in report.audits[0].findings] == ["duplicate_development_case"]
+
+    alias["geography_id"] = "OTHER-UNIT"
+    assert not render(payload).audits[0].findings
+
+    alias["label"]["availability_evidence"] = "conflicting-log"
+    assert [finding.code for finding in render(payload).audits[0].findings] == [
+        "conflicting_development_vintage"
+    ]
+    alias["geography_id"] = fold["geography_id"]
+    assert [finding.code for finding in render(payload).audits[0].findings] == [
+        "duplicate_development_case",
+        "conflicting_development_vintage",
+    ]

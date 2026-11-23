@@ -42,6 +42,7 @@ class Registration(Vintage):
     """Receipt for an immutable plan, issued by an independently verified source."""
 
     plan_sha256: Digest
+    evidence_mode: EvidenceMode
 
 
 class StudyConstraints(Record):
@@ -62,6 +63,7 @@ class ReplayClock(Record):
 
 class DevelopmentExample(Record):
     key: Reference
+    geography_id: Reference | None = None
     role: Literal["train", "calibration"]
     origin: UTCDateTime
     window_start: UTCDateTime
@@ -74,6 +76,13 @@ class DevelopmentExample(Record):
         if not self.origin <= self.window_start < self.window_end:
             raise ValueError("development window must be nonempty and start at or after origin")
         return self
+
+
+class EvaluationCase(Record):
+    geography_id: Reference
+    origin: UTCDateTime
+    window_start: UTCDateTime
+    window_end: UTCDateTime
 
 
 class Fold(Record):
@@ -100,11 +109,21 @@ class Fold(Record):
 
     @model_validator(mode="after")
     def check_window(self) -> Self:
+        if self.mode != self.protocol.evidence_mode:
+            raise ValueError("fold evidence mode differs from registered evidence mode")
         if not self.origin <= self.window_start < self.window_end:
             raise ValueError("test window must be nonempty and start at or after origin")
         if (self.replay_clock is not None) != (self.mode == "historical_replay"):
             raise ValueError("historical replay requires a separate simulated forecast clock")
         return self
+
+    def evaluation_case(self) -> EvaluationCase:
+        return EvaluationCase(
+            geography_id=self.geography_id,
+            origin=self.origin,
+            window_start=self.window_start,
+            window_end=self.window_end,
+        )
 
 
 FindingCode = Literal[
@@ -118,6 +137,8 @@ FindingCode = Literal[
     "protocol_after_origin",
     "feature_after_cutoff",
     "duplicate_development_key",
+    "duplicate_development_case",
+    "conflicting_development_vintage",
     "calibration_step_missing",
     "calibration_examples_missing",
     "development_window_overlap",
@@ -135,6 +156,7 @@ class Finding(Record):
 
 class Audit(Record):
     fold_key: Reference
+    evaluation_case: EvaluationCase
     manifest: Reference
     findings: tuple[Finding, ...]
 
@@ -218,9 +240,22 @@ def audit_fold(fold: Fold, constraints: StudyConstraints) -> Audit:
         default=fold.origin,
     )
     keys: set[str] = set()
+    cases: set[tuple[str, datetime, datetime, datetime]] = set()
+    vintages: dict[str, Vintage] = {}
     for example in fold.development:
         add(example.key in keys, "duplicate_development_key", example.key)
         keys.add(example.key)
+        case = (
+            example.geography_id or fold.geography_id,
+            example.origin,
+            example.window_start,
+            example.window_end,
+        )
+        add(case in cases, "duplicate_development_case", example.key)
+        cases.add(case)
+        for vintage in (*example.features, example.label):
+            previous = vintages.setdefault(vintage.snapshot, vintage)
+            add(previous != vintage, "conflicting_development_vintage", vintage.snapshot)
         add(
             not constraints._matches_window(
                 example.origin, example.window_start, example.window_end
@@ -263,4 +298,9 @@ def audit_fold(fold: Fold, constraints: StudyConstraints) -> Audit:
         )
         add(example.label.available_at > fit_time, "label_after_fit", example.label.snapshot)
 
-    return Audit(fold_key=fold.key, manifest=fold.manifest, findings=tuple(findings))
+    return Audit(
+        fold_key=fold.key,
+        evaluation_case=fold.evaluation_case(),
+        manifest=fold.manifest,
+        findings=tuple(findings),
+    )

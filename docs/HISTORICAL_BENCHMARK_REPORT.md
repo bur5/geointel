@@ -20,13 +20,14 @@ Preserve the metadata alongside the scoring artifact.
 ## Machine-readable manifest
 
 Validate inputs with `ReportRequest` and pass an independently verified
-`Registration` receipt to `build_report` to produce a schema-version 2 manifest.
+`Registration` receipt to `build_report` to produce a schema-version 3 manifest.
 The receipt must come from an immutable registry or independently verified
 timestamp evidence and must identify the exact registered plan digest, availability
-instant and evidence reference. Do not derive a trusted receipt from a fold or
+instant, evidence reference and registered evidence mode. Every fold must use that
+mode. Do not derive a trusted receipt from a fold or
 generate one from the plan at report time. The library has no registry client.
 
-The registered plan fixes the target version, horizon, geography and panel, and
+The registered plan fixes the target version, horizon and geography, and
 sets exact elapsed forecast lead, window duration, outcome maturity and embargo.
 Use UTC-equivalent durations (one day is 24 hours). Every fold supplies the same
 receipt, whose availability must strictly precede the earliest fold origin, forecast
@@ -34,9 +35,29 @@ issuance used for the decision, fit, calibration, or development origin. For a r
 the audit uses the simulated decision clocks and requires actual publication to
 follow or coincide with simulated forecast availability. Development labels
 must be available at or after maturity and by fit or calibration. The evaluation
-outcome freeze must be at or after test-window maturity. A separate `outcomes`
-block identifies the one realized outcome vintage, which may be published after
-registration. References in historical manifests still require source verification.
+outcome freeze must be at or after test-window maturity. Development cases are
+unique within a fold by geography, UTC origin and window endpoints, regardless
+of row key or split role. An omitted development geography inherits the fold's
+geography. Reused development snapshot references must agree on availability
+metadata within a fold.
+
+Before registration, use `EvaluationPanel.digest()` to bind the panel snapshot
+and its complete slot roster in the plan's `panel_sha256`. A slot includes the
+geography, origin and both window endpoints, plus a reason if the slot is excluded.
+The digest uses UTC instants and canonical slot order. Supply the artifact as
+`resolved_panel`. Duplicate slots, unregistered folds and folds occupying excluded
+slots are rejected. Registered exclusions remain visible in the resolved panel,
+and any missing required slot is listed and blocks the report. When the panel
+cannot be resolved, or the plan carries only a snapshot reference, panel integrity
+is unverified and missing/excluded totals cannot be inferred from submitted folds.
+
+The `outcomes` block identifies the realized vintage, which may be selected and
+published after registration. Pass `verified_outcome_publication` only after
+independently confirming the availability timestamp and evidence reference for
+that exact dataset version and snapshot. Availability at the freeze passes,
+and later availability is rejected. Without independently verified publication
+evidence the manifest records an unverified status. Publication verification
+does not establish per-case outcome completeness or accuracy.
 
 The request hash covers the normalized request, including the one outcome vintage,
 and preserves list order. Any fold finding blocks the report. Both the request and
@@ -44,7 +65,7 @@ report schemas require an empty `comparisons` array until a verified adapter exi
 Clean historical and prospective manifests retain `provenance_review_required`.
 Freeze the original input and the independent receipt for reproduction.
 
-The following example uses the two synthetic fixtures and produces a demonstration
+The following example uses the synthetic fixtures and produces a demonstration
 manifest with no empirical scores.
 
 ```sh
@@ -52,7 +73,7 @@ python - <<'PYCODE'
 from pathlib import Path
 
 from geointel.historical_validation.audit import Registration
-from geointel.historical_validation.report import ReportRequest, build_report
+from geointel.historical_validation.report import EvaluationPanel, ReportRequest, build_report
 
 fixtures = Path("tests/fixtures")
 request = ReportRequest.model_validate_json(
@@ -61,7 +82,10 @@ request = ReportRequest.model_validate_json(
 receipt = Registration.model_validate_json(
     (fixtures / "synthetic_benchmark_registration.json").read_bytes()
 )
-print(build_report(request, verified_registration=receipt).model_dump_json(indent=2))
+panel = EvaluationPanel.model_validate_json(
+    (fixtures / "synthetic_benchmark_panel.json").read_bytes()
+)
+print(build_report(request, verified_registration=receipt, resolved_panel=panel).model_dump_json(indent=2))
 PYCODE
 ```
 
