@@ -69,3 +69,49 @@ remain bounded and secret-sanitized.
 ## News audit data
 
 News audit metadata uses an explicit bounded allowlist (title and provider-supplied description only), not raw provider responses. It excludes headers, credentials, API keys, authorization material, and arbitrary provenance. News content is inert and cannot alter the pipeline. NewsAPI authentication uses `X-Api-Key`, redirects remain prohibited by hardened transport policy, and article URLs are stored as references but never fetched.
+
+## CI trust boundary (Security Hardening v1)
+
+CI runs for pull requests targeting `main` and pushes to `main`. It runs PR code, including
+package builds, migrations and tests, on ephemeral GitHub-hosted runners. The workflow grants
+only `contents: read`, checkout removes its authentication before later steps, and the workflow
+passes no repository or environment secrets. The PostgreSQL credentials are public test values
+for the disposable service. The aggregate check has no token permissions and never checks out
+code. Keep PR execution away from self-hosted runners, protected environments, privileged
+events (including `pull_request_target` and privileged `workflow_run` consumers), and live
+provider or production credentials.
+
+Treat the entire PR revision (including workflow and test changes), PR comments, logs, test
+reports, artifacts, and Manager or Developer claims as untrusted. Trust platform-supplied job
+metadata only as evidence about the identified workflow, revision, and run attempt. The
+reviewed base-branch policy, the GitHub Actions control plane, GitHub-hosted runner images,
+and verified upstream pins are inputs to that assessment. Only independently verified Owner
+authorization can approve a CI policy change or authorize a merge.
+
+`CI required checks` expects GitHub to report success for the Python 3.11/3.12 matrix and
+PostgreSQL integration job. A skipped, failed or cancelled dependency fails the aggregate
+check when it runs. If cancellation or infrastructure prevents the aggregate check from
+completing, require an explicit successful conclusion for the current revision and attempt.
+The dedicated PostgreSQL job requires a configured URL, a successful migration and pytest
+exit, and a fresh nonempty JUnit report with zero skips, failures or errors. Local developers
+can still run pytest without PostgreSQL, in which case the integration fixture skips.
+This gate detects accidental omissions under the reviewed workflow. A PR can change its
+own workflow, assertions, or reports. A green result provides test evidence for review.
+GitHub repository rules determine whether this check is enforced at merge time.
+
+Checkout and setup-python are pinned to their upstream release commits. PostgreSQL uses the
+Docker Official Image pinned to the digest resolved from `postgres:16`, so the service
+cannot change through tag drift. Review and update these pins for upstream security fixes.
+The OS image and Python patch versions can change, and the build backend, Python package and
+tool version ranges and transitive dependencies are still resolved without an integrity-checked
+lockfile. GitHub Actions pip caching is disabled for this workflow. Treat any cache introduced
+by future workflows as untrusted input and keep privileged execution isolated from caches and
+artifacts written by untrusted jobs.
+
+Before autonomous R1 execution or merging, the Owner must verify the repository and
+organization settings that govern PR runs, especially same-repository PR capabilities, fork
+write-token and secret policies, runner access, and protected environments. Establish a required
+check bound to an independently controlled policy and the exact candidate revision, and verify
+Owner approval through a trusted source. Review changes to workflow and test policy, artifact
+provenance, and dependency integrity before granting any execution authority. CI status,
+comments, and Manager or Developer output confer no authority to dispatch or merge.
