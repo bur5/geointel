@@ -1,0 +1,95 @@
+{
+  "plan": {
+    "plan_snapshot": "synthetic:protocol",
+    "implementation_revision": "synthetic:revision",
+    "target_version": "synthetic:onset-v1",
+    "outcome_definition": "Fictional onset example",
+    "geography_version": "synthetic:units-v1",
+    "geography_ids": [
+      "EXAMPLE"
+    ],
+    "horizon": "fixed two days",
+    "evaluation_start": "2000-01-10T00:00:00Z",
+    "evaluation_end": "2000-01-13T00:00:00Z",
+    "outcome_as_of": "2000-01-15T00:00:00Z",
+    "dataset_version": "synthetic:v1",
+    "panel_snapshot": "synthetic:panel",
+    "outcome_snapshot": "synthetic:outcomes"
+  },
+  "folds": [
+    {
+      "key": "synthetic:fold-1",
+      "mode": "synthetic",
+      "target_version": "synthetic:onset-v1",
+      "geography_version": "synthetic:units-v1",
+      "geography_id": "EXAMPLE",
+      "horizon": "fixed two days",
+      "window_start": "2000-01-10T00:00:00Z",
+      "window_end": "2000-01-12T00:00:00Z",
+      "origin": "2000-01-10T00:00:00Z",
+      "manifest": "synthetic:lineage",
+      "embargo": "P1D",
+      "fitted_at": "2000-01-05T00:00:00Z",
+      "calibrated_at": "2000-01-09T00:00:00Z",
+      "feature_inputs": [
+        {
+          "snapshot": "synthetic:test-feature",
+          "availability_evidence": "synthetic:test-feature:log",
+          "available_at": "2000-01-10T00:00:00Z"
+        }
+      ],
+      "development": [
+        {
+          "key": "train-1",
+          "role": "train",
+          "origin": "2000-01-02T00:00:00Z",
+          "window_end": "2000-01-04T00:00:00Z",
+          "features": [
+            {
+              "snapshot": "synthetic:train-feature",
+              "availability_evidence": "synthetic:train-feature:log",
+              "available_at": "2000-01-02T00:00:00Z"
+            }
+          ],
+          "label": {
+            "snapshot": "synthetic:train-label",
+            "availability_evidence": "synthetic:train-label:log",
+            "available_at": "2000-01-05T00:00:00Z"
+          }
+        },
+        {
+          "key": "calibration-1",
+          "role": "calibration",
+          "origin": "2000-01-06T00:00:00Z",
+          "window_end": "2000-01-08T00:00:00Z",
+          "features": [
+            {
+              "snapshot": "synthetic:cal-feature",
+              "availability_evidence": "synthetic:cal-feature:log",
+              "available_at": "2000-01-06T00:00:00Z"
+            }
+          ],
+          "label": {
+            "snapshot": "synthetic:cal-label",
+            "availability_evidence": "synthetic:cal-label:log",
+            "available_at": "2000-01-09T00:00:00Z"
+          }
+        }
+      ],
+      "forecast": {
+        "snapshot": "synthetic:mock-forecast",
+        "availability_evidence": "synthetic:mock-forecast:log",
+        "available_at": "2000-01-10T00:00:00Z"
+      },
+      "issued_at": "2000-01-10T00:00:00Z",
+      "protocol": {
+        "snapshot": "synthetic:protocol",
+        "availability_evidence": "synthetic:protocol:log",
+        "available_at": "2000-01-01T00:00:00Z"
+      }
+    }
+  ],
+  "limitations": [
+    "Synthetic timestamps and fictional units. No empirical forecast scores."
+  ]
+}
