@@ -75,3 +75,21 @@ def parse(
         history(EventType.INTERNAL_ARMED_CONFLICT, internal, unresolved_internal),
         history(EventType.INTERSTATE_CONFLICT, interstate, unresolved_interstate),
     )
+
+
+def dyad_years(text: str, start_year: int = 1946) -> dict[frozenset[str], set[int]]:
+    """Interstate conflict years per pair of opposing states (side A vs side B)."""
+    result: dict[frozenset[str], set[int]] = defaultdict(set)
+    for row in csv.DictReader(io.StringIO(text)):
+        if str(row.get("type_of_conflict", "")).strip() != INTERSTATE_TYPE:
+            continue
+        year = int(row["year"])
+        if year < start_year:
+            continue
+        side_a = [c for c in map(resolve_country_name, _split(row.get("side_a", ""))) if c]
+        side_b = [c for c in map(resolve_country_name, _split(row.get("side_b", ""))) if c]
+        for a in side_a:
+            for b in side_b:
+                if a != b:
+                    result[frozenset((a, b))].add(year)
+    return dict(result)

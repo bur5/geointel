@@ -21,8 +21,11 @@ from geointel.risk.sources import (
     fcdo,
     fts,
     gdacs,
+    migration,
     ncei_tsunami,
     outlook,
+    polymarket,
+    trade,
     usgs,
     worldbank,
 )
@@ -229,6 +232,133 @@ def _regions(client: httpx.Client, _year: int) -> tuple[bytes, str, str]:
     return _get(client, regions.URL).content, regions.URL, "ne_10m_admin_1"
 
 
+def _milex(client: httpx.Client, _year: int) -> tuple[bytes, str, str]:
+    return _download_first(client, [(outlook.owid_url(slug), slug) for slug in trade.MILEX_SLUGS])
+
+
+def _markets(client: httpx.Client, _year: int) -> tuple[bytes, str, str]:
+    from geointel.risk.scenarios import CATALOGUE
+
+    responses, failures = [], 0
+    for query in sorted({q for s in CATALOGUE for q in s.market_queries}):
+        try:
+            response = client.get(
+                polymarket.SEARCH_URL, params=polymarket.search_params(query), timeout=30
+            )
+            response.raise_for_status()
+            responses.append({"query": query, **response.json()})
+        except Exception:  # noqa: BLE001 - one failed query only loses its markets
+            failures += 1
+        time.sleep(0.5)
+    if not responses:
+        raise RuntimeError("no Polymarket responses")
+    found = polymarket.markets(responses)
+    for market in sorted(found, key=lambda m: -m["volume"])[:40]:
+        print(
+            f"[markets] {market['p']:.3f} {market['end']} ${market['volume']:.0f} "
+            f"{market['question'][:110]}"
+        )
+    payload = {"responses": responses, "failed_queries": failures}
+    return json.dumps(payload).encode(), polymarket.SEARCH_URL, f"{len(found)} markets"
+
+
+def _unhcr(client: httpx.Client, reference_year: int) -> tuple[bytes, str, str]:
+    last: Exception | None = None
+    for year in (reference_year - 1, reference_year - 2):
+        try:
+            pages, page, max_pages = [], 1, 1
+            while page <= max_pages and page <= 20:
+                data = client.get(
+                    migration.UNHCR_URL, params=migration.unhcr_params(year, page), timeout=90
+                )
+                data.raise_for_status()
+                body = data.json()
+                pages.append(body)
+                max_pages = int(body.get("maxPages") or 1)
+                page += 1
+            if sum(len(p.get("items") or []) for p in pages) > 100:
+                return (
+                    json.dumps({"year": year, "pages": pages}).encode(),
+                    migration.UNHCR_URL,
+                    str(year),
+                )
+        except Exception as exc:  # noqa: BLE001 - try the previous year
+            last = exc
+    raise last or RuntimeError("no UNHCR data")
+
+
+def _eurostat(client: httpx.Client, reference_year: int) -> tuple[bytes, str, str]:
+    since = f"{reference_year - 3}-01"
+    response = client.get(
+        migration.EUROSTAT_URL, params=migration.eurostat_params(since), timeout=120
+    )
+    response.raise_for_status()
+    return response.content, migration.EUROSTAT_URL, f"since {since}"
+
+
+TRADE_FIELDS = ("reporterCode", "reporterISO", "partnerCode", "partnerISO", "primaryValue")
+
+
+def _trade_cache() -> dict[int, dict]:
+    """Previously fetched reporters (Comtrade is slow, so the cache fills over several days)."""
+    path = os.environ.get("GEOINTEL_TRADE_CACHE")
+    if not path or not Path(path).is_file():
+        return {}
+    try:
+        payload = json.loads(Path(path).read_text())
+    except ValueError:
+        return {}
+    cached: dict[int, dict] = {}
+    for response in payload.get("responses") or []:
+        rows = response.get("data") or []
+        if rows:
+            cached[int(rows[0].get("reporterCode", -1))] = response
+    return cached
+
+
+def _trade(client: httpx.Client, reference_year: int) -> tuple[bytes, str, str]:
+    reporters = trade.reference_codes(_get(client, trade.REPORTERS_URL).json())
+    partners = trade.reference_codes(_get(client, trade.PARTNERS_URL).json())
+    codes = {**partners, **reporters}
+    year = reference_year - 2
+    cached = {
+        code: r
+        for code, r in _trade_cache().items()
+        if code in reporters and r["period"] >= year - 1
+    }
+    fresh, failures = {}, 0
+    deadline = time.monotonic() + 600  # never let trade hold up the daily run
+    for code in sorted(c for c in reporters if c not in cached):
+        if time.monotonic() > deadline:
+            break
+        for period in (year, year - 1):
+            try:
+                response = client.get(
+                    trade.DATA_URL, params=trade.data_params(code, period), timeout=45
+                )
+                if response.status_code == 429:
+                    time.sleep(10)
+                    response = client.get(
+                        trade.DATA_URL, params=trade.data_params(code, period), timeout=45
+                    )
+                response.raise_for_status()
+                body = response.json()
+            except Exception:  # noqa: BLE001 - a missing reporter is not fatal
+                failures += 1
+                break
+            if body.get("data"):
+                rows = [{k: row.get(k) for k in TRADE_FIELDS} for row in body["data"]]
+                fresh[code] = {"period": period, "data": rows}
+                break
+        time.sleep(1.1)
+    responses = [*cached.values(), *fresh.values()]
+    if not responses:
+        raise RuntimeError(f"no Comtrade data ({failures} failures)")
+    payload = {"year": year, "codes": codes, "responses": responses, "failures": failures}
+    version = f"{len(responses)}/{len(reporters)} reporters ({len(fresh)} new)"
+    return json.dumps(payload).encode(), trade.DATA_URL, version
+
+
 def fetch_all(raw_dir: Path, reference_year: int | None = None) -> dict:
     raw_dir.mkdir(parents=True, exist_ok=True)
     year = reference_year or datetime.now(UTC).year
@@ -248,6 +378,11 @@ def fetch_all(raw_dir: Path, reference_year: int | None = None) -> dict:
         "gpr": ("gpr.xls", lambda c: _gpr(c, year)),
         "elections": ("elections.json", lambda c: _elections(c, year)),
         "fcdo": ("fcdo.json", lambda c: _fcdo(c, year)),
+        "milex": ("milex.csv", lambda c: _milex(c, year)),
+        "markets": ("markets.json", lambda c: _markets(c, year)),
+        "unhcr": ("unhcr.json", lambda c: _unhcr(c, year)),
+        "eurostat": ("eurostat.json", lambda c: _eurostat(c, year)),
+        "trade": ("trade.json", lambda c: _trade(c, year)),
         "regions": ("regions.geojson", lambda c: _regions(c, year)),
     }
     only = {k for k in os.environ.get("GEOINTEL_SOURCES", "").split(",") if k}

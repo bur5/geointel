@@ -1,0 +1,1296 @@
+{
+ "schema": "geointel-scenarios-v1",
+ "generated_at": "2026-11-24T05:30:00+00:00",
+ "scenarios": [
+  {
+   "key": "russia_nato",
+   "title_ru": "Военное нападение России на страну НАТО",
+   "title_en": "Russian military attack on a NATO country",
+   "event_ru": "Вооружённые силы России (в том числе без опознавательных знаков, если правительство пострадавшей страны признаёт это нападением) наносят удар по территории государства НАТО или вторгаются на неё, с погибшими или захватом территории. Диверсии, кибератаки и нарушения воздушного пространства без жертв не считаются.",
+   "event_en": "Russian armed forces (including unmarked forces, if the victim government calls it an attack) strike or enter the territory of a NATO state, causing deaths or seizing territory. Sabotage, cyberattacks and airspace violations without casualties do not count.",
+   "polarity": 1,
+   "annual": {
+    "p": 0.044,
+    "low": 0.0001,
+    "high": 0.0842
+   },
+   "horizons": {
+    "1m": {
+     "p": 0.0037,
+     "low": 0.0,
+     "high": 0.0073
+    },
+    "1y": {
+     "p": 0.044,
+     "low": 0.0001,
+     "high": 0.0842
+    },
+    "5y": {
+     "p": 0.2014,
+     "low": 0.0005,
+     "high": 0.3558
+    },
+    "10y": {
+     "p": 0.3623,
+     "low": 0.001,
+     "high": 0.585
+    }
+   },
+   "confidence": "low",
+   "indicator_factor": 1.6,
+   "components": [
+    {
+     "kind": "history",
+     "annual": 0.0221,
+     "low": 0.0001,
+     "high": 0.0842,
+     "weight": 0.35,
+     "detail_ru": "Годы межгосударственного конфликта между сторонами по UCDP/PRIO с 1946 по 2025 г.: 0; за последние 30 лет: нет. Недавние годы весят больше (полупериод 15 лет). Вес низкий: данные отстают на год, а сценарии как раз о разрыве с прошлым.",
+     "detail_en": "Years of interstate conflict between the sides in UCDP/PRIO, 1946–2025: 0; in the last 30 years: none. Recent years weigh more (half-life 15 years). Low weight: the data lag a year and a structural break is exactly what scenarios are about.",
+     "url": "https://ucdp.uu.se/downloads/"
+    },
+    {
+     "kind": "expert",
+     "annual": 0.03,
+     "low": 0.01,
+     "high": 0.08,
+     "weight": 1.0,
+     "detail_ru": "С 1945 года не было прямого военного нападения одной ядерной державы на членов противостоящего альянса, поэтому историческая частота близка к нулю. Но сейчас идёт война рядом с границей НАТО, Россия перевела экономику на военные рельсы, а несколько разведок публично предупреждают об ограниченном нападении. Оценка GeoIntel: около 3% в год, разумный диапазон 1–8%.",
+     "detail_en": "Since 1945 no nuclear power has directly attacked members of an opposing alliance, so the historical frequency is near zero. But a war is under way next to NATO's border, Russia runs a war economy, and several intelligence services publicly warn of a limited attack. GeoIntel judgement: about 3% a year, plausible range 1–8%.",
+     "url": null
+    }
+   ],
+   "indicators": [
+    {
+     "key": "milex",
+     "direction": 1,
+     "label_ru": "Военные расходы, % ВВП (изменение за 5 лет, п. п.)",
+     "label_en": "Military spending, % of GDP (5-year change, pp)",
+     "value": "RUS 7.1% (+3.2), POL 4.2% (+2.1), EST 3.4% (+1.3), DEU 2.1% (+0.7)",
+     "source": "SIPRI via OWID"
+    },
+    {
+     "key": "gpr",
+     "direction": 1,
+     "label_ru": "Индекс геополитического риска: последние 12 мес. к среднему за 5 лет",
+     "label_en": "Geopolitical risk index: last 12 months vs 5-year mean",
+     "value": "RUS ×1.40, DEU ×1.20",
+     "source": "Caldara & Iacoviello GPR"
+    },
+    {
+     "key": "war",
+     "direction": 1,
+     "label_ru": "Идущая межгосударственная война с участием сторон",
+     "label_en": "Ongoing interstate war involving the parties",
+     "value": "RUS, UKR",
+     "source": "UCDP/PRIO"
+    },
+    {
+     "key": "warnings",
+     "direction": 1,
+     "label_ru": "Официальные предупреждения за 12 месяцев",
+     "label_en": "Official warnings in the last 12 months",
+     "value": "3",
+     "source": "GeoIntel curated list"
+    }
+   ],
+   "warnings": [
+    {
+     "date": "2026-09-24",
+     "source": "Danish Defence Intelligence Service (DDIS)",
+     "url": "https://euronews.com/2026/09/24/denmark-says-russian-invasion-of-nato-country-highly-unlikely-but-cannot-be-ruled-out",
+     "direction": 1,
+     "summary_ru": "Разведка Дании: низкий, но растущий риск ограниченного военного нападения России на одну или несколько граничащих с ней стран НАТО; признаков подготовки полномасштабного вторжения нет.",
+     "summary_en": "Danish intelligence: a low but growing risk of a limited Russian military attack on one or more NATO countries bordering Russia; no signs of preparation for a full-scale invasion."
+    },
+    {
+     "date": "2026-08-07",
+     "source": "US intelligence assessments (reported by CNN and WSJ)",
+     "url": "https://edition.cnn.com/2026/08/07/politics/us-intelligence-russia-putin-nato-attack",
+     "direction": 1,
+     "summary_ru": "Оценки разведки США: Путин может попытаться проверить единство НАТО ограниченным нападением в ближайшие годы — от кибератаки до небольшого вторжения.",
+     "summary_en": "US intelligence assessments: Putin could try to test NATO unity with a limited attack in the next few years, from a cyberattack to a small incursion."
+    },
+    {
+     "date": "2026-06",
+     "source": "Lt Gen Christian Freuding, Chief of the German Army (reported)",
+     "url": "https://kyivindependent.com/us-intel-warns-russia-could-launch-attack-on-nato-countries-by-2029-wsj-reports/",
+     "direction": 1,
+     "summary_ru": "Командующий сухопутными войсками Германии: у России могут появиться возможности для удара по странам НАТО в течение трёх лет.",
+     "summary_en": "Head of the German Army: Russia may have the capability to strike NATO countries within three years."
+    },
+    {
+     "date": "2024-10-15",
+     "source": "Bruno Kahl, President of the German BND",
+     "url": "https://www.euronews.com/2024/10/15/russia-could-attack-nato-by-end-of-decade-german-intelligence-chief-warns",
+     "direction": 1,
+     "summary_ru": "Глава BND: Россия может напасть на НАТО до конца десятилетия.",
+     "summary_en": "BND chief: Russia could attack NATO by the end of the decade."
+    }
+   ],
+   "market_candidates": [],
+   "market_status": "no_match",
+   "affected": [
+    {
+     "iso3": "RUS",
+     "role": "party",
+     "reason_ru": "Сторона сценария: нападение исходило бы от вооружённых сил России.",
+     "reason_en": "Party: the attack would come from Russia's armed forces."
+    },
+    {
+     "iso3": "BLR",
+     "role": "party",
+     "reason_ru": "Союзное государство с Россией; её территорию Россия уже использовала для вторжения в Украину в 2022 году, там размещено российское ядерное оружие.",
+     "reason_en": "Union State with Russia; Russia used its territory to invade Ukraine in 2022 and has stationed nuclear weapons there."
+    },
+    {
+     "iso3": "EST",
+     "role": "frontline",
+     "reason_ru": "Граница с Россией (Нарва — город с русскоязычным большинством); передовые силы НАТО под командованием Великобритании.",
+     "reason_en": "Border with Russia (Narva has a Russian-speaking majority); NATO forward forces led by the UK."
+    },
+    {
+     "iso3": "LVA",
+     "role": "frontline",
+     "reason_ru": "Граница с Россией и Беларусью; передовые силы НАТО под командованием Канады.",
+     "reason_en": "Border with Russia and Belarus; NATO forward forces led by Canada."
+    },
+    {
+     "iso3": "LTU",
+     "role": "frontline",
+     "reason_ru": "Граница с Беларусью и Калининградом; Сувалкский коридор — единственная сухопутная связь Прибалтики с остальным НАТО; бригада Бундесвера.",
+     "reason_en": "Borders Belarus and Kaliningrad; the Suwałki corridor is the Baltics' only land link to the rest of NATO; German brigade stationed there."
+    },
+    {
+     "iso3": "POL",
+     "role": "frontline",
+     "reason_ru": "Граница с Калининградом и Беларусью, Сувалкский коридор; главный логистический узел помощи Украине; крупнейшие войска США на восточном фланге.",
+     "reason_en": "Borders Kaliningrad and Belarus and the Suwałki corridor; main logistics hub for aid to Ukraine; largest US troop presence on the eastern flank."
+    },
+    {
+     "iso3": "FIN",
+     "role": "frontline",
+     "reason_ru": "Самая длинная граница НАТО с Россией (около 1340 км).",
+     "reason_en": "NATO's longest border with Russia (about 1,340 km)."
+    },
+    {
+     "iso3": "NOR",
+     "role": "frontline",
+     "reason_ru": "Граница с Россией в Арктике рядом с базами Северного флота на Кольском полуострове.",
+     "reason_en": "Arctic border with Russia next to the Northern Fleet bases on the Kola Peninsula."
+    },
+    {
+     "iso3": "ROU",
+     "role": "frontline",
+     "reason_ru": "Граница с Украиной, на территорию уже падали российские дроны; Чёрное море; рядом Молдова с российскими войсками в Приднестровье.",
+     "reason_en": "Borders Ukraine and has seen Russian drone debris; Black Sea; next to Moldova with Russian troops in Transnistria."
+    },
+    {
+     "iso3": "DEU",
+     "role": "ally",
+     "reason_ru": "Статья 5 НАТО и 42.7 ЕС; бригада в Литве; главный транзитный узел войск НАТО на восток.",
+     "reason_en": "NATO Article 5 and EU 42.7; brigade in Lithuania; main transit hub for NATO forces moving east."
+    },
+    {
+     "iso3": "USA",
+     "role": "ally",
+     "reason_ru": "Статья 5 НАТО; основной военный потенциал альянса; войска в Польше и Прибалтике.",
+     "reason_en": "NATO Article 5; the alliance's main military power; troops in Poland and the Baltics."
+    },
+    {
+     "iso3": "GBR",
+     "role": "ally",
+     "reason_ru": "Статья 5 НАТО; рамочные страны передовых сил в Эстонии (Великобритания) и Латвии (Канада) — их военные будут на месте с первого дня.",
+     "reason_en": "NATO Article 5; framework nations of forward forces in Estonia (UK) and Latvia (Canada), so their troops are there from day one."
+    },
+    {
+     "iso3": "CAN",
+     "role": "ally",
+     "reason_ru": "Статья 5 НАТО; рамочные страны передовых сил в Эстонии (Великобритания) и Латвии (Канада) — их военные будут на месте с первого дня.",
+     "reason_en": "NATO Article 5; framework nations of forward forces in Estonia (UK) and Latvia (Canada), so their troops are there from day one."
+    },
+    {
+     "iso3": "SWE",
+     "role": "ally",
+     "reason_ru": "Статья 5 НАТО и 42.7 ЕС; контроль над Балтийским морем (Готланд, Борнхольм, проливы).",
+     "reason_en": "NATO Article 5 and EU 42.7; control of the Baltic Sea (Gotland, Bornholm, the straits)."
+    },
+    {
+     "iso3": "DNK",
+     "role": "ally",
+     "reason_ru": "Статья 5 НАТО и 42.7 ЕС; контроль над Балтийским морем (Готланд, Борнхольм, проливы).",
+     "reason_en": "NATO Article 5 and EU 42.7; control of the Baltic Sea (Gotland, Bornholm, the straits)."
+    },
+    {
+     "iso3": "ALB",
+     "role": "ally",
+     "reason_ru": "Статья 5 НАТО: нападение на одного союзника считается нападением на всех; страна должна решить, какую помощь оказать.",
+     "reason_en": "NATO Article 5: an attack on one ally is an attack on all; each ally decides what assistance to give."
+    },
+    {
+     "iso3": "BEL",
+     "role": "ally",
+     "reason_ru": "Статья 5 НАТО: нападение на одного союзника считается нападением на всех; страна должна решить, какую помощь оказать.",
+     "reason_en": "NATO Article 5: an attack on one ally is an attack on all; each ally decides what assistance to give."
+    },
+    {
+     "iso3": "BGR",
+     "role": "ally",
+     "reason_ru": "Статья 5 НАТО: нападение на одного союзника считается нападением на всех; страна должна решить, какую помощь оказать.",
+     "reason_en": "NATO Article 5: an attack on one ally is an attack on all; each ally decides what assistance to give."
+    },
+    {
+     "iso3": "HRV",
+     "role": "ally",
+     "reason_ru": "Статья 5 НАТО: нападение на одного союзника считается нападением на всех; страна должна решить, какую помощь оказать.",
+     "reason_en": "NATO Article 5: an attack on one ally is an attack on all; each ally decides what assistance to give."
+    },
+    {
+     "iso3": "CZE",
+     "role": "ally",
+     "reason_ru": "Статья 5 НАТО: нападение на одного союзника считается нападением на всех; страна должна решить, какую помощь оказать.",
+     "reason_en": "NATO Article 5: an attack on one ally is an attack on all; each ally decides what assistance to give."
+    },
+    {
+     "iso3": "FRA",
+     "role": "ally",
+     "reason_ru": "Статья 5 НАТО: нападение на одного союзника считается нападением на всех; страна должна решить, какую помощь оказать.",
+     "reason_en": "NATO Article 5: an attack on one ally is an attack on all; each ally decides what assistance to give."
+    },
+    {
+     "iso3": "GRC",
+     "role": "ally",
+     "reason_ru": "Статья 5 НАТО: нападение на одного союзника считается нападением на всех; страна должна решить, какую помощь оказать.",
+     "reason_en": "NATO Article 5: an attack on one ally is an attack on all; each ally decides what assistance to give."
+    },
+    {
+     "iso3": "HUN",
+     "role": "ally",
+     "reason_ru": "Статья 5 НАТО: нападение на одного союзника считается нападением на всех; страна должна решить, какую помощь оказать.",
+     "reason_en": "NATO Article 5: an attack on one ally is an attack on all; each ally decides what assistance to give."
+    },
+    {
+     "iso3": "ISL",
+     "role": "ally",
+     "reason_ru": "Статья 5 НАТО: нападение на одного союзника считается нападением на всех; страна должна решить, какую помощь оказать.",
+     "reason_en": "NATO Article 5: an attack on one ally is an attack on all; each ally decides what assistance to give."
+    },
+    {
+     "iso3": "ITA",
+     "role": "ally",
+     "reason_ru": "Статья 5 НАТО: нападение на одного союзника считается нападением на всех; страна должна решить, какую помощь оказать.",
+     "reason_en": "NATO Article 5: an attack on one ally is an attack on all; each ally decides what assistance to give."
+    },
+    {
+     "iso3": "LUX",
+     "role": "ally",
+     "reason_ru": "Статья 5 НАТО: нападение на одного союзника считается нападением на всех; страна должна решить, какую помощь оказать.",
+     "reason_en": "NATO Article 5: an attack on one ally is an attack on all; each ally decides what assistance to give."
+    },
+    {
+     "iso3": "MNE",
+     "role": "ally",
+     "reason_ru": "Статья 5 НАТО: нападение на одного союзника считается нападением на всех; страна должна решить, какую помощь оказать.",
+     "reason_en": "NATO Article 5: an attack on one ally is an attack on all; each ally decides what assistance to give."
+    },
+    {
+     "iso3": "NLD",
+     "role": "ally",
+     "reason_ru": "Статья 5 НАТО: нападение на одного союзника считается нападением на всех; страна должна решить, какую помощь оказать.",
+     "reason_en": "NATO Article 5: an attack on one ally is an attack on all; each ally decides what assistance to give."
+    },
+    {
+     "iso3": "MKD",
+     "role": "ally",
+     "reason_ru": "Статья 5 НАТО: нападение на одного союзника считается нападением на всех; страна должна решить, какую помощь оказать.",
+     "reason_en": "NATO Article 5: an attack on one ally is an attack on all; each ally decides what assistance to give."
+    },
+    {
+     "iso3": "PRT",
+     "role": "ally",
+     "reason_ru": "Статья 5 НАТО: нападение на одного союзника считается нападением на всех; страна должна решить, какую помощь оказать.",
+     "reason_en": "NATO Article 5: an attack on one ally is an attack on all; each ally decides what assistance to give."
+    },
+    {
+     "iso3": "SVK",
+     "role": "ally",
+     "reason_ru": "Статья 5 НАТО: нападение на одного союзника считается нападением на всех; страна должна решить, какую помощь оказать.",
+     "reason_en": "NATO Article 5: an attack on one ally is an attack on all; each ally decides what assistance to give."
+    },
+    {
+     "iso3": "SVN",
+     "role": "ally",
+     "reason_ru": "Статья 5 НАТО: нападение на одного союзника считается нападением на всех; страна должна решить, какую помощь оказать.",
+     "reason_en": "NATO Article 5: an attack on one ally is an attack on all; each ally decides what assistance to give."
+    },
+    {
+     "iso3": "ESP",
+     "role": "ally",
+     "reason_ru": "Статья 5 НАТО: нападение на одного союзника считается нападением на всех; страна должна решить, какую помощь оказать.",
+     "reason_en": "NATO Article 5: an attack on one ally is an attack on all; each ally decides what assistance to give."
+    },
+    {
+     "iso3": "TUR",
+     "role": "ally",
+     "reason_ru": "Статья 5 НАТО: нападение на одного союзника считается нападением на всех; страна должна решить, какую помощь оказать.",
+     "reason_en": "NATO Article 5: an attack on one ally is an attack on all; each ally decides what assistance to give."
+    },
+    {
+     "iso3": "AUT",
+     "role": "ally",
+     "reason_ru": "Член ЕС вне НАТО: статья 42.7 обязывает помочь всеми доступными средствами, с учётом нейтралитета.",
+     "reason_en": "EU member outside NATO: Article 42.7 obliges aid by all means in its power, respecting neutrality."
+    },
+    {
+     "iso3": "CYP",
+     "role": "ally",
+     "reason_ru": "Член ЕС вне НАТО: статья 42.7 обязывает помочь всеми доступными средствами, с учётом нейтралитета.",
+     "reason_en": "EU member outside NATO: Article 42.7 obliges aid by all means in its power, respecting neutrality."
+    },
+    {
+     "iso3": "IRL",
+     "role": "ally",
+     "reason_ru": "Член ЕС вне НАТО: статья 42.7 обязывает помочь всеми доступными средствами, с учётом нейтралитета.",
+     "reason_en": "EU member outside NATO: Article 42.7 obliges aid by all means in its power, respecting neutrality."
+    },
+    {
+     "iso3": "MLT",
+     "role": "ally",
+     "reason_ru": "Член ЕС вне НАТО: статья 42.7 обязывает помочь всеми доступными средствами, с учётом нейтралитета.",
+     "reason_en": "EU member outside NATO: Article 42.7 obliges aid by all means in its power, respecting neutrality."
+    },
+    {
+     "iso3": "MDA",
+     "role": "economic",
+     "reason_ru": "Соседи России вне НАТО с российскими войсками или оккупированными территориями: эскалация повысит давление и на них.",
+     "reason_en": "Russia's non-NATO neighbours with Russian troops or occupied areas: escalation would raise pressure on them too."
+    },
+    {
+     "iso3": "GEO",
+     "role": "economic",
+     "reason_ru": "Соседи России вне НАТО с российскими войсками или оккупированными территориями: эскалация повысит давление и на них.",
+     "reason_en": "Russia's non-NATO neighbours with Russian troops or occupied areas: escalation would raise pressure on them too."
+    },
+    {
+     "iso3": "UKR",
+     "role": "economic",
+     "reason_ru": "Уже воюет с Россией; война с НАТО изменила бы поставки помощи и ход боёв.",
+     "reason_en": "Already at war with Russia; a war with NATO would change aid flows and the fighting."
+    }
+   ],
+   "calibration": "uncalibrated"
+  },
+  {
+   "key": "ukraine_ceasefire",
+   "title_ru": "Прекращение огня между Россией и Украиной",
+   "title_en": "Russia–Ukraine ceasefire",
+   "event_ru": "Общее прекращение огня по всей линии фронта, объявленное обеими сторонами и соблюдаемое не менее 30 дней (локальные и энергетические перемирия не считаются).",
+   "event_en": "A general ceasefire along the whole front, announced by both sides and holding for at least 30 days (local or energy-only truces do not count).",
+   "polarity": -1,
+   "annual": {
+    "p": 0.1888,
+    "low": 0.1,
+    "high": 0.45
+   },
+   "horizons": {
+    "1m": {
+     "p": 0.0173,
+     "low": 0.0087,
+     "high": 0.0486
+    },
+    "1y": {
+     "p": 0.1888,
+     "low": 0.1,
+     "high": 0.45
+    },
+    "5y": {
+     "p": 0.6486,
+     "low": 0.4095,
+     "high": 0.9497
+    },
+    "10y": {
+     "p": 0.8765,
+     "low": 0.6513,
+     "high": 0.9975
+    }
+   },
+   "confidence": "low",
+   "indicator_factor": 0.698,
+   "components": [
+    {
+     "kind": "expert",
+     "annual": 0.25,
+     "low": 0.1,
+     "high": 0.45,
+     "weight": 1.0,
+     "detail_ru": "Межгосударственные войны длительностью больше четырёх лет редко заканчиваются быстро; переговоры при посредничестве США возобновились в ноябре 2026 года, но без прорыва по прекращению огня. Оценка GeoIntel: около 25% в год.",
+     "detail_en": "Interstate wars lasting over four years rarely end quickly; US-mediated talks resumed in November 2026 without a ceasefire breakthrough. GeoIntel judgement: about 25% a year.",
+     "url": null
+    }
+   ],
+   "indicators": [
+    {
+     "key": "milex",
+     "direction": 1,
+     "label_ru": "Военные расходы, % ВВП (изменение за 5 лет, п. п.)",
+     "label_en": "Military spending, % of GDP (5-year change, pp)",
+     "value": "RUS 7.1% (+3.2)",
+     "source": "SIPRI via OWID"
+    },
+    {
+     "key": "gpr",
+     "direction": 1,
+     "label_ru": "Индекс геополитического риска: последние 12 мес. к среднему за 5 лет",
+     "label_en": "Geopolitical risk index: last 12 months vs 5-year mean",
+     "value": "RUS ×1.40",
+     "source": "Caldara & Iacoviello GPR"
+    },
+    {
+     "key": "war",
+     "direction": 1,
+     "label_ru": "Идущая межгосударственная война с участием сторон",
+     "label_en": "Ongoing interstate war involving the parties",
+     "value": "RUS, UKR",
+     "source": "UCDP/PRIO"
+    },
+    {
+     "key": "market_trend",
+     "direction": -1,
+     "label_ru": "Рынок прогнозов: ближайший вопрос",
+     "label_en": "Prediction market: nearest question",
+     "value": "6.0% → 2026-12-31; -4.0 pp / 30d. Russia x Ukraine ceasefire in 2026?",
+     "source": "Polymarket"
+    }
+   ],
+   "warnings": [
+    {
+     "date": "2026-11-11",
+     "source": "Jamestown Foundation, Eurasia Daily Monitor",
+     "url": "https://jamestown.org/russia-ukraine-u-s-talks-in-abu-dhabi-yield-little-progress/",
+     "direction": 0,
+     "summary_ru": "Переговоры в Абу-Даби 10–11 ноября 2026 года после девятимесячной паузы: договорённость о крупном обмене пленными, но без прорыва по прекращению огня и территориям.",
+     "summary_en": "Abu Dhabi talks on 10–11 November 2026 after a nine-month pause: agreement on a large prisoner exchange but no breakthrough on a ceasefire or territory."
+    }
+   ],
+   "market_candidates": [
+    {
+     "question": "Russia x Ukraine ceasefire in 2026?",
+     "p": 0.06,
+     "end": "2026-12-31",
+     "volume": 3100000.0,
+     "slug": "russia-x-ukraine-ceasefire-in-2026",
+     "inverse": false
+    }
+   ],
+   "market_status": "no_match",
+   "affected": [
+    {
+     "iso3": "RUS",
+     "role": "party",
+     "reason_ru": "Стороны войны.",
+     "reason_en": "Parties to the war."
+    },
+    {
+     "iso3": "UKR",
+     "role": "party",
+     "reason_ru": "Стороны войны.",
+     "reason_en": "Parties to the war."
+    },
+    {
+     "iso3": "POL",
+     "role": "frontline",
+     "reason_ru": "Соседи Украины: возвращение беженцев, восстановление, транзит, снижение риска падения дронов и ракет.",
+     "reason_en": "Ukraine's neighbours: refugee returns, reconstruction, transit, lower risk of stray drones and missiles."
+    },
+    {
+     "iso3": "ROU",
+     "role": "frontline",
+     "reason_ru": "Соседи Украины: возвращение беженцев, восстановление, транзит, снижение риска падения дронов и ракет.",
+     "reason_en": "Ukraine's neighbours: refugee returns, reconstruction, transit, lower risk of stray drones and missiles."
+    },
+    {
+     "iso3": "SVK",
+     "role": "frontline",
+     "reason_ru": "Соседи Украины: возвращение беженцев, восстановление, транзит, снижение риска падения дронов и ракет.",
+     "reason_en": "Ukraine's neighbours: refugee returns, reconstruction, transit, lower risk of stray drones and missiles."
+    },
+    {
+     "iso3": "HUN",
+     "role": "frontline",
+     "reason_ru": "Соседи Украины: возвращение беженцев, восстановление, транзит, снижение риска падения дронов и ракет.",
+     "reason_en": "Ukraine's neighbours: refugee returns, reconstruction, transit, lower risk of stray drones and missiles."
+    },
+    {
+     "iso3": "MDA",
+     "role": "frontline",
+     "reason_ru": "Соседи Украины: возвращение беженцев, восстановление, транзит, снижение риска падения дронов и ракет.",
+     "reason_en": "Ukraine's neighbours: refugee returns, reconstruction, transit, lower risk of stray drones and missiles."
+    },
+    {
+     "iso3": "DEU",
+     "role": "economic",
+     "reason_ru": "Крупнейшие в ЕС принимающие страны украинских беженцев (данные UNHCR на странице миграции).",
+     "reason_en": "Among the largest EU hosts of Ukrainian refugees (UNHCR data on the migration page)."
+    },
+    {
+     "iso3": "CZE",
+     "role": "economic",
+     "reason_ru": "Крупнейшие в ЕС принимающие страны украинских беженцев (данные UNHCR на странице миграции).",
+     "reason_en": "Among the largest EU hosts of Ukrainian refugees (UNHCR data on the migration page)."
+    },
+    {
+     "iso3": "EGY",
+     "role": "economic",
+     "reason_ru": "Импортёры зерна через Чёрное море: цены и поставки.",
+     "reason_en": "Grain importers via the Black Sea: prices and supply."
+    },
+    {
+     "iso3": "TUR",
+     "role": "economic",
+     "reason_ru": "Импортёры зерна через Чёрное море: цены и поставки.",
+     "reason_en": "Grain importers via the Black Sea: prices and supply."
+    },
+    {
+     "iso3": "AUT",
+     "role": "economic",
+     "reason_ru": "ЕС: санкции, цены на энергию, расходы на оборону и помощь Украине.",
+     "reason_en": "EU: sanctions, energy prices, defence spending and aid to Ukraine."
+    },
+    {
+     "iso3": "BEL",
+     "role": "economic",
+     "reason_ru": "ЕС: санкции, цены на энергию, расходы на оборону и помощь Украине.",
+     "reason_en": "EU: sanctions, energy prices, defence spending and aid to Ukraine."
+    },
+    {
+     "iso3": "BGR",
+     "role": "economic",
+     "reason_ru": "ЕС: санкции, цены на энергию, расходы на оборону и помощь Украине.",
+     "reason_en": "EU: sanctions, energy prices, defence spending and aid to Ukraine."
+    },
+    {
+     "iso3": "HRV",
+     "role": "economic",
+     "reason_ru": "ЕС: санкции, цены на энергию, расходы на оборону и помощь Украине.",
+     "reason_en": "EU: sanctions, energy prices, defence spending and aid to Ukraine."
+    },
+    {
+     "iso3": "CYP",
+     "role": "economic",
+     "reason_ru": "ЕС: санкции, цены на энергию, расходы на оборону и помощь Украине.",
+     "reason_en": "EU: sanctions, energy prices, defence spending and aid to Ukraine."
+    },
+    {
+     "iso3": "DNK",
+     "role": "economic",
+     "reason_ru": "ЕС: санкции, цены на энергию, расходы на оборону и помощь Украине.",
+     "reason_en": "EU: sanctions, energy prices, defence spending and aid to Ukraine."
+    },
+    {
+     "iso3": "EST",
+     "role": "economic",
+     "reason_ru": "ЕС: санкции, цены на энергию, расходы на оборону и помощь Украине.",
+     "reason_en": "EU: sanctions, energy prices, defence spending and aid to Ukraine."
+    },
+    {
+     "iso3": "FIN",
+     "role": "economic",
+     "reason_ru": "ЕС: санкции, цены на энергию, расходы на оборону и помощь Украине.",
+     "reason_en": "EU: sanctions, energy prices, defence spending and aid to Ukraine."
+    },
+    {
+     "iso3": "FRA",
+     "role": "economic",
+     "reason_ru": "ЕС: санкции, цены на энергию, расходы на оборону и помощь Украине.",
+     "reason_en": "EU: sanctions, energy prices, defence spending and aid to Ukraine."
+    },
+    {
+     "iso3": "GRC",
+     "role": "economic",
+     "reason_ru": "ЕС: санкции, цены на энергию, расходы на оборону и помощь Украине.",
+     "reason_en": "EU: sanctions, energy prices, defence spending and aid to Ukraine."
+    },
+    {
+     "iso3": "IRL",
+     "role": "economic",
+     "reason_ru": "ЕС: санкции, цены на энергию, расходы на оборону и помощь Украине.",
+     "reason_en": "EU: sanctions, energy prices, defence spending and aid to Ukraine."
+    },
+    {
+     "iso3": "ITA",
+     "role": "economic",
+     "reason_ru": "ЕС: санкции, цены на энергию, расходы на оборону и помощь Украине.",
+     "reason_en": "EU: sanctions, energy prices, defence spending and aid to Ukraine."
+    },
+    {
+     "iso3": "LVA",
+     "role": "economic",
+     "reason_ru": "ЕС: санкции, цены на энергию, расходы на оборону и помощь Украине.",
+     "reason_en": "EU: sanctions, energy prices, defence spending and aid to Ukraine."
+    },
+    {
+     "iso3": "LTU",
+     "role": "economic",
+     "reason_ru": "ЕС: санкции, цены на энергию, расходы на оборону и помощь Украине.",
+     "reason_en": "EU: sanctions, energy prices, defence spending and aid to Ukraine."
+    },
+    {
+     "iso3": "LUX",
+     "role": "economic",
+     "reason_ru": "ЕС: санкции, цены на энергию, расходы на оборону и помощь Украине.",
+     "reason_en": "EU: sanctions, energy prices, defence spending and aid to Ukraine."
+    },
+    {
+     "iso3": "MLT",
+     "role": "economic",
+     "reason_ru": "ЕС: санкции, цены на энергию, расходы на оборону и помощь Украине.",
+     "reason_en": "EU: sanctions, energy prices, defence spending and aid to Ukraine."
+    },
+    {
+     "iso3": "NLD",
+     "role": "economic",
+     "reason_ru": "ЕС: санкции, цены на энергию, расходы на оборону и помощь Украине.",
+     "reason_en": "EU: sanctions, energy prices, defence spending and aid to Ukraine."
+    },
+    {
+     "iso3": "PRT",
+     "role": "economic",
+     "reason_ru": "ЕС: санкции, цены на энергию, расходы на оборону и помощь Украине.",
+     "reason_en": "EU: sanctions, energy prices, defence spending and aid to Ukraine."
+    },
+    {
+     "iso3": "SVN",
+     "role": "economic",
+     "reason_ru": "ЕС: санкции, цены на энергию, расходы на оборону и помощь Украине.",
+     "reason_en": "EU: sanctions, energy prices, defence spending and aid to Ukraine."
+    },
+    {
+     "iso3": "ESP",
+     "role": "economic",
+     "reason_ru": "ЕС: санкции, цены на энергию, расходы на оборону и помощь Украине.",
+     "reason_en": "EU: sanctions, energy prices, defence spending and aid to Ukraine."
+    },
+    {
+     "iso3": "SWE",
+     "role": "economic",
+     "reason_ru": "ЕС: санкции, цены на энергию, расходы на оборону и помощь Украине.",
+     "reason_en": "EU: sanctions, energy prices, defence spending and aid to Ukraine."
+    }
+   ],
+   "calibration": "uncalibrated"
+  },
+  {
+   "key": "china_taiwan",
+   "title_ru": "Блокада или вторжение Китая на Тайвань",
+   "title_en": "Chinese blockade or invasion of Taiwan",
+   "event_ru": "КНР вводит блокаду или «карантин», фактически останавливающий коммерческое судоходство к Тайваню, либо наносит удары или высаживает войска. Учения без остановки судоходства не считаются.",
+   "event_en": "China imposes a blockade or 'quarantine' that actually stops commercial shipping to Taiwan, or strikes or lands troops. Drills that do not stop shipping do not count.",
+   "polarity": 1,
+   "annual": {
+    "p": 0.0451,
+    "low": 0.0001,
+    "high": 0.1021
+   },
+   "horizons": {
+    "1m": {
+     "p": 0.0038,
+     "low": 0.0,
+     "high": 0.0089
+    },
+    "1y": {
+     "p": 0.0451,
+     "low": 0.0001,
+     "high": 0.1021
+    },
+    "5y": {
+     "p": 0.2059,
+     "low": 0.0005,
+     "high": 0.4164
+    },
+    "10y": {
+     "p": 0.3694,
+     "low": 0.001,
+     "high": 0.6594
+    }
+   },
+   "confidence": "medium",
+   "indicator_factor": 1.0,
+   "components": [
+    {
+     "kind": "history",
+     "annual": 0.0221,
+     "low": 0.0001,
+     "high": 0.0842,
+     "weight": 0.35,
+     "detail_ru": "Годы межгосударственного конфликта между сторонами по UCDP/PRIO с 1946 по 2025 г.: 0; за последние 30 лет: нет. Недавние годы весят больше (полупериод 15 лет). Вес низкий: данные отстают на год, а сценарии как раз о разрыве с прошлым.",
+     "detail_en": "Years of interstate conflict between the sides in UCDP/PRIO, 1946–2025: 0; in the last 30 years: none. Recent years weigh more (half-life 15 years). Low weight: the data lag a year and a structural break is exactly what scenarios are about.",
+     "url": "https://ucdp.uu.se/downloads/"
+    },
+    {
+     "kind": "expert",
+     "annual": 0.025,
+     "low": 0.008,
+     "high": 0.07,
+     "weight": 1.0,
+     "detail_ru": "Прецедента нет; учения вокруг Тайваня становятся крупнее и всё больше похожи на отработку блокады. Оценка GeoIntel: около 2,5% в год.",
+     "detail_en": "No precedent; drills around Taiwan keep growing and increasingly rehearse a blockade. GeoIntel judgement: about 2.5% a year.",
+     "url": null
+    },
+    {
+     "kind": "market",
+     "annual": 0.0638,
+     "low": 0.0383,
+     "high": 0.1021,
+     "weight": 1.5,
+     "detail_ru": "Рынок Polymarket: «Will China invade Taiwan by December 31, 2027?» — 7.0% к 2027-12-31, объём торгов $420 000. Пересчитано в годовую вероятность. Вопрос рынка может отличаться от определения сценария.",
+     "detail_en": "Polymarket: \"Will China invade Taiwan by December 31, 2027?\" at 7.0% by 2027-12-31, volume $420,000. Converted to an annual probability. The market's question may differ from the scenario definition.",
+     "url": "https://polymarket.com/event/china-invade-taiwan-2027"
+    }
+   ],
+   "indicators": [
+    {
+     "key": "warnings",
+     "direction": 0,
+     "label_ru": "Официальные предупреждения за 12 месяцев",
+     "label_en": "Official warnings in the last 12 months",
+     "value": "1",
+     "source": "GeoIntel curated list"
+    },
+    {
+     "key": "market_trend",
+     "direction": 0,
+     "label_ru": "Рынок прогнозов: ближайший вопрос",
+     "label_en": "Prediction market: nearest question",
+     "value": "7.0% → 2027-12-31; +1.0 pp / 30d. Will China invade Taiwan by December 31, 2027?",
+     "source": "Polymarket"
+    }
+   ],
+   "warnings": [
+    {
+     "date": "2026-11-13",
+     "source": "Reuters (via Honolulu Star-Advertiser)",
+     "url": "https://www.staradvertiser.com/2026/11/13/breaking-news/china-stages-unannounced-pacific-drills-in-intimidation-of-taiwan/",
+     "direction": 1,
+     "summary_ru": "Необъявленные учения Китая в западной части Тихого океана в начале ноября 2026 года — по словам тайваньского чиновника, крупнее учений «Миссия справедливости 2025».",
+     "summary_en": "Unannounced Chinese drills in the western Pacific in early November 2026, larger than 'Justice Mission 2025' according to a Taiwanese official."
+    }
+   ],
+   "market_candidates": [
+    {
+     "question": "Will China invade Taiwan by December 31, 2027?",
+     "p": 0.07,
+     "end": "2027-12-31",
+     "volume": 420000.0,
+     "slug": "china-invade-taiwan-2027",
+     "inverse": false
+    }
+   ],
+   "market_status": "matched",
+   "affected": [
+    {
+     "iso3": "CHN",
+     "role": "party",
+     "reason_ru": "Стороны сценария.",
+     "reason_en": "Parties to the scenario."
+    },
+    {
+     "iso3": "TWN",
+     "role": "party",
+     "reason_ru": "Стороны сценария.",
+     "reason_en": "Parties to the scenario."
+    },
+    {
+     "iso3": "JPN",
+     "role": "frontline",
+     "reason_ru": "Остров Йонагуни примерно в 110 км от Тайваня; базы США на Окинаве.",
+     "reason_en": "Yonaguni island is about 110 km from Taiwan; US bases on Okinawa."
+    },
+    {
+     "iso3": "PHL",
+     "role": "frontline",
+     "reason_ru": "Лусонский пролив и острова Батанес рядом с Тайванем; базы, доступные войскам США.",
+     "reason_en": "Luzon Strait and the Batanes islands next to Taiwan; bases open to US forces."
+    },
+    {
+     "iso3": "USA",
+     "role": "ally",
+     "reason_ru": "Закон об отношениях с Тайванем, 7-й флот: наиболее вероятный внешний участник.",
+     "reason_en": "Taiwan Relations Act and the 7th Fleet: the most likely outside participant."
+    },
+    {
+     "iso3": "KOR",
+     "role": "ally",
+     "reason_ru": "Союзники США в регионе; морские пути и цепочки поставок.",
+     "reason_en": "US allies in the region; sea lanes and supply chains."
+    },
+    {
+     "iso3": "AUS",
+     "role": "ally",
+     "reason_ru": "Союзники США в регионе; морские пути и цепочки поставок.",
+     "reason_en": "US allies in the region; sea lanes and supply chains."
+    },
+    {
+     "iso3": "DEU",
+     "role": "economic",
+     "reason_ru": "Зависимость от тайваньских полупроводников и судоходства через Тайваньский пролив и Южно-Китайское море.",
+     "reason_en": "Dependence on Taiwanese semiconductors and shipping through the Taiwan Strait and the South China Sea."
+    },
+    {
+     "iso3": "NLD",
+     "role": "economic",
+     "reason_ru": "Зависимость от тайваньских полупроводников и судоходства через Тайваньский пролив и Южно-Китайское море.",
+     "reason_en": "Dependence on Taiwanese semiconductors and shipping through the Taiwan Strait and the South China Sea."
+    },
+    {
+     "iso3": "VNM",
+     "role": "economic",
+     "reason_ru": "Зависимость от тайваньских полупроводников и судоходства через Тайваньский пролив и Южно-Китайское море.",
+     "reason_en": "Dependence on Taiwanese semiconductors and shipping through the Taiwan Strait and the South China Sea."
+    },
+    {
+     "iso3": "MYS",
+     "role": "economic",
+     "reason_ru": "Зависимость от тайваньских полупроводников и судоходства через Тайваньский пролив и Южно-Китайское море.",
+     "reason_en": "Dependence on Taiwanese semiconductors and shipping through the Taiwan Strait and the South China Sea."
+    },
+    {
+     "iso3": "SGP",
+     "role": "economic",
+     "reason_ru": "Зависимость от тайваньских полупроводников и судоходства через Тайваньский пролив и Южно-Китайское море.",
+     "reason_en": "Dependence on Taiwanese semiconductors and shipping through the Taiwan Strait and the South China Sea."
+    }
+   ],
+   "calibration": "uncalibrated"
+  },
+  {
+   "key": "iran_strikes",
+   "title_ru": "Новые прямые удары между Ираном и Израилем или США",
+   "title_en": "New direct strikes between Iran and Israel or the US",
+   "event_ru": "Израиль или США наносят удары по территории Ирана, либо Иран — по Израилю или базам США, после последней паузы в боевых действиях.",
+   "event_en": "Israel or the US strikes Iranian territory, or Iran strikes Israel or US bases, after the latest pause in fighting.",
+   "polarity": 1,
+   "annual": {
+    "p": 0.4163,
+    "low": 0.0082,
+    "high": 0.8
+   },
+   "horizons": {
+    "1m": {
+     "p": 0.0439,
+     "low": 0.0007,
+     "high": 0.1255
+    },
+    "1y": {
+     "p": 0.4163,
+     "low": 0.0082,
+     "high": 0.8
+    },
+    "5y": {
+     "p": 0.9323,
+     "low": 0.0403,
+     "high": 0.9997
+    },
+    "10y": {
+     "p": 0.9954,
+     "low": 0.079,
+     "high": 1.0
+    }
+   },
+   "confidence": "low",
+   "indicator_factor": 1.127,
+   "components": [
+    {
+     "kind": "history",
+     "annual": 0.0664,
+     "low": 0.0082,
+     "high": 0.1673,
+     "weight": 0.35,
+     "detail_ru": "Годы межгосударственного конфликта между сторонами по UCDP/PRIO с 1946 по 2025 г.: 1; за последние 30 лет: 2025. Недавние годы весят больше (полупериод 15 лет). Вес низкий: данные отстают на год, а сценарии как раз о разрыве с прошлым.",
+     "detail_en": "Years of interstate conflict between the sides in UCDP/PRIO, 1946–2025: 1; in the last 30 years: 2025. Recent years weigh more (half-life 15 years). Low weight: the data lag a year and a structural break is exactly what scenarios are about.",
+     "url": "https://ucdp.uu.se/downloads/"
+    },
+    {
+     "kind": "expert",
+     "annual": 0.5,
+     "low": 0.25,
+     "high": 0.8,
+     "weight": 1.0,
+     "detail_ru": "В 2024–2026 годах прямые удары повторялись несколько раз, перемирия нарушались. Оценка GeoIntel: около 50% в год, широкий диапазон.",
+     "detail_en": "Direct strikes recurred several times in 2024–2026 and truces broke down. GeoIntel judgement: about 50% a year, wide range.",
+     "url": null
+    }
+   ],
+   "indicators": [
+    {
+     "key": "warnings",
+     "direction": 1,
+     "label_ru": "Официальные предупреждения за 12 месяцев",
+     "label_en": "Official warnings in the last 12 months",
+     "value": "3",
+     "source": "GeoIntel curated list"
+    }
+   ],
+   "warnings": [
+    {
+     "date": "2026-07-08",
+     "source": "Dawn (live coverage, Reuters/AFP)",
+     "url": "https://www.dawn.com/news/1976395/iran-has-no-plans-to-negotiate-with-us-deputy-fm-says",
+     "direction": 1,
+     "summary_ru": "США нанесли удары по Ирану в ответ на атаки на суда в Ормузском проливе; Тегеран ответил.",
+     "summary_en": "The US struck Iran in response to attacks on ships in the Strait of Hormuz; Tehran retaliated."
+    },
+    {
+     "date": "2026-06-08",
+     "source": "Dawn (live coverage, Reuters/AFP)",
+     "url": "https://www.dawn.com/news/1976395/iranian-petrochemical-plant-hit-in-attack-irgc-launches-missiles-toward-israeli-air-bases",
+     "direction": 1,
+     "summary_ru": "Новый обмен ударами между Израилем и Ираном, перемирие под угрозой.",
+     "summary_en": "A new exchange of strikes between Israel and Iran, putting the truce at risk."
+    },
+    {
+     "date": "2026-02-28",
+     "source": "Dawn (live coverage, Reuters/AFP)",
+     "url": "https://www.dawn.com/news/1976395/iran-says-fully-restoring-security-in-hormuz-depends-on-cessation-of-us-blockade-threats",
+     "direction": 1,
+     "summary_ru": "США и Израиль начали совместные удары по Ирану.",
+     "summary_en": "The US and Israel launched joint strikes on Iran."
+    }
+   ],
+   "market_candidates": [],
+   "market_status": "no_match",
+   "affected": [
+    {
+     "iso3": "IRN",
+     "role": "party",
+     "reason_ru": "Стороны сценария.",
+     "reason_en": "Parties to the scenario."
+    },
+    {
+     "iso3": "ISR",
+     "role": "party",
+     "reason_ru": "Стороны сценария.",
+     "reason_en": "Parties to the scenario."
+    },
+    {
+     "iso3": "USA",
+     "role": "party",
+     "reason_ru": "Стороны сценария.",
+     "reason_en": "Parties to the scenario."
+    },
+    {
+     "iso3": "QAT",
+     "role": "frontline",
+     "reason_ru": "Базы США и инфраструктура, по которым Иран наносил ответные удары.",
+     "reason_en": "US bases and infrastructure that Iran has hit in retaliation."
+    },
+    {
+     "iso3": "BHR",
+     "role": "frontline",
+     "reason_ru": "Базы США и инфраструктура, по которым Иран наносил ответные удары.",
+     "reason_en": "US bases and infrastructure that Iran has hit in retaliation."
+    },
+    {
+     "iso3": "KWT",
+     "role": "frontline",
+     "reason_ru": "Базы США и инфраструктура, по которым Иран наносил ответные удары.",
+     "reason_en": "US bases and infrastructure that Iran has hit in retaliation."
+    },
+    {
+     "iso3": "ARE",
+     "role": "frontline",
+     "reason_ru": "Базы США и инфраструктура, по которым Иран наносил ответные удары.",
+     "reason_en": "US bases and infrastructure that Iran has hit in retaliation."
+    },
+    {
+     "iso3": "SAU",
+     "role": "frontline",
+     "reason_ru": "Базы США и инфраструктура, по которым Иран наносил ответные удары.",
+     "reason_en": "US bases and infrastructure that Iran has hit in retaliation."
+    },
+    {
+     "iso3": "IRQ",
+     "role": "frontline",
+     "reason_ru": "Базы США и инфраструктура, по которым Иран наносил ответные удары.",
+     "reason_en": "US bases and infrastructure that Iran has hit in retaliation."
+    },
+    {
+     "iso3": "JOR",
+     "role": "frontline",
+     "reason_ru": "Перехват ракет над территорией, фронт с «Хезболлой», хуситы.",
+     "reason_en": "Missile interceptions overhead, the Hezbollah front, the Houthis."
+    },
+    {
+     "iso3": "LBN",
+     "role": "frontline",
+     "reason_ru": "Перехват ракет над территорией, фронт с «Хезболлой», хуситы.",
+     "reason_en": "Missile interceptions overhead, the Hezbollah front, the Houthis."
+    },
+    {
+     "iso3": "YEM",
+     "role": "frontline",
+     "reason_ru": "Перехват ракет над территорией, фронт с «Хезболлой», хуситы.",
+     "reason_en": "Missile interceptions overhead, the Hezbollah front, the Houthis."
+    },
+    {
+     "iso3": "OMN",
+     "role": "frontline",
+     "reason_ru": "Ормузский пролив: угрозы судоходству.",
+     "reason_en": "Strait of Hormuz: threats to shipping."
+    },
+    {
+     "iso3": "CHN",
+     "role": "economic",
+     "reason_ru": "Крупнейшие импортёры нефти из Персидского залива через Ормузский пролив.",
+     "reason_en": "Largest importers of Gulf oil through the Strait of Hormuz."
+    },
+    {
+     "iso3": "IND",
+     "role": "economic",
+     "reason_ru": "Крупнейшие импортёры нефти из Персидского залива через Ормузский пролив.",
+     "reason_en": "Largest importers of Gulf oil through the Strait of Hormuz."
+    },
+    {
+     "iso3": "JPN",
+     "role": "economic",
+     "reason_ru": "Крупнейшие импортёры нефти из Персидского залива через Ормузский пролив.",
+     "reason_en": "Largest importers of Gulf oil through the Strait of Hormuz."
+    },
+    {
+     "iso3": "KOR",
+     "role": "economic",
+     "reason_ru": "Крупнейшие импортёры нефти из Персидского залива через Ормузский пролив.",
+     "reason_en": "Largest importers of Gulf oil through the Strait of Hormuz."
+    },
+    {
+     "iso3": "EGY",
+     "role": "economic",
+     "reason_ru": "Доходы Суэцкого канала падают при атаках в Красном море.",
+     "reason_en": "Suez Canal revenue falls when shipping in the Red Sea is attacked."
+    }
+   ],
+   "calibration": "uncalibrated"
+  },
+  {
+   "key": "india_pakistan",
+   "title_ru": "Военные удары между Индией и Пакистаном",
+   "title_en": "Military strikes between India and Pakistan",
+   "event_ru": "Удары авиацией, ракетами или артиллерией через границу или линию контроля с погибшими, признанные хотя бы одной из сторон.",
+   "event_en": "Air, missile or artillery strikes across the border or the Line of Control with deaths, acknowledged by at least one side.",
+   "polarity": 1,
+   "annual": {
+    "p": 0.2111,
+    "low": 0.0219,
+    "high": 0.5
+   },
+   "horizons": {
+    "1m": {
+     "p": 0.0196,
+     "low": 0.0018,
+     "high": 0.0561
+    },
+    "1y": {
+     "p": 0.2111,
+     "low": 0.0219,
+     "high": 0.5
+    },
+    "5y": {
+     "p": 0.6944,
+     "low": 0.1048,
+     "high": 0.9688
+    },
+    "10y": {
+     "p": 0.9066,
+     "low": 0.1986,
+     "high": 0.999
+    }
+   },
+   "confidence": "low",
+   "indicator_factor": 1.0,
+   "components": [
+    {
+     "kind": "history",
+     "annual": 0.0999,
+     "low": 0.0219,
+     "high": 0.2182,
+     "weight": 0.35,
+     "detail_ru": "Годы межгосударственного конфликта между сторонами по UCDP/PRIO с 1946 по 2025 г.: 2; за последние 30 лет: 2019, 2025. Недавние годы весят больше (полупериод 15 лет). Вес низкий: данные отстают на год, а сценарии как раз о разрыве с прошлым.",
+     "detail_en": "Years of interstate conflict between the sides in UCDP/PRIO, 1946–2025: 2; in the last 30 years: 2019, 2025. Recent years weigh more (half-life 15 years). Low weight: the data lag a year and a structural break is exactly what scenarios are about.",
+     "url": "https://ucdp.uu.se/downloads/"
+    },
+    {
+     "kind": "expert",
+     "annual": 0.25,
+     "low": 0.1,
+     "high": 0.5,
+     "weight": 1.0,
+     "detail_ru": "Перестрелки на линии контроля с погибшими шли почти ежегодно в 2013–2020 годах; после перемирия февраля 2021 года — затишье до кризиса с ударами в мае 2025 года. Оценка GeoIntel: около 25% в год.",
+     "detail_en": "Deadly exchanges of fire across the Line of Control happened almost every year in 2013–2020; after the February 2021 ceasefire it was quiet until the May 2025 strikes. GeoIntel judgement: about 25% a year.",
+     "url": null
+    }
+   ],
+   "indicators": [],
+   "warnings": [],
+   "market_candidates": [],
+   "market_status": "no_match",
+   "affected": [
+    {
+     "iso3": "IND",
+     "role": "party",
+     "reason_ru": "Стороны сценария.",
+     "reason_en": "Parties to the scenario."
+    },
+    {
+     "iso3": "PAK",
+     "role": "party",
+     "reason_ru": "Стороны сценария.",
+     "reason_en": "Parties to the scenario."
+    },
+    {
+     "iso3": "CHN",
+     "role": "frontline",
+     "reason_ru": "Главный поставщик оружия Пакистану; спорные границы с Индией.",
+     "reason_en": "Pakistan's main arms supplier; disputed borders with India."
+    },
+    {
+     "iso3": "AFG",
+     "role": "frontline",
+     "reason_ru": "Граница с Пакистаном; напряжённость на ней растёт при кризисах.",
+     "reason_en": "Borders Pakistan; tension there rises in crises."
+    },
+    {
+     "iso3": "BGD",
+     "role": "economic",
+     "reason_ru": "Региональная торговля, авиасообщение, трудовая миграция и денежные переводы.",
+     "reason_en": "Regional trade, air routes, labour migration and remittances."
+    },
+    {
+     "iso3": "NPL",
+     "role": "economic",
+     "reason_ru": "Региональная торговля, авиасообщение, трудовая миграция и денежные переводы.",
+     "reason_en": "Regional trade, air routes, labour migration and remittances."
+    },
+    {
+     "iso3": "LKA",
+     "role": "economic",
+     "reason_ru": "Региональная торговля, авиасообщение, трудовая миграция и денежные переводы.",
+     "reason_en": "Regional trade, air routes, labour migration and remittances."
+    },
+    {
+     "iso3": "ARE",
+     "role": "economic",
+     "reason_ru": "Региональная торговля, авиасообщение, трудовая миграция и денежные переводы.",
+     "reason_en": "Regional trade, air routes, labour migration and remittances."
+    },
+    {
+     "iso3": "SAU",
+     "role": "economic",
+     "reason_ru": "Региональная торговля, авиасообщение, трудовая миграция и денежные переводы.",
+     "reason_en": "Regional trade, air routes, labour migration and remittances."
+    }
+   ],
+   "calibration": "uncalibrated"
+  },
+  {
+   "key": "korea",
+   "title_ru": "Вооружённое столкновение на Корейском полуострове",
+   "title_en": "Armed clash on the Korean Peninsula",
+   "event_ru": "Вооружённое столкновение между КНДР и Республикой Корея с погибшими.",
+   "event_en": "An armed clash between North and South Korea with deaths.",
+   "polarity": 1,
+   "annual": {
+    "p": 0.0354,
+    "low": 0.0001,
+    "high": 0.1
+   },
+   "horizons": {
+    "1m": {
+     "p": 0.003,
+     "low": 0.0,
+     "high": 0.0087
+    },
+    "1y": {
+     "p": 0.0354,
+     "low": 0.0001,
+     "high": 0.1
+    },
+    "5y": {
+     "p": 0.1647,
+     "low": 0.0005,
+     "high": 0.4095
+    },
+    "10y": {
+     "p": 0.3023,
+     "low": 0.001,
+     "high": 0.6513
+    }
+   },
+   "confidence": "low",
+   "indicator_factor": 1.0,
+   "components": [
+    {
+     "kind": "history",
+     "annual": 0.0221,
+     "low": 0.0001,
+     "high": 0.0842,
+     "weight": 0.35,
+     "detail_ru": "Годы межгосударственного конфликта между сторонами по UCDP/PRIO с 1946 по 2025 г.: 0; за последние 30 лет: нет. Недавние годы весят больше (полупериод 15 лет). Вес низкий: данные отстают на год, а сценарии как раз о разрыве с прошлым.",
+     "detail_en": "Years of interstate conflict between the sides in UCDP/PRIO, 1946–2025: 0; in the last 30 years: none. Recent years weigh more (half-life 15 years). Low weight: the data lag a year and a structural break is exactly what scenarios are about.",
+     "url": "https://ucdp.uu.se/downloads/"
+    },
+    {
+     "kind": "expert",
+     "annual": 0.04,
+     "low": 0.015,
+     "high": 0.1,
+     "weight": 1.0,
+     "detail_ru": "Последние столкновения с погибшими — 2010 год (корвет «Чхонан», обстрел острова Ёнпхёндо). Оценка GeoIntel: около 4% в год.",
+     "detail_en": "The last deadly clashes were in 2010 (the Cheonan sinking and the shelling of Yeonpyeong). GeoIntel judgement: about 4% a year.",
+     "url": null
+    }
+   ],
+   "indicators": [],
+   "warnings": [],
+   "market_candidates": [],
+   "market_status": "no_match",
+   "affected": [
+    {
+     "iso3": "PRK",
+     "role": "party",
+     "reason_ru": "Стороны сценария.",
+     "reason_en": "Parties to the scenario."
+    },
+    {
+     "iso3": "KOR",
+     "role": "party",
+     "reason_ru": "Стороны сценария.",
+     "reason_en": "Parties to the scenario."
+    },
+    {
+     "iso3": "USA",
+     "role": "ally",
+     "reason_ru": "Договор о взаимной обороне; около 28,5 тыс. военных США в Южной Корее.",
+     "reason_en": "Mutual defence treaty; about 28,500 US troops in South Korea."
+    },
+    {
+     "iso3": "JPN",
+     "role": "frontline",
+     "reason_ru": "Ракеты КНДР пролетают над Японией; базы США.",
+     "reason_en": "North Korean missiles overfly Japan; US bases."
+    },
+    {
+     "iso3": "CHN",
+     "role": "ally",
+     "reason_ru": "Договоры с КНДР: Китай (1961) и Россия (2024) — с пунктом о взаимной помощи.",
+     "reason_en": "Treaties with North Korea: China (1961) and Russia (2024), with mutual assistance clauses."
+    },
+    {
+     "iso3": "RUS",
+     "role": "ally",
+     "reason_ru": "Договоры с КНДР: Китай (1961) и Россия (2024) — с пунктом о взаимной помощи.",
+     "reason_en": "Treaties with North Korea: China (1961) and Russia (2024), with mutual assistance clauses."
+    }
+   ],
+   "calibration": "uncalibrated"
+  }
+ ]
+}

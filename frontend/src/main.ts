@@ -1,8 +1,12 @@
 import './style.css';
-import { band, changesSince, loadHazards, loadSnapshot, percent, readVisit, writeVisit } from './data';
+import { band, changesSince, loadHazards, loadLinks, loadScenarios, loadSnapshot, percent, readVisit, writeVisit } from './data';
 import type {
-  Change, CountryEntry, EventTypeEntry, HazardDetails, HazardSummary, HorizonKey, Lang, Probability, Risk, Snapshot, VisitMemory,
+  Change, CountryEntry, EventTypeEntry, HazardDetails, HazardSummary, HorizonKey, Lang, LinksFile, Probability, Risk, ScenarioFile,
+  Snapshot, VisitMemory,
 } from './data';
+import { countryScenarios, linksSection, migrationClass, migrationPage, migrationSection, roleClass, scenariosPage, vt } from './views';
+import type { ViewContext } from './views';
+import type { ChainEvent } from './chains';
 import { dictionaries } from './i18n';
 import { drawCountryMap, drawMap, neighboursOf } from './map';
 import { businessVerdict, levelLabel, spillover, travelVerdict } from './insights';
@@ -12,7 +16,9 @@ import type { Level, Verdict } from './insights';
 
 const pages = [
   ['overview', 'navOverview'],
+  ['scenarios', 'navScenarios'],
   ['country', 'navCountry'],
+  ['migration', 'navMigration'],
   ['changes', 'navChanges'],
   ['assistant', 'navAssistant'],
   ['method', 'navMethod'],
@@ -34,6 +40,11 @@ let previousVisit: VisitMemory | undefined;
 let loadError = false;
 let updateMapSelection: ((key: string) => void) | undefined;
 let hazardsData: HazardDetails | undefined;
+let scenariosData: ScenarioFile | undefined;
+let linksData: LinksFile | undefined;
+let currentScenario = stored('geointel.scenario') ?? 'russia_nato';
+let chainEvent: ChainEvent = (stored('geointel.chain') as ChainEvent | null) ?? 'conflict';
+let migMode: 'hosted' | 'abroad' = stored('geointel.migmode') === 'abroad' ? 'abroad' : 'hosted';
 const VIEWS = ['view_travel', 'view_business'] as const;
 const isView = (key: string) => (VIEWS as readonly string[]).includes(key);
 const levelClass = (level: Level) => (['', 'low', 'elevated', 'high', 'critical'] as const)[level];
@@ -74,6 +85,13 @@ const horizonLabel = (key: string) => {
   return h ? (lang === 'ru' ? h.label_ru : h.label_en) : key;
 };
 const isConflict = (key: string) => key.endsWith('conflict');
+const nameOf = (iso3: string) => countryName(byIso().get(iso3), iso3);
+const viewContext = (): ViewContext => ({ lang, esc: escape, name: nameOf, pct });
+const horizonLabels = () => Object.fromEntries((snapshot?.horizons ?? []).map((h) => [h.key, lang === 'ru' ? h.label_ru : h.label_en])) as Record<HorizonKey, string>;
+const neighbourCodes = (iso3: string) => {
+  const country = byIso().get(iso3);
+  return country ? neighbourCountries(country).map((c) => c.iso3) : [];
+};
 const labelOf = (key: string) => typeLabel(typeEntry(key));
 const travelOf = (c: CountryEntry) => travelVerdict(c, labelOf, lang, hazardsData, t().months);
 const businessOf = (c: CountryEntry) => businessVerdict(c, labelOf, lang, hazardsData);
@@ -333,8 +351,11 @@ function countryPage() {
       <div class="lead-summary"><h2>${t().summaryTitle}</h2>${summarySentences(country, '1y')}</div>
     </section>
     ${country ? implications(country) : ''}
+    <section class="section" id="country-scenarios">${countryScenarios(viewContext(), scenariosData, selected)}</section>
+    <section class="section" id="country-links">${linksSection(viewContext(), selected, chainEvent, neighbourCodes(selected), linksData)}</section>
     <section class="section hazards" id="hazards" aria-live="polite"><div class="section-head"><h2>${t().hazardsTitle}</h2><p>${t().hazardsLead}</p></div>
       <div class="loading-inline">${t().hazardsLoading}</div></section>
+    <section class="section" id="country-migration">${migrationSection(viewContext(), selected, linksData)}</section>
     <section class="section"><div class="section-head"><h2>${t().allRisks}</h2><p>${t().intervalText}</p></div><div class="risk-blocks">${blocks}</div></section>`;
 }
 
@@ -503,6 +524,8 @@ function body(page: Page) {
   if (loadError) return notice(t().loadError, `<button class="button" data-retry>${t().retry}</button>`, 'alert');
   if (!snapshot) return `<div class="loading" role="status">${t().loading}</div>`;
   if (page === 'country') return countryPage();
+  if (page === 'scenarios') return scenariosPage(viewContext(), scenariosData, currentScenario, horizonLabels());
+  if (page === 'migration') return migrationPage(viewContext(), linksData, migMode);
   if (page === 'changes') return changesPage();
   if (page === 'assistant') return assistantPage();
   if (page === 'method') return methodPage();
@@ -522,6 +545,7 @@ function render() {
     <main id="workspace" tabindex="-1">${body(page)}</main>
     <footer class="footer">${t().brand}. ${t().summaryCaveat} Natural Earth.</footer>`;
   if (page === 'country' && snapshot) void fillHazards(selected);
+  drawExtraMaps();
   const map = root.querySelector<HTMLElement>('#map');
   if (map && snapshot) {
     const shapes = shapeToIso();
@@ -549,6 +573,41 @@ function render() {
   }
 }
 
+// Initial map view per scenario: [longitude, latitude, zoom].
+const SCENARIO_FOCUS: Record<string, [number, number, number]> = {
+  russia_nato: [22, 56, 3], ukraine_ceasefire: [25, 50, 2.6], china_taiwan: [122, 26, 2.6],
+  iran_strikes: [48, 28, 2.6], india_pakistan: [74, 28, 3], korea: [128, 37, 3.2],
+};
+
+function drawExtraMaps() {
+  if (!snapshot) return;
+  const shapes = shapeToIso();
+  const scenarioMap = root.querySelector<HTMLElement>('#scenario-map');
+  const scenario = scenariosData?.scenarios.find((s) => s.key === currentScenario) ?? scenariosData?.scenarios[0];
+  if (scenarioMap && scenario) {
+    const roles = new Map(scenario.affected.map((a) => [a.iso3, a.role]));
+    drawMap(scenarioMap, '', (key) => { const role = roles.get(shapes.get(key) ?? ''); return role ? roleClass(role) : ''; },
+      (key, fallback) => {
+        const iso = shapes.get(key) ?? '';
+        const role = roles.get(iso);
+        return `${iso ? nameOf(iso) : fallback}${role ? ': ' + vt(lang).role[role].toLowerCase() : ''}`;
+      },
+      (key) => { const iso = shapes.get(key); if (iso) { selectCountry(iso); location.hash = '#country'; } },
+      SCENARIO_FOCUS[scenario.key]);
+  }
+  const migrationMap = root.querySelector<HTMLElement>('#migration-map');
+  if (migrationMap && linksData) {
+    const per = (iso: string) => linksData?.countries[iso]?.migration?.[migMode === 'hosted' ? 'hosted_per_1000' : 'abroad_per_1000'];
+    drawMap(migrationMap, '', (key) => migrationClass(per(shapes.get(key) ?? '')),
+      (key, fallback) => {
+        const iso = shapes.get(key) ?? '';
+        const v = per(iso);
+        return `${iso ? nameOf(iso) : fallback}: ${v === undefined ? vt(lang).migNoData.toLowerCase() : vt(lang).perThousand(v.toFixed(1).replace('.', lang === 'ru' ? ',' : '.'))}`;
+      },
+      (key) => { const iso = shapes.get(key); if (iso) { selectCountry(iso); location.hash = '#country'; } });
+  }
+}
+
 function selectCountry(iso3: string) {
   selected = iso3;
   store('geointel.country', iso3);
@@ -571,6 +630,23 @@ root.addEventListener('click', (event) => {
     else root.querySelector('#country-panel')?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
     return;
   }
+  const scenarioKey = target.closest<HTMLElement>('[data-scenario]')?.dataset.scenario;
+  if (scenarioKey) {
+    currentScenario = scenarioKey;
+    store('geointel.scenario', scenarioKey);
+    if (currentPage() === 'scenarios') render(); else location.hash = '#scenarios';
+    return;
+  }
+  const chain = target.closest<HTMLElement>('[data-chain]')?.dataset.chain as ChainEvent | undefined;
+  if (chain) {
+    chainEvent = chain;
+    store('geointel.chain', chain);
+    const node = root.querySelector<HTMLElement>('#country-links');
+    if (node) node.innerHTML = linksSection(viewContext(), selected, chainEvent, neighbourCodes(selected), linksData);
+    return;
+  }
+  const mode = target.closest<HTMLElement>('[data-migmode]')?.dataset.migmode as typeof migMode | undefined;
+  if (mode) { migMode = mode; store('geointel.migmode', mode); render(); return; }
   const lensKey = target.closest<HTMLElement>('[data-lens]')?.dataset.lens as typeof lens | undefined;
   if (lensKey) { lens = lensKey; store('geointel.lens', lens); render(); return; }
   const groupKey = target.closest<HTMLElement>('[data-group]')?.dataset.group;
@@ -588,6 +664,15 @@ root.addEventListener('change', (event) => {
   if (field.dataset.field === 'group') { selectedGroup = field.value; store('geointel.group', selectedGroup); render(); }
 });
 
+root.addEventListener('keydown', (event) => {
+  const node = (event.target as Element).closest?.('g[data-select]') as SVGGElement | null;
+  if (node && (event.key === 'Enter' || event.key === ' ')) {
+    event.preventDefault();
+    selectCountry(node.dataset.select!);
+    window.scrollTo(0, 0);
+  }
+});
+
 window.addEventListener('hashchange', () => { render(); window.scrollTo(0, 0); root.querySelector<HTMLElement>('main')?.focus({ preventScroll: true }); });
 
 async function start() {
@@ -603,6 +688,8 @@ async function start() {
     }
     writeVisit(snapshot);
     void loadHazards().then((data) => { hazardsData = data; if (currentPage() === 'overview') render(); });
+    void loadScenarios().then((data) => { scenariosData = data; if (['scenarios', 'country'].includes(currentPage())) render(); });
+    void loadLinks().then((data) => { linksData = data; if (['migration', 'country'].includes(currentPage())) render(); });
     if (!isView(eventType) && !typeEntry(eventType)?.available) eventType = snapshot.event_types.find((e) => e.available)?.key ?? eventType;
     if (!byIso().has(selected)) selected = snapshot.countries[0]?.iso3 ?? '';
   } catch {

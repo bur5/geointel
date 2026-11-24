@@ -1,0 +1,501 @@
+{
+ "schema": "geointel-links-v1",
+ "generated_at": "2026-11-24T05:30:00+00:00",
+ "routes": [
+  {
+   "key": "central_med",
+   "ru": "Центральное Средиземноморье",
+   "en": "Central Mediterranean",
+   "from": [
+    "LBY",
+    "TUN"
+   ],
+   "to": [
+    "ITA",
+    "MLT"
+   ]
+  },
+  {
+   "key": "western_med",
+   "ru": "Западное Средиземноморье и Атлантика",
+   "en": "Western Mediterranean and Atlantic",
+   "from": [
+    "MAR",
+    "DZA",
+    "MRT",
+    "SEN",
+    "GMB"
+   ],
+   "to": [
+    "ESP"
+   ]
+  },
+  {
+   "key": "eastern_med",
+   "ru": "Восточное Средиземноморье",
+   "en": "Eastern Mediterranean",
+   "from": [
+    "TUR",
+    "LBY"
+   ],
+   "to": [
+    "GRC",
+    "CYP",
+    "BGR"
+   ]
+  },
+  {
+   "key": "western_balkans",
+   "ru": "Западные Балканы",
+   "en": "Western Balkans",
+   "from": [
+    "SRB",
+    "BIH",
+    "MKD",
+    "ALB",
+    "MNE"
+   ],
+   "to": [
+    "HRV",
+    "HUN",
+    "SVN",
+    "AUT",
+    "DEU"
+   ]
+  },
+  {
+   "key": "eastern_land",
+   "ru": "Восточная сухопутная граница ЕС",
+   "en": "EU eastern land border",
+   "from": [
+    "BLR",
+    "RUS"
+   ],
+   "to": [
+    "POL",
+    "LTU",
+    "LVA",
+    "FIN",
+    "EST"
+   ]
+  },
+  {
+   "key": "channel",
+   "ru": "Ла-Манш",
+   "en": "English Channel",
+   "from": [
+    "FRA",
+    "BEL"
+   ],
+   "to": [
+    "GBR"
+   ]
+  },
+  {
+   "key": "secondary_eu",
+   "ru": "Вторичные перемещения внутри Шенгена",
+   "en": "Secondary movements within Schengen",
+   "from": [
+    "ITA",
+    "GRC",
+    "ESP"
+   ],
+   "to": [
+    "FRA",
+    "DEU",
+    "AUT",
+    "BEL",
+    "NLD"
+   ]
+  },
+  {
+   "key": "us_southwest",
+   "ru": "Юго-западная граница США",
+   "en": "US southwest border",
+   "from": [
+    "MEX",
+    "GTM",
+    "HND",
+    "SLV"
+   ],
+   "to": [
+    "USA"
+   ]
+  },
+  {
+   "key": "darien",
+   "ru": "Дарьенский пролом",
+   "en": "Darién Gap",
+   "from": [
+    "COL",
+    "VEN",
+    "ECU"
+   ],
+   "to": [
+    "PAN",
+    "CRI"
+   ]
+  },
+  {
+   "key": "horn_yemen",
+   "ru": "Восточный маршрут (Африканский Рог — Йемен — Саудовская Аравия)",
+   "en": "Eastern route (Horn of Africa — Yemen — Saudi Arabia)",
+   "from": [
+    "ETH",
+    "SOM",
+    "DJI"
+   ],
+   "to": [
+    "YEM",
+    "SAU"
+   ]
+  }
+ ],
+ "sources": [],
+ "countries": {
+  "DEU": {
+   "trade": {
+    "exports_usd": 1700000000000.0,
+    "exports_to": [
+     {
+      "iso3": "USA",
+      "share": 0.1
+     },
+     {
+      "iso3": "FRA",
+      "share": 0.075
+     },
+     {
+      "iso3": "NLD",
+      "share": 0.07
+     },
+     {
+      "iso3": "CHN",
+      "share": 0.06
+     },
+     {
+      "iso3": "POL",
+      "share": 0.055
+     }
+    ],
+    "imports_usd_mirror": 1400000000000.0,
+    "imports_from": [
+     {
+      "iso3": "CHN",
+      "share": 0.12
+     },
+     {
+      "iso3": "NLD",
+      "share": 0.08
+     },
+     {
+      "iso3": "USA",
+      "share": 0.07
+     },
+     {
+      "iso3": "POL",
+      "share": 0.06
+     }
+    ],
+    "year": 2024
+   },
+   "migration": {
+    "hosted": 2700000,
+    "hosted_from": [
+     {
+      "iso3": "UKR",
+      "n": 1200000
+     },
+     {
+      "iso3": "SYR",
+      "n": 700000
+     },
+     {
+      "iso3": "AFG",
+      "n": 350000
+     }
+    ],
+    "year": 2025,
+    "hosted_per_1000": 32.14,
+    "asylum_eu": {
+     "months": [
+      "2024-01",
+      "2024-02",
+      "2024-03",
+      "2024-04",
+      "2024-05",
+      "2024-06",
+      "2024-07",
+      "2024-08",
+      "2024-09",
+      "2024-10",
+      "2024-11",
+      "2024-12",
+      "2025-01",
+      "2025-02",
+      "2025-03",
+      "2025-04",
+      "2025-05",
+      "2025-06",
+      "2025-07",
+      "2025-08",
+      "2025-09",
+      "2025-10",
+      "2025-11",
+      "2025-12"
+     ],
+     "values": [
+      30000,
+      29400,
+      28800,
+      28200,
+      27600,
+      27000,
+      26400,
+      25800,
+      25200,
+      24600,
+      24000,
+      23400,
+      22800,
+      22200,
+      21600,
+      21000,
+      20400,
+      19800,
+      19200,
+      18600,
+      18000,
+      17400,
+      16800,
+      16200
+     ],
+     "last12": 150000,
+     "change": -0.38
+    }
+   },
+   "milex": {
+    "value": 2.1,
+    "year": 2024,
+    "change5": 0.7,
+    "series": [
+     [
+      2019,
+      1.4
+     ],
+     [
+      2020,
+      1.5
+     ],
+     [
+      2021,
+      1.4
+     ],
+     [
+      2022,
+      1.5
+     ],
+     [
+      2023,
+      1.6
+     ],
+     [
+      2024,
+      2.1
+     ]
+    ]
+   }
+  },
+  "UKR": {
+   "trade": {
+    "exports_usd": 40000000000.0,
+    "exports_to": [
+     {
+      "iso3": "POL",
+      "share": 0.12
+     },
+     {
+      "iso3": "ESP",
+      "share": 0.06
+     },
+     {
+      "iso3": "DEU",
+      "share": 0.05
+     },
+     {
+      "iso3": "TUR",
+      "share": 0.05
+     }
+    ],
+    "imports_from": [
+     {
+      "iso3": "CHN",
+      "share": 0.2
+     },
+     {
+      "iso3": "POL",
+      "share": 0.1
+     },
+     {
+      "iso3": "DEU",
+      "share": 0.08
+     }
+    ],
+    "year": 2024
+   },
+   "migration": {
+    "abroad": 5900000,
+    "abroad_in": [
+     {
+      "iso3": "DEU",
+      "n": 1200000
+     },
+     {
+      "iso3": "POL",
+      "n": 990000
+     },
+     {
+      "iso3": "CZE",
+      "n": 390000
+     },
+     {
+      "iso3": "GBR",
+      "n": 250000
+     },
+     {
+      "iso3": "USA",
+      "n": 200000
+     }
+    ],
+    "idps": 3700000,
+    "year": 2025,
+    "abroad_per_1000": 159.46
+   }
+  },
+  "USA": {
+   "trade": {
+    "exports_to": [
+     {
+      "iso3": "CAN",
+      "share": 0.17
+     },
+     {
+      "iso3": "MEX",
+      "share": 0.16
+     },
+     {
+      "iso3": "CHN",
+      "share": 0.07
+     },
+     {
+      "iso3": "JPN",
+      "share": 0.04
+     },
+     {
+      "iso3": "DEU",
+      "share": 0.04
+     }
+    ],
+    "year": 2024
+   },
+   "migration": {
+    "hosted": 2900000,
+    "hosted_from": [
+     {
+      "iso3": "VEN",
+      "n": 500000
+     },
+     {
+      "iso3": "MEX",
+      "n": 300000
+     }
+    ],
+    "year": 2025,
+    "hosted_per_1000": 8.63
+   }
+  },
+  "JPN": {
+   "trade": {
+    "exports_to": [
+     {
+      "iso3": "USA",
+      "share": 0.2
+     },
+     {
+      "iso3": "CHN",
+      "share": 0.18
+     },
+     {
+      "iso3": "KOR",
+      "share": 0.06
+     }
+    ],
+    "year": 2024
+   },
+   "migration": {
+    "hosted": 30000,
+    "year": 2025,
+    "hosted_per_1000": 0.24
+   }
+  },
+  "SDN": {
+   "migration": {
+    "abroad": 2300000,
+    "abroad_in": [
+     {
+      "iso3": "TCD",
+      "n": 900000
+     },
+     {
+      "iso3": "EGY",
+      "n": 700000
+     },
+     {
+      "iso3": "SSD",
+      "n": 300000
+     }
+    ],
+    "idps": 9000000,
+    "hosted": 800000,
+    "hosted_from": [
+     {
+      "iso3": "SSD",
+      "n": 600000
+     }
+    ],
+    "year": 2025,
+    "hosted_per_1000": 16.0,
+    "abroad_per_1000": 46.0
+   }
+  },
+  "RUS": {
+   "migration": {
+    "hosted": 1200000,
+    "hosted_from": [
+     {
+      "iso3": "UKR",
+      "n": 1200000
+     }
+    ],
+    "abroad": 120000,
+    "year": 2025,
+    "hosted_per_1000": 8.33,
+    "abroad_per_1000": 0.83
+   }
+  },
+  "MLI": {
+   "migration": {
+    "abroad": 300000,
+    "abroad_in": [
+     {
+      "iso3": "MRT",
+      "n": 150000
+     }
+    ],
+    "idps": 350000,
+    "year": 2025,
+    "abroad_per_1000": 12.5
+   }
+  }
+ }
+}
