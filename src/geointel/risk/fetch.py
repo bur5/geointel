@@ -51,7 +51,9 @@ def fetch_all(raw_dir: Path) -> dict:
     }
     filenames = {"ucdp_acd": "ucdp_acd.bin", "coups": "coups.txt", "usgs": "usgs.csv"}
     with httpx.Client(
-        timeout=120, follow_redirects=True, headers={"User-Agent": USER_AGENT}
+        timeout=120,
+        follow_redirects=True,
+        headers={"User-Agent": USER_AGENT, "Accept": "text/plain, text/csv, */*"},
     ) as client:
         for key, candidates in targets.items():
             errors = []

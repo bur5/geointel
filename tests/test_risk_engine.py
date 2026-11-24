@@ -120,6 +120,7 @@ def test_coup_parser_uses_complete_years_only():
     assert history.end_year == 2025
     assert history.unresolved_labels == 1  # Atlantis
     assert "GIN" not in history.years_with_event  # before the window
+    assert history.metadata["dataset_version"] == "V2026.01.13"
 
 
 def test_usgs_parser():
