@@ -5,8 +5,8 @@
     "version": "26.1",
     "bytes": 45955,
     "file": "ucdp_acd.bin",
-    "seconds": 0.9,
-    "retrieved_at": "2026-11-24T15:49:53.226412+00:00",
+    "seconds": 1.3,
+    "retrieved_at": "2026-11-24T18:25:07.264237+00:00",
     "errors": []
   },
   "coups": {
@@ -21,8 +21,8 @@
     "version": "live",
     "bytes": 294613,
     "file": "usgs.csv",
-    "seconds": 0.7,
-    "retrieved_at": "2026-11-24T15:49:54.131565+00:00",
+    "seconds": 0.3,
+    "retrieved_at": "2026-11-24T18:25:08.022512+00:00",
     "errors": []
   },
   "gdacs": {
@@ -31,8 +31,8 @@
     "version": "992 features",
     "bytes": 1463883,
     "file": "gdacs.json",
-    "seconds": 91.5,
-    "retrieved_at": "2026-11-24T15:51:25.614843+00:00",
+    "seconds": 69.4,
+    "retrieved_at": "2026-11-24T18:26:17.466056+00:00",
     "errors": []
   },
   "tsunami": {
@@ -41,8 +41,8 @@
     "version": "601 events",
     "bytes": 288499,
     "file": "tsunami.json",
-    "seconds": 4.9,
-    "retrieved_at": "2026-11-24T15:51:30.481181+00:00",
+    "seconds": 1.5,
+    "retrieved_at": "2026-11-24T18:26:18.949653+00:00",
     "errors": []
   },
   "worldbank": {
@@ -52,7 +52,7 @@
     "bytes": 4727534,
     "file": "worldbank.json",
     "seconds": 0.2,
-    "retrieved_at": "2026-11-24T15:51:30.719596+00:00",
+    "retrieved_at": "2026-11-24T18:26:19.153477+00:00",
     "errors": []
   },
   "fts": {
@@ -61,18 +61,18 @@
     "version": "FTS",
     "bytes": 4368060,
     "file": "fts.json",
-    "seconds": 20.0,
-    "retrieved_at": "2026-11-24T15:51:50.669936+00:00",
+    "seconds": 11.4,
+    "retrieved_at": "2026-11-24T18:26:30.546538+00:00",
     "errors": []
   },
   "advisories": {
     "status": "ok",
     "url": "https://cadataapi.state.gov/api/TravelAdvisories",
     "version": "218 advisories",
-    "bytes": 495188,
+    "bytes": 495758,
     "file": "advisories.json",
-    "seconds": 1.6,
-    "retrieved_at": "2026-11-24T15:51:52.269711+00:00",
+    "seconds": 0.8,
+    "retrieved_at": "2026-11-24T18:26:31.312558+00:00",
     "errors": []
   },
   "exposure": {
@@ -81,8 +81,8 @@
     "version": "WDI structure",
     "bytes": 5772098,
     "file": "exposure.json",
-    "seconds": 0.7,
-    "retrieved_at": "2026-11-24T15:51:52.975076+00:00",
+    "seconds": 0.5,
+    "retrieved_at": "2026-11-24T18:26:31.769769+00:00",
     "errors": []
   },
   "imf": {
@@ -91,8 +91,8 @@
     "version": "WEO",
     "bytes": 401301,
     "file": "imf.json",
-    "seconds": 1.2,
-    "retrieved_at": "2026-11-24T15:51:54.142086+00:00",
+    "seconds": 1.1,
+    "retrieved_at": "2026-11-24T18:26:32.893029+00:00",
     "errors": []
   },
   "vdem": {
@@ -101,8 +101,8 @@
     "version": "electoral-democracy-index",
     "bytes": 1115751,
     "file": "vdem.csv",
-    "seconds": 1.8,
-    "retrieved_at": "2026-11-24T15:51:55.964056+00:00",
+    "seconds": 0.2,
+    "retrieved_at": "2026-11-24T18:26:33.091224+00:00",
     "errors": []
   },
   "gpr": {
@@ -111,18 +111,18 @@
     "version": "monthly",
     "bytes": 2718208,
     "file": "gpr.xls",
-    "seconds": 0.3,
-    "retrieved_at": "2026-11-24T15:51:56.239340+00:00",
+    "seconds": 0.2,
+    "retrieved_at": "2026-11-24T18:26:33.244158+00:00",
     "errors": []
   },
   "elections": {
     "status": "ok",
     "url": "https://query.wikidata.org/sparql",
     "version": "194 countries",
-    "bytes": 149672,
+    "bytes": 136959,
     "file": "elections.json",
-    "seconds": 364.6,
-    "retrieved_at": "2026-11-24T15:58:00.844618+00:00",
+    "seconds": 424.2,
+    "retrieved_at": "2026-11-24T18:33:37.488133+00:00",
     "errors": []
   },
   "fcdo": {
@@ -131,8 +131,58 @@
     "version": "226 countries",
     "bytes": 15461173,
     "file": "fcdo.json",
-    "seconds": 99.4,
-    "retrieved_at": "2026-11-24T15:59:40.254559+00:00",
+    "seconds": 34.4,
+    "retrieved_at": "2026-11-24T18:34:11.854243+00:00",
+    "errors": []
+  },
+  "milex": {
+    "status": "ok",
+    "url": "https://ourworldindata.org/grapher/military-expenditure-share-gdp.csv?v=1&csvType=full&useColumnShortNames=true",
+    "version": "military-expenditure-share-gdp",
+    "bytes": 302580,
+    "file": "milex.csv",
+    "seconds": 0.3,
+    "retrieved_at": "2026-11-24T18:34:12.153421+00:00",
+    "errors": []
+  },
+  "markets": {
+    "status": "ok",
+    "url": "https://gamma-api.polymarket.com/public-search",
+    "version": "592 markets",
+    "bytes": 4916301,
+    "file": "markets.json",
+    "seconds": 8.9,
+    "retrieved_at": "2026-11-24T18:34:21.077468+00:00",
+    "errors": []
+  },
+  "unhcr": {
+    "status": "ok",
+    "url": "https://api.unhcr.org/population/v1/population/",
+    "version": "2025",
+    "bytes": 1976865,
+    "file": "unhcr.json",
+    "seconds": 1.0,
+    "retrieved_at": "2026-11-24T18:34:22.052327+00:00",
+    "errors": []
+  },
+  "eurostat": {
+    "status": "ok",
+    "url": "https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/migr_asyappctzm",
+    "version": "since 2023-01",
+    "bytes": 21334,
+    "file": "eurostat.json",
+    "seconds": 0.4,
+    "retrieved_at": "2026-11-24T18:34:22.459424+00:00",
+    "errors": []
+  },
+  "trade": {
+    "status": "ok",
+    "url": "https://comtradeapi.un.org/public/v1/preview/C/A/HS",
+    "version": "41/203 reporters (41 new)",
+    "bytes": 623938,
+    "file": "trade.json",
+    "seconds": 604.5,
+    "retrieved_at": "2026-11-24T18:44:26.986266+00:00",
     "errors": []
   },
   "regions": {
@@ -141,8 +191,8 @@
     "version": "ne_10m_admin_1",
     "bytes": 40726851,
     "file": "regions.geojson",
-    "seconds": 4.0,
-    "retrieved_at": "2026-11-24T15:59:44.247833+00:00",
+    "seconds": 3.4,
+    "retrieved_at": "2026-11-24T18:44:30.423753+00:00",
     "errors": []
   }
 }
