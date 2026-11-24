@@ -1,0 +1,9 @@
+country ccode ccode_gw ccode_polity year month day coup version
+"Mali" 432 2020 8 18 2 "V2026.01.13"
+"Mali"	432			2021	5	24	2	"V2026.01.13"
+"Gabon" 481 481 481 2023 8 30 2 "V2026.01.13"
+"Turkey" 640 2016 7 15 1 "V2026.01.13"
+"Niger" 436 2023 7 26 2 "V2026.01.13"
+"Atlantis" 999 2010 1 1 1 "V2026.01.13"
+"Mali" 432 2026 1 1 1 "V2026.01.13"
+"Guinea" 438 1985 1 1 2 "V2026.01.13"
