@@ -5,7 +5,7 @@
     "version": "26.1",
     "bytes": 45955,
     "file": "ucdp_acd.bin",
-    "retrieved_at": "2026-11-24T05:19:25.645699+00:00",
+    "retrieved_at": "2026-11-24T06:37:31.322859+00:00",
     "errors": []
   },
   "coups": {
@@ -21,7 +21,7 @@
     "version": "live",
     "bytes": 294613,
     "file": "usgs.csv",
-    "retrieved_at": "2026-11-24T05:19:26.877275+00:00",
+    "retrieved_at": "2026-11-24T06:37:33.199418+00:00",
     "errors": []
   }
 }
