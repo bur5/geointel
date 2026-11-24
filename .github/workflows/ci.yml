@@ -90,4 +90,4 @@ jobs:
       - name: Verify PostgreSQL persistence and immutability
         env:
           POSTGRES_TEST_URL: postgresql+psycopg://geointel:geointel_ci_only@127.0.0.1:5432/geointel
-        run: pytest tests/test_postgres_integration.py
+        run: pytest tests/test_postgres_integration.py tests/test_early_warning.py
