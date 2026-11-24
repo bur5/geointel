@@ -190,7 +190,10 @@ def test_cli_build_with_partial_sources(tmp_path):
     available = {t["key"] for t in snapshot["event_types"] if t["available"]}
     assert available == {"internal_armed_conflict", "interstate_conflict", "major_earthquake"}
     status = {s["key"]: s["status"] for s in snapshot["sources"]}
-    assert status == {"ucdp_acd": "ok", "coups": "failed", "usgs": "ok"}
+    assert status["ucdp_acd"] == status["usgs"] == "ok"
+    assert status["coups"] == status["gdacs"] == "failed"
+    hazards = json.loads((out.parent / "hazards.json").read_text())
+    assert hazards["countries"]["JPN"]["major_earthquake"]["count"] == 2
     assert main(["build", "--raw-dir", str(raw), "--out", str(out), "--previous", str(out)]) == 0
     assert json.loads(out.read_text())["changes"] == []
 

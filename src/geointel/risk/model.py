@@ -36,6 +36,9 @@ class TypeHistory:
     unresolved_labels: int = 0
     records: int = 0
     metadata: Mapping[str, object] = field(default_factory=dict)
+    # Optional per-country observed years (sources with gaps). When set, countries without
+    # observations are not assessed (reported as no data, never as zero).
+    observed_years: Mapping[str, frozenset[int]] | None = None
 
 
 @dataclass(frozen=True)
@@ -84,15 +87,19 @@ def _weight(year: int, end_year: int, half_life: float | None) -> float:
     return 0.5 ** ((end_year - year) / half_life)
 
 
-def exposure(history: TypeHistory, first_year: int | None) -> range:
+def exposure(history: TypeHistory, first_year: int | None, iso3: str | None = None) -> list[int]:
     start = max(history.start_year, first_year or history.start_year)
-    return range(start, history.end_year + 1)
+    years = range(start, history.end_year + 1)
+    if history.observed_years is not None:
+        observed = history.observed_years.get(iso3 or "", frozenset())
+        return [year for year in years if year in observed]
+    return list(years)
 
 
 def bernoulli_counts(history: TypeHistory, iso3: str, first_year: int | None) -> Counts:
     years = history.years_with_event.get(iso3, frozenset())
     s = t = 0.0
-    for year in exposure(history, first_year):
+    for year in exposure(history, first_year, iso3):
         w = _weight(year, history.end_year, history.half_life_years)
         t += w
         s += w * (year in years)
@@ -104,9 +111,12 @@ def transition_counts(
 ) -> tuple[Counts, Counts]:
     """Weighted (onset | peace) and (continuation | active) counts."""
     years = history.years_with_event.get(iso3, frozenset())
-    span = exposure(history, first_year)
+    span = exposure(history, first_year, iso3)
+    observed = set(span)
     s01 = t01 = s11 = t11 = 0.0
     for year in span[1:]:
+        if (year - 1) not in observed:
+            continue  # no transition across a data gap
         w = _weight(year, history.end_year, history.half_life_years)
         now = year in years
         if (year - 1) in years:
@@ -193,9 +203,11 @@ def assess_type(
 
     for iso3, first in countries.items():
         years = history.years_with_event.get(iso3, frozenset())
-        span = exposure(history, first)
+        span = exposure(history, first, iso3)
+        if not span:
+            continue
         observed = [y for y in span if y in years]
-        active = history.end_year in years
+        active = span[-1] in years
         if persistent:
             onset_counts, continuation_counts = transitions[iso3]
             p01 = posterior(prior01, onset_counts)
@@ -221,7 +233,7 @@ def assess_type(
                 event_type=history.event_type,
                 question=question,
                 active=active if persistent else None,
-                state_as_of=history.end_year,
+                state_as_of=span[-1],
                 horizons=horizons,
                 confidence=confidence_label(horizons["1y"]),
                 exposure_years=len(span),

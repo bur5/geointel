@@ -1,0 +1,8 @@
+{"features": [
+ {"type":"Feature","geometry":{"type":"Point","coordinates":[125.6,11.2]},"properties":{"eventtype":"TC","eventid":1000001,"name":"Tropical Cyclone HAIYAN-13","alertlevel":"Red","country":"Philippines","iso3":"PHL","fromdate":"2013-11-03T00:00:00","affectedcountries":[{"iso2":"PH","iso3":"PHL","countryname":"Philippines"},{"iso2":"VN","iso3":"VNM","countryname":"Viet Nam"}],"severitydata":{"severity":314,"severitytext":"Typhoon (maximum wind speed of 314 km/h)","severityunit":"km/h"}}},
+ {"type":"Feature","geometry":{"type":"Point","coordinates":[125.6,11.2]},"properties":{"eventtype":"TC","eventid":1000001,"name":"Tropical Cyclone HAIYAN-13","alertlevel":"Orange","iso3":"PHL","fromdate":"2013-11-03T00:00:00","affectedcountries":[{"iso3":"PHL"}]}},
+ {"type":"Feature","geometry":{"type":"Point","coordinates":[90.4,23.7]},"properties":{"eventtype":"FL","eventid":2000002,"name":"Flood in Bangladesh","alertlevel":"Orange","iso3":"BGD","fromdate":"2020-07-10T00:00:00","affectedcountries":[{"iso3":"BGD"}]}},
+ {"type":"Feature","geometry":{"type":"Point","coordinates":[90.4,23.7]},"properties":{"eventtype":"FL","eventid":2000003,"name":"Flood in Bangladesh","alertlevel":"Green","iso3":"BGD","fromdate":"2021-07-10T00:00:00","affectedcountries":[{"iso3":"BGD"}]}},
+ {"type":"Feature","geometry":{"type":"Point","coordinates":[0,0]},"properties":{"eventtype":"EQ","eventid":3,"alertlevel":"Red","iso3":"JPN","fromdate":"2011-03-11T00:00:00"}},
+ {"type":"Feature","geometry":{"type":"Point","coordinates":[-155.3,19.4]},"properties":{"eventtype":"VO","eventid":4,"name":"Volcano","alertlevel":"Orange","country":"Indonesia","fromdate":"2026-02-01T00:00:00","affectedcountries":[]}}
+]}

@@ -56,6 +56,7 @@ def build_snapshot(
             "resolution_en": spec.resolution_en,
             "resolution_ru": spec.resolution_ru,
             "modeled": spec.modeled,
+            "group": spec.group,
             "available": history is not None,
         }
         if history is not None:

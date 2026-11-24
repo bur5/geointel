@@ -1,0 +1,4 @@
+[{"id":1,"year":2011,"month":3,"country":"JAPAN","locationName":"HONSHU","latitude":38.3,"longitude":142.4,"eventValidity":4,"maxWaterHeight":39,"deathsTotal":18000},
+ {"id":2,"year":2018,"month":9,"country":"INDONESIA","locationName":"SULAWESI","latitude":-0.2,"longitude":119.8,"eventValidity":4,"maxWaterHeight":11,"deathsTotal":4340},
+ {"id":3,"year":2019,"month":1,"country":"CHILE","eventValidity":1},
+ {"id":4,"year":2020,"month":10,"country":"ATLANTIS","eventValidity":3}]

@@ -14,6 +14,12 @@ class EventType(StrEnum):
     INTERSTATE_CONFLICT = "interstate_conflict"
     COUP_ATTEMPT = "coup_attempt"
     MAJOR_EARTHQUAKE = "major_earthquake"
+    TSUNAMI = "tsunami"
+    TROPICAL_CYCLONE = "tropical_cyclone"
+    FLOOD = "flood"
+    VOLCANO = "volcano"
+    DROUGHT = "drought"
+    WILDFIRE = "wildfire"
     MASS_PROTEST = "mass_protest"
     POLITICAL_CRISIS = "political_crisis"
     ECONOMIC_CRISIS = "economic_crisis"
@@ -36,6 +42,7 @@ class EventTypeSpec:
     resolution_ru: str
     modeled: bool
     persistent_state: bool = False
+    group: str = "conflict"  # conflict | natural | society
 
 
 EVENT_TYPES: tuple[EventTypeSpec, ...] = (
@@ -70,6 +77,7 @@ EVENT_TYPES: tuple[EventTypeSpec, ...] = (
         "Powell & Thyne: незаконная открытая попытка военных или элит сместить действующую "
         "исполнительную власть (успешная или неудачная).",
         modeled=True,
+        group="society",
     ),
     EventTypeSpec(
         EventType.MAJOR_EARTHQUAKE,
@@ -80,6 +88,40 @@ EVENT_TYPES: tuple[EventTypeSpec, ...] = (
         "USGS: землетрясение магнитудой 6,5 и выше, в описании места которого USGS указывает "
         "страну. Морские события без страны не учитываются.",
         modeled=True,
+        group="natural",
+    ),
+    *(
+        EventTypeSpec(
+            key,
+            en,
+            ru,
+            f"GDACS (UN/EC): a {en.lower()} event with an Orange or Red alert that lists the "
+            "country among affected countries. Orange/Red alerts reflect a likely need for "
+            "international humanitarian assistance (exposed population and vulnerability).",
+            f"GDACS (ООН/ЕК): событие «{ru.lower()}» с оранжевым или красным уровнем тревоги, "
+            "затрагивающее страну. Оранжевый и красный уровни означают вероятную потребность в "
+            "международной гуманитарной помощи (с учётом населения в зоне и уязвимости).",
+            modeled=True,
+            group="natural",
+        )
+        for key, en, ru in (
+            (EventType.TROPICAL_CYCLONE, "Tropical cyclone", "Тропический циклон (ураган, тайфун)"),
+            (EventType.FLOOD, "Major flood", "Сильное наводнение"),
+            (EventType.VOLCANO, "Dangerous volcanic eruption", "Опасное извержение вулкана"),
+            (EventType.DROUGHT, "Severe drought", "Сильная засуха"),
+            (EventType.WILDFIRE, "Major wildfire", "Крупный лесной пожар"),
+        )
+    ),
+    EventTypeSpec(
+        EventType.TSUNAMI,
+        "Tsunami",
+        "Цунами",
+        "NOAA NCEI Global Historical Tsunami Database: a definite or probable tsunami "
+        "(validity 3–4) whose source or effects are recorded for the country.",
+        "База цунами NOAA NCEI: достоверное или вероятное цунами (достоверность 3–4), "
+        "источник или последствия которого зафиксированы в стране.",
+        modeled=True,
+        group="natural",
     ),
     EventTypeSpec(
         EventType.MASS_PROTEST,
@@ -88,6 +130,7 @@ EVENT_TYPES: tuple[EventTypeSpec, ...] = (
         "Not yet modeled.",
         "Пока не моделируется.",
         modeled=False,
+        group="society",
     ),
     EventTypeSpec(
         EventType.POLITICAL_CRISIS,
@@ -96,22 +139,30 @@ EVENT_TYPES: tuple[EventTypeSpec, ...] = (
         "Not yet modeled.",
         "Пока не моделируется.",
         modeled=False,
+        group="society",
     ),
     EventTypeSpec(
         EventType.ECONOMIC_CRISIS,
         "Economic crisis",
         "Экономический кризис",
-        "Not yet modeled.",
-        "Пока не моделируется.",
-        modeled=False,
+        "World Bank WDI: a year in which real GDP falls by more than 3% or consumer-price "
+        "inflation exceeds 40%.",
+        "Всемирный банк (WDI): год, в котором реальный ВВП падает более чем на 3% или "
+        "инфляция потребительских цен превышает 40%.",
+        modeled=True,
+        group="society",
     ),
     EventTypeSpec(
         EventType.HUMANITARIAN_CRISIS,
         "Humanitarian crisis",
         "Гуманитарный кризис",
-        "Not yet modeled.",
-        "Пока не моделируется.",
-        modeled=False,
+        "UN OCHA Financial Tracking Service: a year with a UN-coordinated humanitarian "
+        "response plan or flash appeal for the country alone.",
+        "UN OCHA FTS: год, когда для страны действовал отдельный гуманитарный план "
+        "реагирования ООН или срочный призыв (flash appeal).",
+        modeled=True,
+        persistent_state=True,
+        group="society",
     ),
 )
 
