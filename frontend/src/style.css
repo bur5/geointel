@@ -242,6 +242,11 @@ details p { margin-top: 6px; color: var(--ink-2); font-size: 13px; max-width: 80
 .status.failed { background: #fbecea; color: #9b2f25; }
 .status.pending { background: #eef1f5; color: var(--muted); }
 
+.risk-group { display: grid; gap: 12px; }
+.risk-group + .risk-group { margin-top: 18px; }
+.group-title { font-size: 14px; font-weight: 600; color: var(--muted); }
+.missing { color: var(--muted); font-size: 13px; }
+
 /* Natural hazards */
 .select optgroup { font-weight: 600; color: var(--muted); }
 .loading-inline, .muted-text { color: var(--muted); font-size: 14px; }

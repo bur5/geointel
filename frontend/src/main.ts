@@ -162,7 +162,7 @@ function legend() {
   return `<div class="legend">
     <div class="legend-scale"><span class="legend-title">${t().legendProbability}</span>
       <div class="ramp">${steps.map(([cls, label]) => `<span class="${cls}"><i></i><small>${label}</small></span>`).join('')}<span class="ramp-end"><small>100%</small></span></div></div>
-    ${isConflict(eventType) ? `<span class="legend-key"><i class="swatch-active"></i>${t().legendActive}</span>` : ''}
+    ${(snapshot?.countries ?? []).some((c) => c.risks[eventType]?.active) ? `<span class="legend-key"><i class="swatch-active"></i>${t().legendActive}</span>` : ''}
     <span class="legend-key"><i class="swatch-none"></i>${t().legendNoData}</span>
   </div>`;
 }
@@ -219,17 +219,24 @@ function overview() {
 function countryPage() {
   const country = byIso().get(selected);
   const horizons = snapshot?.horizons ?? [];
-  const blocks = (snapshot?.event_types ?? []).map((entry) => {
-    const risk = country?.risks[entry.key];
-    if (!entry.modeled || !entry.available || !risk) {
-      return `<article class="risk-block muted"><h3>${escape(typeLabel(entry))}</h3><p>${!entry.modeled ? t().inProgress : t().unavailable}</p></article>`;
-    }
+  const block = (entry: EventTypeEntry) => {
+    const risk = country?.risks[entry.key]!;
     return `<article class="risk-block"><div class="risk-head"><h3>${escape(typeLabel(entry))}</h3>${risk.active ? ongoingTag() : ''}</div>
       <p class="question">${escape(questionText(entry.key, risk))}</p>
       <div class="horizon-grid">${horizons.map((h) => `<div><span class="h-label">${escape(lang === 'ru' ? h.label_ru : h.label_en)}</span>${value(risk, h.key, 'lg')}</div>`).join('')}</div>
       <p class="basis">${escape(t().basis(risk.basis.exposure_years, risk.basis.event_years, risk.basis.last_event_year))} ${t().confidence}: ${confidenceText(risk.confidence)}.</p>
       <details><summary>${t().definition}</summary><p>${escape(lang === 'ru' ? entry.resolution_ru : entry.resolution_en)}</p></details>
     </article>`;
+  };
+  const types = snapshot?.event_types ?? [];
+  const groups = [['conflict', t().groupConflict], ['natural', t().groupNatural], ['society', t().groupSociety]] as const;
+  const blocks = groups.map(([group, label]) => {
+    const inGroup = types.filter((e) => (e.group ?? 'conflict') === group);
+    const ready = inGroup.filter((e) => e.available && country?.risks[e.key]);
+    const missing = inGroup.filter((e) => !(e.available && country?.risks[e.key]));
+    if (!inGroup.length) return '';
+    return `<div class="risk-group"><h3 class="group-title">${escape(label)}</h3>${ready.map(block).join('')}
+      ${missing.length ? `<p class="missing">${missing.map((e) => `${escape(typeLabel(e))} — ${!e.modeled ? t().inProgress : t().unavailable}`).join(' · ')}</p>` : ''}</div>`;
   }).join('');
   return `<section class="page-head country-head">
       <label class="select compact"><span>${t().searchCountry}</span><select data-field="country">${countryOptions()}</select></label>
