@@ -4,10 +4,10 @@ from datetime import UTC, datetime
 from typing import Any
 
 import httpx
-from pydantic import BaseModel, ConfigDict, Field, ValidationError
+from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator
 
 from geointel.coverage import Scope
-from geointel.domain.schemas import NormalizedForecastSignal
+from geointel.domain.schemas import NormalizedForecastSignal, reject_boolean_prediction
 from geointel.providers.runtime import sanitize_mapping, sanitize_url
 
 
@@ -29,6 +29,7 @@ class VIEWSRawForecast(BaseModel):
     horizon_months: int | None = Field(default=None, ge=1)
     target_variable: str = Field(max_length=200)
     prediction: float
+    _reject_boolean = field_validator("prediction", mode="before")(reject_boolean_prediction)
     unit: str | None = Field(default=None, max_length=80)
     scale: str | None = Field(default=None, max_length=120)
 
