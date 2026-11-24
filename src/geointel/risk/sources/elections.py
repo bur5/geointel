@@ -17,10 +17,10 @@ SELECT ?e ?eLabelEn ?eLabelRu ?date ?precision ?iso3 ?typeLabel WHERE {
   ?e p:P585/psv:P585 [ wikibase:timeValue ?date ; wikibase:timePrecision ?precision ] .
   FILTER(?date >= NOW() - "P45D"^^xsd:duration && ?date <= NOW() + "P400D"^^xsd:duration)
   ?e wdt:P31 ?type .
-  ?type wdt:P279* wd:Q40231 .
+  ?type rdfs:label ?typeLabel FILTER(LANG(?typeLabel) = "en")
+  FILTER(CONTAINS(LCASE(?typeLabel), "election") || CONTAINS(LCASE(?typeLabel), "referendum"))
   OPTIONAL { ?e rdfs:label ?eLabelEn FILTER(LANG(?eLabelEn) = "en") }
   OPTIONAL { ?e rdfs:label ?eLabelRu FILTER(LANG(?eLabelRu) = "ru") }
-  ?type rdfs:label ?typeLabel FILTER(LANG(?typeLabel) = "en")
 }
 """
 

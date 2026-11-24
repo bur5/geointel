@@ -169,14 +169,14 @@ def _gpr(client: httpx.Client, _year: int) -> tuple[bytes, str, str]:
 
 
 def _sparql(client: httpx.Client, query: str) -> dict:
-    for attempt in range(3):
+    for attempt in range(2):
         response = client.get(
             elections.ENDPOINT,
             params={"query": query, "format": "json"},
             headers={"Accept": "application/sparql-results+json"},
-            timeout=90,
+            timeout=45,
         )
-        if response.status_code in (429, 500, 502, 503, 504) and attempt < 2:
+        if response.status_code in (429, 500, 502, 503, 504) and attempt < 1:
             time.sleep(5 * (attempt + 1))
             continue
         response.raise_for_status()
@@ -196,7 +196,11 @@ def _elections(client: httpx.Client, _year: int) -> tuple[bytes, str, str]:
         }
     )
     bindings, failures = [], 0
+    deadline = time.monotonic() + 420  # never let elections hold up the daily run
     for start in range(0, len(pairs), 12):
+        if time.monotonic() > deadline:
+            failures += 1
+            break
         query = elections.BATCH_QUERY % elections.batch_values(pairs[start : start + 12])
         try:
             bindings.extend(_sparql(client, query)["results"]["bindings"])
