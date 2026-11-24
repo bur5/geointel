@@ -84,10 +84,26 @@ recorded in issue/PR history with its authenticated origin; the record alone doe
 not authenticate the decision. If identity, channel or scope cannot be verified,
 block the action and request clarification through a verified Owner channel.
 
+### Authorization by stage
+
+- **Bounded implementation:** Under an approved task contract, agents may edit
+  and test in an isolated workspace within the approved scope, risk tier, and
+  resource budget. Implementation may begin when its own prerequisites are met.
+  Successful CI and merge approval are gates for the resulting candidate.
+- **Unattended R1 execution:** Additional unattended authority requires a
+  separate, authenticated Owner decision as an R3 protected-policy change.
+  The decision must define the scope, budget, duration, and stop conditions.
+  The prerequisites for future automation below apply before activation.
+- **Manual merge:** Every candidate requires successful trusted CI, binding
+  independent review, authenticated Owner approval, and an operation that
+  rejects a change to either approved SHA. The requirements below apply.
+- **Production deployment and public release:** Each requires its own explicit
+  Owner approval before execution, within the approved scope and target.
+
 ### Manual merge requirements
 
 **Every merge, including R1, requires explicit Owner approval of the integration
-candidate, successful mandatory CI, and binding independent approval. All merges are manual
+candidate, successful trusted mandatory CI, and binding independent approval. All merges are manual
 and automated merge authority remains disabled.** Missing independent review
 blocks merge. CI success provides test evidence only.
 This milestone PR changes protected policy and requires Owner approval.

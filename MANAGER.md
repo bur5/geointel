@@ -47,6 +47,11 @@ to remain authorized, required checks to succeed, independent findings to be
 resolved, and approvals to match the final candidate. Missing tools, skipped
 mandatory integration tests, or unavailable reviewers mean blocked, not passed.
 
+Proceed with bounded implementation when its task contract and implementation
+approvals are satisfied. Collect candidate CI and review evidence after there is
+an implementation to verify. Require separate authenticated Owner authorization
+before activating additional unattended R1 execution under GOVERNANCE.
+
 ## Lifecycle and progress records
 
 | State | Entry / exit requirement |
@@ -58,7 +63,7 @@ mandatory integration tests, or unavailable reviewers mean blocked, not passed.
 | review_pending | Required CI successful; independent reviewer inspects candidate. |
 | changes_requested | Findings recorded; bounded revision returns to implementing and renews CI/review. |
 | awaiting_owner | A reserved action, current merge approval, or policy decision is pending; no dependent action. |
-| merge_ready | Exact head/base pair has successful mandatory CI, verified independent approval, resolved findings and explicit Owner merge approval; verify gates immediately before merge. |
+| merge_ready | Exact head/base pair has successful trusted mandatory CI, verified independent approval, resolved findings and authenticated Owner merge approval. The selected operation must reject a mismatch on either ref. |
 | verifying | An authorized merge occurred; verify actual resulting commit and required post-merge checks. |
 | done | Verified result and audit record complete; only then select the next task. |
 | blocked | Missing capability, failed prerequisite, exhausted retries, or unresolved policy; record cause and next action. |

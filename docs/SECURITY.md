@@ -2,7 +2,21 @@
 
 Secrets belong in environment variables and are excluded from stored provider configuration, logs and version control. `.env.example` contains names only. Before internet exposure add authentication, authorization, rate limiting, request-size controls and audit logs. Treat retrieved content as hostile data: constrain lengths, prevent prompt injection from granting tools, validate structured outputs, and never execute source text. Database roles should use least privilege; production credentials must differ from Compose defaults. Backups and deletion need explicit controls.
 
-Developer automation permission model: Level 0 read/analyze/propose; Level 1 isolated branch/sandbox writes and tests within approved scope; Level 2 merge/deploy follows the tiered policy in [GOVERNANCE.md](../GOVERNANCE.md). Automated merge authority remains disabled. Every merge, including R1, is manual and requires successful mandatory CI, independent approval, and explicit Owner merge approval covering the exact integration candidate (PR head SHA and target base SHA). A change to either SHA invalidates prior merge authorization and requires fresh evidence and approvals for the new pair. CI success provides test evidence only. Before counting independent review, verify the reviewer's identity, auditable Owner designation or delegation, independence, authorized scope and coverage of both SHAs under GOVERNANCE.md. Manager selection without Owner authorization can provide advisory feedback only. Any R2 scientific, evidence, security, or architectural impact requires enhanced independent review, including when the highest applicable tier is R3. Production deployment, public release, irreversible data deletion, new spending/services/accounts/repositories/API integrations, expanded permissions and protected policy changes remain explicitly Owner-gated before execution. Database deletion, auth, secrets and production infrastructure retain extra restrictions. Intended development flow: Manager → Developer branch/sandbox → CI → Independent Reviewer → gated merge → next task; deployment is a separate Owner-approved action. Voice is future interface-only functionality and receives no privileged forecasting role. All technical security and threat-model requirements below remain in force; these documents do not install or enable automation.
+Developer authorization follows [GOVERNANCE.md](../GOVERNANCE.md):
+
+- Bounded implementation permits isolated edits and tests within an approved
+  task scope, risk tier, and resource budget. The resulting candidate is subject
+  to the merge gates.
+- Additional unattended R1 execution requires separate authenticated Owner
+  authorization as a protected-policy decision.
+- Every merge is manual and requires successful trusted mandatory CI, binding
+  independent review, and authenticated Owner merge approval for the exact
+  head/base pair. Require the final operation to reject a mismatch on either
+  ref. Either SHA changing requires fresh evidence and approvals.
+- Production deployment and public release each require separate explicit
+  Owner approval.
+
+Before counting independent review, verify the reviewer's identity, auditable Owner designation or delegation, independence, authorized scope and coverage of both SHAs under GOVERNANCE.md. Manager selection without Owner authorization can provide advisory feedback only. Any R2 scientific, evidence, security, or architectural impact requires enhanced independent review, including when the highest applicable tier is R3. Production deployment, public release, irreversible data deletion, new spending/services/accounts/repositories/API integrations, expanded permissions and protected policy changes remain explicitly Owner-gated before execution. Database deletion, auth, secrets and production infrastructure retain extra restrictions. Intended development flow: Manager → Developer branch/sandbox → CI → Independent Reviewer → gated merge → next task; production deployment and public release each require separate explicit Owner approval. Voice is future interface-only functionality and receives no privileged forecasting role. All technical security and threat-model requirements below remain in force; these documents do not install or enable automation.
 
 VIEWS and UCDP payloads are untrusted data only: connector records are length/schema
 constrained, are never executed, and grant no tools or code-writing authority. Connector errors

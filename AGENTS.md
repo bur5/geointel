@@ -19,6 +19,12 @@ approval. Do not invoke Claude resources as part of the default workflow.
 
 ## Codex Developer
 
+Use the approved task contract for bounded edits and tests. Additional unattended
+R1 execution requires separate authenticated Owner authorization under
+GOVERNANCE. Candidate CI, binding review, and Owner merge approval govern the
+subsequent merge decision. Production deployment and public release each require
+separate explicit Owner approval.
+
 1. Inspect the current base SHA, working tree, task contract, risk tier, and scope.
    Preserve unrelated changes. Use a dedicated branch based on `main`; never
    write directly to `main` or force push it.
