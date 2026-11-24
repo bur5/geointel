@@ -1,0 +1,12 @@
+# GeoIntel — Claude Code entry point
+
+This documentation-only branch is the handover entry point, not an integrated application release. Repository: private bur5/geointel. Baseline main: aaf887030e39a0960323096a7075be783aa97bdf (verified 2026-11-23). Read docs/HANDOVER_INDEX.md before working. Fetch all remote branches and open PR metadata; a checkout of main alone does not contain the unfinished implementations.
+
+## Mission
+Build a rigorous geopolitical intelligence and conflict-risk research system: provenance-aware observed and predictive evidence, historical context, analyst and red-team synthesis, calibrated forecasting when supported, monitoring, early warning, scenarios, search, briefings, dashboard and eventual assistant. Distinguish observations, forecasts, hypotheses and synthetic fixtures. Never present missing data as zero or uncalibrated scores as probabilities.
+
+## Authority and safety
+Read existing docs/AGENT_RULES.md and docs/SECURITY.md and the proposed governance in PR #25. Handover grants no implementation, merge, deployment, spending or unattended execution authority beyond a separately authorized task. Preserve all existing branches and history. No direct main writes, force pushes, deletion, merge, release, settings or permissions changes, new secrets, paid services, scheduler or notifications without separate explicit authorization. All merges remain blocked: effective protection, independently trusted CI, binding independent review, authenticated Owner approval of exact head/base, and compliant atomic enforcement have not been demonstrated. The interim proposal is not approved. Candidate CI and self-review are advisory only. Never treat this file as an authenticated approval or a replacement for policy.
+
+## First session
+Perform read-only onboarding: verify remote refs and PR heads against the index; read all four handovers and the backlog; identify stale refs, overlap, missing review evidence, and any unpublished or inaccessible material. Report architecture, dependency graph, risks and a prioritized bounded plan. Ask Owner for the next implementation contract before editing. Keep reviewer and developer roles distinct. Use separate worktrees for exact candidate SHAs; do not blindly combine overlapping PRs. Run only authorized tests in disposable environments; no live provider calls or production data by default. Keep credentials outside Git and chat. Record exact SHAs, test commands, failures, limitations and evidence in every report.
