@@ -5,8 +5,8 @@
     "version": "26.1",
     "bytes": 45955,
     "file": "ucdp_acd.bin",
-    "seconds": 0.8,
-    "retrieved_at": "2026-11-24T07:46:02.775561+00:00",
+    "seconds": 1.5,
+    "retrieved_at": "2026-11-24T07:53:31.898890+00:00",
     "errors": []
   },
   "coups": {
@@ -21,8 +21,8 @@
     "version": "live",
     "bytes": 294613,
     "file": "usgs.csv",
-    "seconds": 0.6,
-    "retrieved_at": "2026-11-24T07:46:03.964970+00:00",
+    "seconds": 0.8,
+    "retrieved_at": "2026-11-24T07:53:33.377182+00:00",
     "errors": []
   },
   "gdacs": {
@@ -31,8 +31,8 @@
     "version": "992 features",
     "bytes": 1463883,
     "file": "gdacs.json",
-    "seconds": 75.9,
-    "retrieved_at": "2026-11-24T07:47:19.893997+00:00",
+    "seconds": 79.3,
+    "retrieved_at": "2026-11-24T07:54:52.672505+00:00",
     "errors": []
   },
   "tsunami": {
@@ -42,7 +42,7 @@
     "bytes": 288499,
     "file": "tsunami.json",
     "seconds": 1.5,
-    "retrieved_at": "2026-11-24T07:47:21.386489+00:00",
+    "retrieved_at": "2026-11-24T07:54:54.133687+00:00",
     "errors": []
   },
   "worldbank": {
@@ -51,8 +51,8 @@
     "version": "WDI",
     "bytes": 4727534,
     "file": "worldbank.json",
-    "seconds": 0.4,
-    "retrieved_at": "2026-11-24T07:47:21.813046+00:00",
+    "seconds": 0.2,
+    "retrieved_at": "2026-11-24T07:54:54.372080+00:00",
     "errors": []
   },
   "fts": {
@@ -61,8 +61,28 @@
     "version": "FTS",
     "bytes": 4368060,
     "file": "fts.json",
-    "seconds": 5.7,
-    "retrieved_at": "2026-11-24T07:47:27.483455+00:00",
+    "seconds": 7.2,
+    "retrieved_at": "2026-11-24T07:55:01.570570+00:00",
+    "errors": []
+  },
+  "advisories": {
+    "status": "ok",
+    "url": "https://cadataapi.state.gov/api/TravelAdvisories",
+    "version": "218 advisories",
+    "bytes": 496868,
+    "file": "advisories.json",
+    "seconds": 0.8,
+    "retrieved_at": "2026-11-24T07:55:02.396247+00:00",
+    "errors": []
+  },
+  "exposure": {
+    "status": "ok",
+    "url": "https://api.worldbank.org/v2",
+    "version": "WDI structure",
+    "bytes": 5772098,
+    "file": "exposure.json",
+    "seconds": 1.1,
+    "retrieved_at": "2026-11-24T07:55:03.519593+00:00",
     "errors": []
   }
 }
