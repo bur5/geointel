@@ -6,6 +6,8 @@ import type {
 import { dictionaries } from './i18n';
 import { drawCountryMap, drawMap, neighboursOf } from './map';
 import { businessVerdict, levelLabel, spillover, travelVerdict } from './insights';
+import { BLOCS, REGIONS, groupName, groupNote, groupsOf } from './groups';
+import type { Group } from './groups';
 import type { Level, Verdict } from './insights';
 
 const pages = [
@@ -25,6 +27,8 @@ let lang: Lang = (new URLSearchParams(location.search).get('lang') ?? stored('ge
 let eventType = stored('geointel.type') ?? 'internal_armed_conflict';
 let horizon: HorizonKey = (stored('geointel.horizon') as HorizonKey | null) ?? '1y';
 let selected = stored('geointel.country') ?? 'UKR';
+let lens: 'countries' | 'regions' | 'blocs' = (stored('geointel.lens') as 'regions' | 'blocs' | null) ?? 'countries';
+let selectedGroup = stored('geointel.group') ?? 'eu';
 let snapshot: Snapshot | undefined;
 let previousVisit: VisitMemory | undefined;
 let loadError = false;
@@ -71,8 +75,8 @@ const horizonLabel = (key: string) => {
 };
 const isConflict = (key: string) => key.endsWith('conflict');
 const labelOf = (key: string) => typeLabel(typeEntry(key));
-const travelOf = (c: CountryEntry) => travelVerdict(c, snapshot!, labelOf, lang, hazardsData, t().months);
-const businessOf = (c: CountryEntry) => businessVerdict(c, labelOf, lang);
+const travelOf = (c: CountryEntry) => travelVerdict(c, labelOf, lang, hazardsData, t().months);
+const businessOf = (c: CountryEntry) => businessVerdict(c, labelOf, lang, hazardsData);
 const viewVerdict = (c: CountryEntry): Verdict => (eventType === 'view_travel' ? travelOf(c) : businessOf(c));
 const viewKind = () => (eventType === 'view_travel' ? 'travel' : 'business') as 'travel' | 'business';
 const levelBadge = (kind: 'travel' | 'business', level: Level) =>
@@ -207,6 +211,54 @@ function mapBlock() {
   </section>`;
 }
 
+const groupsForLens = () => (lens === 'blocs' ? BLOCS : REGIONS);
+const currentGroup = (): Group | undefined => groupsForLens().find((g) => g.key === selectedGroup) ?? groupsForLens()[0];
+
+function lensSwitch() {
+  const items = [['countries', t().lensCountries], ['regions', t().lensRegions], ['blocs', t().lensBlocs]] as const;
+  return `<div class="lens"><span>${t().lensTitle}</span><div class="segmented" role="group">${items.map(([key, label]) =>
+    `<button type="button" data-lens="${key}" aria-pressed="${key === lens}">${label}</button>`).join('')}</div></div>`;
+}
+
+/** Group aggregate: probability that at least one member sees the event (independence assumed). */
+function groupStats(g: Group) {
+  const members = (snapshot?.countries ?? []).filter((c) => g.members.includes(c.iso3));
+  const withRisk = members.filter((c) => c.risks[eventType]);
+  const active = withRisk.filter((c) => c.risks[eventType].active);
+  const any = 1 - withRisk.reduce((acc, c) => acc * (1 - c.risks[eventType].horizons[horizon].p), 1);
+  const top = [...withRisk].sort((a, b) => b.risks[eventType].horizons[horizon].p - a.risks[eventType].horizons[horizon].p);
+  return { members, withRisk, active, any, top };
+}
+
+function groupPanel() {
+  const g = currentGroup();
+  if (!g || isView(eventType)) return briefPanel();
+  const st = groupStats(g);
+  const note = groupNote(g, lang);
+  return `<aside class="brief" id="country-panel">
+    <label class="select compact"><span>${lens === 'blocs' ? t().lensBlocs : t().lensRegions}</span><select data-field="group">${groupsForLens().map((x) =>
+      `<option value="${x.key}"${x.key === g.key ? ' selected' : ''}>${escape(groupName(x, lang))}</option>`).join('')}</select></label>
+    <h2>${escape(groupName(g, lang))}</h2>
+    <p class="muted-text">${t().groupMembers(st.members.length)}${note ? ' ' + escape(note) : ''}</p>
+    <div class="group-any"><span>${t().groupAny(escape(typeLabel(typeEntry(eventType)).toLowerCase()), escape(horizonLabel(horizon).toLowerCase()))}</span><strong>${pct(st.any)}</strong></div>
+    ${st.active.length ? `<p class="muted-text">${t().groupActive}: ${st.active.map((c) => escape(countryName(c))).join(', ')}</p>` : ''}
+    <ul class="brief-list">${st.top.slice(0, 8).map((c) => `<li><button type="button" class="link" data-select="${c.iso3}">${escape(countryName(c))}</button>${c.risks[eventType].active ? ongoingTag() : ''}${value(c.risks[eventType], horizon)}</li>`).join('')}</ul>
+    <p class="caveat">${t().groupCaveat}</p>
+  </aside>`;
+}
+
+function groupGrid() {
+  return `<section class="section"><div class="section-head"><h2>${lens === 'blocs' ? t().blocsTitle : t().regionsTitle}</h2>
+    <p>${escape(typeLabel(typeEntry(eventType)))}, ${escape(horizonLabel(horizon).toLowerCase())}. ${t().groupCaveat}</p></div>
+    <div class="group-grid">${groupsForLens().map((g) => {
+      const st = groupStats(g);
+      return `<button type="button" class="group-card${g.key === selectedGroup ? ' is-selected' : ''}" data-group="${g.key}">
+        <span class="g-name">${escape(groupName(g, lang))}</span><span class="g-any ${band(st.any)}">${pct(st.any)}</span>
+        <span class="g-meta">${t().groupMembers(st.members.length)}${st.active.length ? ' · ' + t().groupActive.toLowerCase() + ': ' + st.active.length : ''}</span>
+        <span class="g-top">${st.top.slice(0, 3).map((c) => escape(countryName(c))).join(', ')}</span></button>`;
+    }).join('')}</div></section>`;
+}
+
 function briefPanel() {
   const country = byIso().get(selected);
   const rows = (snapshot?.event_types ?? []).filter((e) => e.available && country?.risks[e.key]).map((e) => {
@@ -246,9 +298,11 @@ function ranking() {
 }
 
 function overview() {
+  const grouped = lens !== 'countries' && !isView(eventType);
   return `<section class="hero"><h1>${t().heroTitle}</h1><p>${t().heroLead}</p>${stats()}</section>
-    <div class="explorer">${mapBlock()}${briefPanel()}</div>
-    ${ranking()}`;
+    ${lensSwitch()}
+    <div class="explorer">${mapBlock()}${grouped ? groupPanel() : briefPanel()}</div>
+    ${grouped ? groupGrid() : ranking()}`;
 }
 
 function countryPage() {
@@ -292,12 +346,61 @@ function verdictCard(title: string, kind: 'travel' | 'business', v: Verdict, ext
 function implications(country: CountryEntry) {
   const travel = travelOf(country);
   const advisory = country.advisory;
-  const travelExtra = `<p class="source-line">${travel.official ? t().officialSource : t().modelSource}${advisory?.url ? ` · <a href="${escape(advisory.url)}" rel="noreferrer">travel.state.gov</a>` : ''}</p>
+  const uk = country.advisory_uk;
+  const links = [advisory?.url ? `<a href="${escape(advisory.url)}" rel="noreferrer">travel.state.gov</a>` : '',
+    uk?.url ? `<a href="${escape(uk.url)}" rel="noreferrer">gov.uk</a>` : ''].filter(Boolean).join(' · ');
+  const travelExtra = `${travel.regional.length ? `<h4 class="sub">${t().regionalTitle}</h4><ul>${travel.regional.map((r) => `<li>${escape(r)}</li>`).join('')}</ul>` : ''}
+    <p class="source-line">${travel.official ? t().officialSource : t().modelSource}${links ? ' · ' + links : ''}</p>
+    ${uk?.restrictions?.length ? `<details><summary>${t().ukRestrictions}</summary><p lang="en" class="restr">${uk.restrictions.map(escape).join('<br>')}</p></details>` : ''}
     ${advisory?.summary ? `<details><summary>${t().officialText}</summary><p lang="en">${escape(advisory.summary)}</p></details>` : ''}`;
   const lines = spillover(country, neighbourCountries(country), (c) => countryName(c), lang);
   return `<section class="section"><div class="section-head"><h2>${t().implicationsTitle}</h2><p>${t().implicationsLead}</p></div>
     <div class="verdicts">${verdictCard(t().forTravel, 'travel', travel, travelExtra)}${verdictCard(t().forBusiness, 'business', businessOf(country))}
-      <article class="verdict"><h3>${t().forOthers}</h3><ul>${lines.map((l) => `<li>${escape(l)}</li>`).join('')}</ul></article></div></section>`;
+      <article class="verdict"><h3>${t().forOthers}</h3><ul>${lines.map((l) => `<li>${escape(l)}</li>`).join('')}</ul>
+      ${groupsOf(country.iso3).filter((g) => g.kind === 'bloc').length ? `<h4 class="sub">${t().memberOf}</h4><p class="muted-text">${groupsOf(country.iso3).filter((g) => g.kind === 'bloc').map((g) => escape(groupName(g, lang)) + (groupNote(g, lang) ? ` — ${escape(groupNote(g, lang)!)}` : '')).join('<br>')}</p>` : ''}</article></div></section>
+    ${contextSection(country)}`;
+}
+
+const macro = (v: number) => (Math.abs(v) >= 100 ? v.toFixed(0) : v.toFixed(1)).replace('.', lang === 'ru' ? ',' : '.') + '%';
+
+function sparkline(values: number[]) {
+  const max = Math.max(...values, 1e-9), min = Math.min(...values, 0);
+  const pts = values.map((v, i) => `${(i / (values.length - 1)) * 200},${40 - ((v - min) / (max - min || 1)) * 36}`).join(' ');
+  return `<svg class="spark" viewBox="0 0 200 42" aria-hidden="true"><polyline points="${pts}"/></svg>`;
+}
+
+function contextSection(country: CountryEntry) {
+  const items: string[] = [];
+  const elections = (country.elections ?? []).filter((e) => new Date(e.date).getTime() > Date.now() - 7 * 864e5).slice(0, 4);
+  if (elections.length) {
+    items.push(`<article class="ctx"><h3>${t().ctxElections}</h3><ul>${elections.map((e) => `<li><strong>${escape(formatElectionDate(e.date, e.precision))}</strong> — ${escape((lang === 'ru' ? e.name_ru : null) ?? e.name_en)}</li>`).join('')}</ul></article>`);
+  }
+  const o = country.outlook;
+  if (o?.growth || o?.inflation) {
+    const years = Object.keys({ ...(o.growth ?? {}), ...(o.inflation ?? {}) }).sort();
+    items.push(`<article class="ctx"><h3>${t().ctxImf}</h3><table class="mini"><thead><tr><th></th>${years.map((y) => `<th>${y}</th>`).join('')}</tr></thead><tbody>
+      <tr><th>${t().ctxGrowth}</th>${years.map((y) => `<td>${o.growth?.[y] !== undefined ? macro(o.growth[y]) : '—'}</td>`).join('')}</tr>
+      <tr><th>${t().ctxInflation}</th>${years.map((y) => `<td>${o.inflation?.[y] !== undefined ? macro(o.inflation[y]) : '—'}</td>`).join('')}</tr>
+      ${o.debt ? `<tr><th>${t().ctxDebt}</th>${years.map((y) => `<td>${o.debt?.[y] !== undefined ? macro(o.debt[y]) : '—'}</td>`).join('')}</tr>` : ''}</tbody></table>
+      <p class="muted-text small">${t().ctxImfNote}</p></article>`);
+  }
+  if (country.democracy) {
+    const v = country.democracy.value;
+    items.push(`<article class="ctx"><h3>${t().ctxDemocracy}</h3><p class="big">${v.toFixed(2).replace('.', lang === 'ru' ? ',' : '.')}<small> / 1</small></p>
+      <p class="muted-text small">${t().ctxDemocracyNote(country.democracy.year, v)}</p></article>`);
+  }
+  if (country.gpr && country.gpr.ratio_12m !== null) {
+    items.push(`<article class="ctx"><h3>${t().ctxGpr}</h3>${sparkline(country.gpr.values)}
+      <p class="muted-text small">${t().ctxGprNote(country.gpr.ratio_12m.toFixed(1).replace('.', lang === 'ru' ? ',' : '.'), country.gpr.latest_month)}</p></article>`);
+  }
+  return items.length ? `<section class="section"><div class="section-head"><h2>${t().ctxTitle}</h2><p>${t().ctxLead}</p></div><div class="ctx-grid">${items.join('')}</div></section>` : '';
+}
+
+function formatElectionDate(value: string, precision: 'day' | 'month' | 'year') {
+  const d = new Date(value);
+  if (precision === 'year') return String(d.getUTCFullYear());
+  return new Intl.DateTimeFormat(lang === 'ru' ? 'ru-RU' : 'en-GB', precision === 'month'
+    ? { month: 'long', year: 'numeric', timeZone: 'UTC' } : { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }).format(d);
 }
 
 function seasonChart(months: number[]) {
@@ -310,9 +413,11 @@ function hazardCard(type: string, h: HazardSummary) {
   const entry = typeEntry(type);
   const events = h.events.slice(0, 6).map((e) => `<li><span class="dot ${e.alert === 'Red' ? 'red' : 'orange'}"></span>
     <span class="ev-name">${escape(e.name || typeLabel(entry))}</span>
-    <span class="ev-meta">${e.month ? t().months[e.month - 1] + ' ' : ''}${e.year}${e.severity ? ' · ' + escape(e.severity) : ''}</span></li>`).join('');
+    <span class="ev-meta">${e.month ? t().months[e.month - 1] + ' ' : ''}${e.year}${(lang === 'ru' ? e.region_ru : e.region_en) ? ' · ' + escape((lang === 'ru' ? e.region_ru : e.region_en)!) : ''}${e.severity ? ' · ' + escape(e.severity) : ''}</span></li>`).join('');
+  const regions = (h.regions ?? []).slice(0, 6).map((r) => `${escape(lang === 'ru' ? r.ru : r.en)} (${r.n})`).join(', ');
   return `<article class="hazard-card"><div class="hazard-head"><h3>${escape(typeLabel(entry))}</h3>
-      <p>${escape(t().hazardCount(h.count, h.red, h.first_year, h.last_year))}</p></div>
+      <p>${escape(t().hazardCount(h.count, h.red, h.first_year, h.last_year))}</p>
+      ${regions ? `<p class="where"><strong>${t().hazardWhere}:</strong> ${regions}</p>` : ''}</div>
     <div class="hazard-cols"><div><h4>${t().hazardSeason}</h4>${seasonChart(h.months)}</div>
       <div><h4>${t().hazardEvents}</h4><ul class="events">${events}</ul></div></div>
     <p class="impact"><strong>${t().hazardImpactTitle}.</strong> ${escape(t().impacts[type] ?? '')}</p></article>`;
@@ -425,6 +530,8 @@ function render() {
       (key) => {
         const country = countries.get(shapes.get(key) ?? '');
         if (isView(eventType)) return country ? 'v-' + levelClass(viewVerdict(country).level) : '';
+        const group = lens !== 'countries' ? currentGroup() : undefined;
+        if (group && !group.members.includes(country?.iso3 ?? '')) return 'dimmed';
         const risk = country?.risks[eventType];
         if (!risk) return '';
         return risk.question === 'active_at_end' ? 'active' : band(risk.horizons[horizon].p);
@@ -464,6 +571,10 @@ root.addEventListener('click', (event) => {
     else root.querySelector('#country-panel')?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
     return;
   }
+  const lensKey = target.closest<HTMLElement>('[data-lens]')?.dataset.lens as typeof lens | undefined;
+  if (lensKey) { lens = lensKey; store('geointel.lens', lens); render(); return; }
+  const groupKey = target.closest<HTMLElement>('[data-group]')?.dataset.group;
+  if (groupKey) { selectedGroup = groupKey; store('geointel.group', groupKey); render(); return; }
   const h = target.closest<HTMLElement>('[data-horizon]')?.dataset.horizon as HorizonKey | undefined;
   if (h) { horizon = h; store('geointel.horizon', h); render(); return; }
   if (target.closest('[data-lang]')) { lang = lang === 'ru' ? 'en' : 'ru'; store('geointel.lang', lang); render(); return; }
@@ -474,6 +585,7 @@ root.addEventListener('change', (event) => {
   const field = event.target as HTMLSelectElement;
   if (field.dataset.field === 'type') { eventType = field.value; store('geointel.type', eventType); render(); }
   if (field.dataset.field === 'country') selectCountry(field.value);
+  if (field.dataset.field === 'group') { selectedGroup = field.value; store('geointel.group', selectedGroup); render(); }
 });
 
 window.addEventListener('hashchange', () => { render(); window.scrollTo(0, 0); root.querySelector<HTMLElement>('main')?.focus({ preventScroll: true }); });

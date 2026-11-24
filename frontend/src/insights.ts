@@ -1,123 +1,178 @@
 // Practical implications derived transparently from the snapshot: travel, business, spillover.
+// Principle: country-wide verdicts come from official advisories; model signals are shown as
+// specific reasons and regional notes, never as blanket bans on a whole country.
 import { percent } from './data';
-import type { CountryEntry, HazardDetails, Lang, Snapshot } from './data';
+import type { CountryEntry, HazardDetails, Lang } from './data';
 
 export type Level = 1 | 2 | 3 | 4;
-export interface Verdict { level: Level; official: boolean; reasons: string[] }
+export interface Verdict { level: Level; official: boolean; reasons: string[]; regional: string[] }
 
 const T = {
   ru: {
     travel: ['', 'Обычные меры предосторожности', 'Повышенная осторожность', 'Пересмотрите необходимость поездки', 'Не ехать'],
     business: ['', 'Низкий риск', 'Умеренный риск', 'Высокий риск', 'Критический риск'],
-    activeConflict: (t: string) => `Сейчас идёт: ${t.toLowerCase()}.`,
+    usLevel: (l: number, label: string) => `Госдепартамент США: уровень ${l} — «${label}».`,
+    ukWhole: (l: number) => l >= 4 ? 'МИД Великобритании не рекомендует любые поездки в страну.' : 'МИД Великобритании рекомендует ездить в страну только при крайней необходимости.',
+    ukParts: 'МИД Великобритании не рекомендует поездки в отдельные районы страны (список ниже); остальная территория — без особых ограничений.',
+    ukNone: 'МИД Великобритании не вводит ограничений на поездки.',
+    internalActive: 'В отдельных районах страны идёт вооружённый конфликт. Уточните, какие районы затронуты, в официальных рекомендациях.',
+    interstateActive: 'Страна — сторона межгосударственного вооружённого конфликта. Само по себе это не означает опасности на её территории: ориентируйтесь на официальные рекомендации.',
     onset: (t: string, p: string) => `${t}: вероятность начала в ближайший год — ${p}.`,
-    humanitarian: 'Действует гуманитарный план ООН: перебои с услугами, логистикой и безопасностью.',
+    humanitarian: 'Действует гуманитарный план ООН: перебои с услугами, логистикой и безопасностью в пострадавших районах.',
+    regional: (t: string, where: string, season: string) => `${t}: ${where}${season}.`,
+    regionalNoPlace: 'места событий не определены',
+    seasonPart: (months: string) => ` — чаще всего в ${months}`,
+    soon: ' (сезон уже скоро)',
+    calm: 'Существенных факторов риска по имеющимся данным не выявлено.',
+    noOfficial: 'Официальных оценок нет — уровень рассчитан моделью GeoIntel.',
+    interstateBusiness: 'Страна — сторона межгосударственного конфликта: риски санкций, ответных ударов, кибератак и перебоев в экспорте.',
+    internalBusiness: 'Идёт внутренний вооружённый конфликт: угроза активам, персоналу и логистике в затронутых районах.',
     economic: (p: string) => `Вероятность экономического кризиса (падение ВВП или инфляция выше 40%) в ближайший год — ${p}.`,
-    seasonSoon: (t: string, months: string) => `Ближайшие месяцы (${months}) — сезон: ${t.toLowerCase()}.`,
-    hazardYear: (t: string, p: string) => `${t}: вероятность в течение года — ${p}; возможны перебои в транспорте и поставках.`,
-    officialSource: 'Официальная оценка Госдепартамента США',
-    modelSource: 'Оценка GeoIntel по данным модели (официальной оценки нет)',
+    imf: (parts: string) => `Прогноз МВФ: ${parts}.`,
+    imfGrowth: (y: string, v: string) => `рост ВВП в ${y} г. ${v}`,
+    imfInfl: (y: string, v: string) => `инфляция в ${y} г. ${v}`,
+    hazardBusiness: (t: string, where: string) => `${t}: возможны перебои в логистике и поставках (${where}).`,
     trade: (x: string) => `Экономика сильно зависит от внешней торговли (${x} ВВП) — чувствительна к сбоям в портах и санкциям.`,
     fuelImports: (x: string) => `Топливо — ${x} импорта: рост мировых цен на нефть быстро бьёт по экономике.`,
     foodImports: (x: string) => `Продовольствие — ${x} импорта: уязвимость к росту мировых цен на зерно.`,
     tourism: (x: string) => `Туризм — ${x} экспорта: кризисы и бедствия быстро бьют по доходам страны.`,
     remittances: (x: string) => `Денежные переводы мигрантов — ${x} ВВП: зависимость от экономик стран, где работают мигранты.`,
-    calm: 'Существенных факторов риска по имеющимся данным не выявлено.',
+    election: (name: string, when: string) => `Предстоят выборы: ${name} (${when}). Возможны протесты и волатильность.`,
     oil: (x: string) => `Крупный экспортёр топлива (${x} экспорта): обострение здесь отражается на мировых ценах на нефть и газ.`,
     food: (x: string) => `Крупный экспортёр продовольствия (${x} экспорта): кризис может поднять мировые цены на еду.`,
     bigEconomy: (x: string) => `${x} мирового ВВП: проблемы здесь заметно отразятся на мировой торговле и рынках.`,
-    neighboursAtWar: (names: string) => `У соседей идёт вооружённый конфликт: ${names}. Возможны беженцы, закрытие границ и рост напряжённости.`,
-    exportsInstability: (names: string) => `Конфликт может затронуть соседние страны: ${names} — беженцы, торговля, безопасность границ.`,
+    neighboursAtWar: (names: string) => `На территории соседних стран идёт вооружённый конфликт: ${names}. Возможны беженцы, закрытие границ и рост напряжённости.`,
+    exportsInstability: (names: string) => `Внутренний конфликт может затронуть соседей: ${names} — беженцы, торговля, безопасность границ.`,
     noSpillover: 'Заметных каналов влияния на другие страны по имеющимся данным не видно.',
   },
   en: {
     travel: ['', 'Exercise normal precautions', 'Exercise increased caution', 'Reconsider travel', 'Do not travel'],
     business: ['', 'Low risk', 'Moderate risk', 'High risk', 'Critical risk'],
-    activeConflict: (t: string) => `Ongoing now: ${t.toLowerCase()}.`,
+    usLevel: (l: number, label: string) => `U.S. State Department: level ${l} — “${label}”.`,
+    ukWhole: (l: number) => l >= 4 ? 'The UK FCDO advises against all travel to the country.' : 'The UK FCDO advises against all but essential travel to the country.',
+    ukParts: 'The UK FCDO advises against travel to parts of the country (see below); elsewhere there are no special restrictions.',
+    ukNone: 'The UK FCDO has no travel restrictions.',
+    internalActive: 'Armed conflict is ongoing in parts of the country. Check official advice for the affected areas.',
+    interstateActive: 'The country is a party to an interstate armed conflict. This alone does not mean danger on its territory: follow official advice.',
     onset: (t: string, p: string) => `${t}: ${p} probability of onset within a year.`,
-    humanitarian: 'A UN humanitarian plan is active: disrupted services, logistics and security.',
+    humanitarian: 'A UN humanitarian plan is active: disrupted services, logistics and security in affected areas.',
+    regional: (t: string, where: string, season: string) => `${t}: ${where}${season}.`,
+    regionalNoPlace: 'locations not determined',
+    seasonPart: (months: string) => ` — most often in ${months}`,
+    soon: ' (season starting soon)',
+    calm: 'No significant risk factors in the available data.',
+    noOfficial: 'No official advisory — level estimated by the GeoIntel model.',
+    interstateBusiness: 'Party to an interstate conflict: risks of sanctions, retaliation, cyberattacks and export disruption.',
+    internalBusiness: 'Internal armed conflict: threats to assets, staff and logistics in affected areas.',
     economic: (p: string) => `${p} probability of an economic crisis (GDP fall or inflation above 40%) within a year.`,
-    seasonSoon: (t: string, months: string) => `The coming months (${months}) are the season for: ${t.toLowerCase()}.`,
-    hazardYear: (t: string, p: string) => `${t}: ${p} within a year; transport and supply disruption possible.`,
-    officialSource: 'Official U.S. Department of State assessment',
-    modelSource: 'GeoIntel model-based assessment (no official advisory)',
+    imf: (parts: string) => `IMF projection: ${parts}.`,
+    imfGrowth: (y: string, v: string) => `GDP growth in ${y} ${v}`,
+    imfInfl: (y: string, v: string) => `inflation in ${y} ${v}`,
+    hazardBusiness: (t: string, where: string) => `${t}: possible logistics and supply disruption (${where}).`,
     trade: (x: string) => `The economy depends heavily on trade (${x} of GDP): sensitive to port disruption and sanctions.`,
     fuelImports: (x: string) => `Fuel is ${x} of imports: higher world oil prices hit the economy quickly.`,
     foodImports: (x: string) => `Food is ${x} of imports: vulnerable to higher world grain prices.`,
     tourism: (x: string) => `Tourism is ${x} of exports: crises and disasters hit national income quickly.`,
     remittances: (x: string) => `Remittances are ${x} of GDP: dependent on the economies where migrants work.`,
-    calm: 'No significant risk factors in the available data.',
+    election: (name: string, when: string) => `Upcoming election: ${name} (${when}). Protests and volatility are possible.`,
     oil: (x: string) => `Major fuel exporter (${x} of exports): escalation here moves world oil and gas prices.`,
     food: (x: string) => `Major food exporter (${x} of exports): a crisis could raise world food prices.`,
     bigEconomy: (x: string) => `${x} of world GDP: problems here noticeably affect world trade and markets.`,
-    neighboursAtWar: (names: string) => `Armed conflict in neighbouring countries: ${names}. Refugees, border closures and tension are possible.`,
-    exportsInstability: (names: string) => `The conflict may affect neighbours: ${names} — refugees, trade, border security.`,
+    neighboursAtWar: (names: string) => `Armed conflict on the territory of neighbouring countries: ${names}. Refugees, border closures and tension are possible.`,
+    exportsInstability: (names: string) => `The internal conflict may affect neighbours: ${names} — refugees, trade, border security.`,
     noSpillover: 'No notable channels of impact on other countries in the available data.',
   },
 };
 export const levelLabel = (kind: 'travel' | 'business', level: Level, lang: Lang) => T[lang][kind][level];
 
 const pct = (x: number, lang: Lang) => percent(x / 100, lang);
-const conflictKeys = ['internal_armed_conflict', 'interstate_conflict'];
-const hazardKeys = ['tropical_cyclone', 'flood', 'major_earthquake', 'wildfire', 'volcano', 'tsunami', 'drought'];
+const hazardOrder = ['tropical_cyclone', 'flood', 'major_earthquake', 'tsunami', 'volcano', 'wildfire', 'drought'];
 
-function upcomingSeason(country: CountryEntry, hazards: HazardDetails | undefined, now: Date) {
+/** Regional notes: where each hazard hits and in which months (never a whole-country ban). */
+export function regionalNotes(
+  country: CountryEntry, hazards: HazardDetails | undefined, label: (key: string) => string,
+  lang: Lang, monthNames: string[], now = new Date(),
+): string[] {
+  const t = T[lang];
   const data = hazards?.countries[country.iso3];
-  if (!data) return [] as { type: string; months: number[] }[];
+  if (!data) return [];
   const next = [0, 1, 2].map((k) => (now.getUTCMonth() + k) % 12);
-  return ['tropical_cyclone', 'flood', 'wildfire'].flatMap((type) => {
-    const months = data[type]?.months;
-    if (!months || (data[type]?.count ?? 0) < 3) return [];
-    const total = months.reduce((a, b) => a + b, 0);
-    const share = next.reduce((a, m) => a + months[m], 0) / total;
-    return share >= 0.4 ? [{ type, months: next }] : [];
+  return hazardOrder.flatMap((type) => {
+    const h = data[type];
+    if (!h || h.count < 2) return [];
+    const where = (h.regions ?? []).slice(0, 4).map((r) => (lang === 'ru' ? r.ru : r.en)).join(', ') || t.regionalNoPlace;
+    const total = h.months.reduce((a, b) => a + b, 0);
+    const peak = h.months.map((n, m) => [n, m] as const).filter(([n]) => total >= 4 && n / total >= 0.15).map(([, m]) => m);
+    const soon = peak.some((m) => next.includes(m)) ? t.soon : '';
+    const season = peak.length && peak.length <= 6 ? t.seasonPart(peak.map((m) => monthNames[m]).join(', ')) + soon : '';
+    return [t.regional(label(type), where, season)];
   });
 }
 
 export function travelVerdict(
-  country: CountryEntry, snapshot: Snapshot, label: (key: string) => string, lang: Lang,
+  country: CountryEntry, label: (key: string) => string, lang: Lang,
   hazards?: HazardDetails, monthNames: string[] = [], now = new Date(),
 ): Verdict {
   const t = T[lang];
   const reasons: string[] = [];
+  const us = country.advisory?.level;
+  const uk = country.advisory_uk;
+  if (us) reasons.push(t.usLevel(us, t.travel[us]));
+  if (uk) reasons.push(uk.level >= 3 ? t.ukWhole(uk.level) : uk.partial ? t.ukParts : t.ukNone);
   let model: Level = 1;
-  for (const key of conflictKeys) {
-    const r = country.risks[key];
-    if (!r) continue;
-    if (r.active) { reasons.push(t.activeConflict(label(key))); model = 4; }
-    else if (r.horizons['1y'].p >= 0.1) { reasons.push(t.onset(label(key), percent(r.horizons['1y'].p, lang))); model = Math.max(model, 3) as Level; }
-  }
+  if (country.risks.internal_armed_conflict?.active) { reasons.push(t.internalActive); model = 3; }
+  if (country.risks.interstate_conflict?.active) reasons.push(t.interstateActive);
   if (country.risks.humanitarian_crisis?.active) { reasons.push(t.humanitarian); model = Math.max(model, 3) as Level; }
-  for (const season of upcomingSeason(country, hazards, now)) {
-    reasons.push(t.seasonSoon(label(season.type), season.months.map((m) => monthNames[m]).join(', ')));
-    model = Math.max(model, 2) as Level;
-  }
-  const quake = country.risks.major_earthquake?.horizons['1m'].p ?? 0;
-  if (quake >= 0.05) { reasons.push(t.hazardYear(label('major_earthquake'), percent(country.risks.major_earthquake.horizons['1y'].p, lang))); model = Math.max(model, 2) as Level; }
-  const official = country.advisory?.level;
+  const officialLevels = [us, uk?.level].filter((x): x is Level => !!x);
+  const official = officialLevels.length > 0;
+  if (!official) reasons.push(t.noOfficial);
   if (!reasons.length) reasons.push(t.calm);
-  void snapshot;
-  return { level: (official ?? model) as Level, official: !!official, reasons };
+  return {
+    level: official ? (Math.max(...officialLevels) as Level) : model,
+    official,
+    reasons,
+    regional: regionalNotes(country, hazards, label, lang, monthNames, now),
+  };
 }
 
-export function businessVerdict(country: CountryEntry, label: (key: string) => string, lang: Lang): Verdict {
+export function businessVerdict(
+  country: CountryEntry, label: (key: string) => string, lang: Lang,
+  hazards?: HazardDetails, now = new Date(),
+): Verdict {
   const t = T[lang];
   const reasons: string[] = [];
   let level: Level = 1;
   const raise = (to: Level) => { level = Math.max(level, to) as Level; };
-  for (const key of conflictKeys) {
-    const r = country.risks[key];
-    if (!r) continue;
-    if (r.active) { reasons.push(t.activeConflict(label(key))); raise(4); }
-    else if (r.horizons['1y'].p >= 0.1) { reasons.push(t.onset(label(key), percent(r.horizons['1y'].p, lang))); raise(3); }
-  }
-  if (country.risks.humanitarian_crisis?.active) { reasons.push(t.humanitarian); raise(3); }
+  const internal = country.risks.internal_armed_conflict;
+  const humanitarian = country.risks.humanitarian_crisis?.active;
+  if (internal?.active) { reasons.push(t.internalBusiness); raise(humanitarian ? 4 : 3); }
+  else if (internal && internal.horizons['1y'].p >= 0.1) { reasons.push(t.onset(label('internal_armed_conflict'), percent(internal.horizons['1y'].p, lang))); raise(2); }
+  if (country.risks.interstate_conflict?.active) { reasons.push(t.interstateBusiness); raise(2); }
+  if (humanitarian) { reasons.push(t.humanitarian); raise(3); }
   const econ = country.risks.economic_crisis?.horizons['1y'].p;
   if (econ !== undefined && econ >= 0.12) { reasons.push(t.economic(percent(econ, lang))); raise(econ >= 0.25 ? 3 : 2); }
+  const o = country.outlook;
+  if (o?.projects_crisis?.length) {
+    const parts = o.projects_crisis.flatMap((y) => [
+      o.growth?.[y] !== undefined && o.growth[y] < -3 ? t.imfGrowth(y, pct(o.growth[y], lang)) : '',
+      o.inflation?.[y] !== undefined && o.inflation[y] > 40 ? t.imfInfl(y, pct(o.inflation[y], lang)) : '',
+    ]).filter(Boolean);
+    reasons.push(t.imf(parts.join('; ')));
+    raise(3);
+  }
+  const data = hazards?.countries[country.iso3];
   for (const key of ['tropical_cyclone', 'flood', 'major_earthquake']) {
     const p = country.risks[key]?.horizons['1y'].p ?? 0;
-    if (p >= 0.5) { reasons.push(t.hazardYear(label(key), percent(p, lang))); raise(2); }
+    if (p >= 0.5) {
+      const where = (data?.[key]?.regions ?? []).slice(0, 3).map((r) => (lang === 'ru' ? r.ru : r.en)).join(', ');
+      reasons.push(t.hazardBusiness(label(key), where || percent(p, lang)));
+    }
   }
+  const soon = (country.elections ?? []).find((e) => {
+    const days = (new Date(e.date).getTime() - now.getTime()) / 864e5;
+    return days >= -7 && days <= 180;
+  });
+  if (soon) reasons.push(t.election((lang === 'ru' ? soon.name_ru : null) ?? soon.name_en, soon.date.slice(0, soon.precision === 'day' ? 10 : soon.precision === 'month' ? 7 : 4)));
   const pr = country.profile ?? {};
   const v = (k: string) => pr[k]?.value;
   if ((v('trade_gdp') ?? 0) > 100) reasons.push(t.trade(pct(v('trade_gdp')!, lang)));
@@ -126,7 +181,7 @@ export function businessVerdict(country: CountryEntry, label: (key: string) => s
   if ((v('tourism_exports_share') ?? 0) > 20) reasons.push(t.tourism(pct(v('tourism_exports_share')!, lang)));
   if ((v('remittances_gdp') ?? 0) > 10) reasons.push(t.remittances(pct(v('remittances_gdp')!, lang)));
   if (!reasons.length) reasons.push(t.calm);
-  return { level, official: false, reasons };
+  return { level, official: false, reasons, regional: [] };
 }
 
 export function spillover(
@@ -139,13 +194,11 @@ export function spillover(
   if (v('fuel_exports_share') > 40 || v('oil_rents_gdp') > 10) lines.push(t.oil(pct(Math.max(v('fuel_exports_share'), 0), lang)));
   if (v('food_exports_share') > 30) lines.push(t.food(pct(v('food_exports_share'), lang)));
   if (v('world_gdp_share') >= 1) lines.push(t.bigEconomy(pct(v('world_gdp_share'), lang)));
-  const atWar = neighbours.filter((n) => conflictKeys.some((k) => n.risks[k]?.active));
+  const atWar = neighbours.filter((n) => n.risks.internal_armed_conflict?.active);
   if (atWar.length) lines.push(t.neighboursAtWar(atWar.map(name).join(', ')));
-  if (conflictKeys.some((k) => country.risks[k]?.active) && neighbours.length) {
+  if (country.risks.internal_armed_conflict?.active && neighbours.length) {
     lines.push(t.exportsInstability(neighbours.map(name).join(', ')));
   }
   if (!lines.length) lines.push(t.noSpillover);
   return lines;
 }
-
-export const hazardTypes = hazardKeys;
