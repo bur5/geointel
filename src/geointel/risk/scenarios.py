@@ -8,7 +8,8 @@ Components (each shown separately on the site):
 * ``market`` - a matching Polymarket price, converted to an annual hazard.
 
 Components are pooled as a weighted average (a linear opinion pool, which does not let one
-extreme source dominate); the indicator panel then nudges the odds by a bounded factor. Nothing here is calibrated yet and every scenario says so.
+extreme source dominate); the indicator panel then nudges the odds by a bounded factor.
+Nothing here is calibrated yet and every scenario says so.
 """
 
 import math
