@@ -1,0 +1,79 @@
+{
+  "schema_version": 3,
+  "report_type": "historical_validation_manifest",
+  "input_sha256": "a1723fca2b786108faece5b144c90e04623e7bf2195eafc660032e09133b86a1",
+  "evidence_mode": "synthetic",
+  "evidence_status": "demonstration",
+  "plan": {
+    "plan_snapshot": "synthetic:protocol",
+    "constraints": {
+      "schema_version": 1,
+      "forecast_lead": "PT0S",
+      "window_duration": "P2D",
+      "outcome_maturity": "P1D",
+      "embargo": "P1D"
+    },
+    "implementation_revision": "synthetic:revision",
+    "target_version": "synthetic:onset-v1",
+    "outcome_definition": "Fictional onset example",
+    "geography_version": "synthetic:units-v1",
+    "geography_ids": [
+      "EXAMPLE"
+    ],
+    "horizon": "fixed two days",
+    "evaluation_start": "2000-01-10T00:00:00Z",
+    "evaluation_end": "2000-01-13T00:00:00Z",
+    "outcome_as_of": "2000-01-15T00:00:00Z",
+    "panel_snapshot": "synthetic:panel",
+    "panel_sha256": "5884b72388a31ec864d3627beee0d223e3d9ae5fed0717e134101cd567dfc81b"
+  },
+  "outcomes": {
+    "dataset_version": "synthetic:v1",
+    "outcome_snapshot": "synthetic:outcomes"
+  },
+  "registration": {
+    "snapshot": "synthetic:protocol",
+    "availability_evidence": "synthetic:protocol:log",
+    "available_at": "2000-01-01T00:00:00Z",
+    "plan_sha256": "34c2d2eff2639b3dba00c039a0ec7a95f3475f6e28e90ac2a70bf9d18aa586e8",
+    "evidence_mode": "synthetic"
+  },
+  "resolved_panel": {
+    "snapshot": "synthetic:panel",
+    "slots": [
+      {
+        "geography_id": "EXAMPLE",
+        "origin": "2000-01-10T00:00:00Z",
+        "window_start": "2000-01-10T00:00:00Z",
+        "window_end": "2000-01-12T00:00:00Z",
+        "exclusion_reason": null
+      }
+    ]
+  },
+  "panel_status": "verified",
+  "missing_panel_slots": [],
+  "outcome_publication": {
+    "dataset_version": "synthetic:v1",
+    "outcome_snapshot": "synthetic:outcomes",
+    "availability_evidence": "synthetic:publisher:release",
+    "available_at": "2000-01-15T00:00:00Z"
+  },
+  "outcome_publication_status": "verified",
+  "audits": [
+    {
+      "fold_key": "synthetic:fold-1",
+      "evaluation_case": {
+        "geography_id": "EXAMPLE",
+        "origin": "2000-01-10T00:00:00Z",
+        "window_start": "2000-01-10T00:00:00Z",
+        "window_end": "2000-01-12T00:00:00Z"
+      },
+      "manifest": "synthetic:lineage",
+      "findings": []
+    }
+  ],
+  "comparisons": [],
+  "limitations": [
+    "Synthetic timestamps and fictional units. No empirical forecast scores."
+  ]
+}

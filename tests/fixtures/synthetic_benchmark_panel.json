@@ -1,0 +1,11 @@
+{
+  "snapshot": "synthetic:panel",
+  "slots": [
+    {
+      "geography_id": "EXAMPLE",
+      "origin": "2000-01-10T00:00:00Z",
+      "window_start": "2000-01-10T00:00:00Z",
+      "window_end": "2000-01-12T00:00:00Z"
+    }
+  ]
+}

@@ -4,10 +4,13 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import pytest
-from sqlalchemy import create_engine, select
+from fastapi.testclient import TestClient
+from sqlalchemy import create_engine, select, text
 from sqlalchemy.exc import ArgumentError, OperationalError
 from sqlalchemy.orm import Session
 
+from geointel.api.app import dashboard_app
+from geointel.domain.database import get_session
 from geointel.domain.models import (
     AnalysisRun,
     Event,
@@ -28,6 +31,7 @@ from geointel.knowledge.ingestion import KnowledgeIngestor
 from geointel.pipeline.service import AnalysisPipeline
 from geointel.providers.base import ModelRouter
 from geointel.providers.offline import OfflineModel
+from geointel.search import IntelligenceSearch, RecordType, SearchQuery
 
 
 @pytest.fixture(scope="module")
@@ -89,7 +93,7 @@ def test_postgres_repeated_persistence_and_forecast_immutability(session):
         session.commit()
 
 
-def test_postgres_operational_event_and_predictive_signal_persistence(session):
+def test_postgres_operational_event_and_predictive_signal_persistence(session, monkeypatch):
     class OperationalFixtures:
         connector_name = "ACLED"
 
@@ -144,6 +148,19 @@ def test_postgres_operational_event_and_predictive_signal_persistence(session):
         .count()
         == 1
     )
+
+    monkeypatch.setitem(dashboard_app.dependency_overrides, get_session, lambda: session)
+    with TestClient(dashboard_app) as client:
+        for route, record_id in (
+            ("observations", "synthetic-postgres-event"),
+            ("forecasts", "synthetic-postgres-signal"),
+        ):
+            response = client.get(f"/api/v1/dashboard/{route}?country=ES")
+            assert response.status_code == 200
+            assert any(
+                item["provenance"]["source_record_id"] == record_id
+                for item in response.json()["items"]
+            )
 
 
 def test_postgres_news_report_persistence_remains_separate(session):
@@ -277,7 +294,7 @@ def test_postgres_monitoring_linkage_alert_dedupe_and_resolution(session):
     ).analysis_run_id
 
 
-def test_postgres_historical_summary_and_raw_provenance(session):
+def test_postgres_historical_summary_and_raw_provenance(session, monkeypatch):
     from test_historical_base_rates import observation
 
     from geointel.domain.models import Evidence
@@ -312,6 +329,14 @@ def test_postgres_historical_summary_and_raw_provenance(session):
         ]
         == "annual_historical"
     )
+
+    monkeypatch.setitem(dashboard_app.dependency_overrides, get_session, lambda: session)
+    with TestClient(dashboard_app) as client:
+        response = client.get("/api/v1/dashboard/ucdp-observations?country=ES")
+        assert response.status_code == 200
+        (record,) = response.json()["items"]
+        assert record["temporal_role"] == "annual_historical"
+        assert record["provenance"]["source_record_id"] == "postgres-history"
 
 
 def test_postgres_collection_coverage_json_round_trip(session):
@@ -503,3 +528,17 @@ def test_postgres_concurrent_target_and_failed_finalization(postgres_engine):
     finally:
         with postgres_engine.begin() as connection:
             connection.execute(DropSchema(schema, cascade=True))
+
+
+def test_postgres_search_missing_relation_preserves_transaction(session):
+    # Simulate an unmigrated relation within the rollback-isolated test transaction.
+    session.execute(text("ALTER TABLE events RENAME TO events_unavailable"))
+    page = IntelligenceSearch(session).search(
+        SearchQuery(record_types=(RecordType.EVENT, RecordType.SIGNAL))
+    )
+    assert not page.complete
+    assert [(source.record_type, source.status) for source in page.sources] == [
+        (RecordType.EVENT, "unavailable"),
+        (RecordType.SIGNAL, "available"),
+    ]
+    assert session.scalar(select(Forecast.id).limit(1)) is None

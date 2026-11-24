@@ -9,6 +9,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
 from geointel import __version__
+from geointel.api.dashboard import router as dashboard_router
 from geointel.config import Settings, get_settings
 from geointel.connectors.acled import ACLEDConnector
 from geointel.connectors.base import DisabledConnector, EvidenceConnector
@@ -40,6 +41,12 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
 
 app = FastAPI(title="GEOINTEL", version=__version__, lifespan=lifespan)
+app.include_router(dashboard_router)
+
+# Serve this entry point when the dashboard must be isolated from legacy routes.
+dashboard_app = FastAPI(title="GEOINTEL Dashboard", version="1", lifespan=lifespan)
+dashboard_app.include_router(dashboard_router)
+
 SessionDependency = Annotated[Session, Depends(get_session)]
 
 
