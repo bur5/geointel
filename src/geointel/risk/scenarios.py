@@ -572,14 +572,16 @@ CATALOGUE: tuple[Scenario, ...] = (
             "deaths, acknowledged by at least one side."
         ),
         polarity=1,
-        expert=(0.15, 0.07, 0.3),
+        expert=(0.25, 0.1, 0.5),
         expert_basis_ru=(
-            "Кризисы с ударами через границу были в 2016, 2019 и 2025 годах — примерно три за "
-            "десять лет. Оценка GeoIntel: около 15% в год."
+            "Перестрелки на линии контроля с погибшими шли почти ежегодно в 2013–2020 годах; "
+            "после перемирия февраля 2021 года — затишье до кризиса с ударами в мае 2025 года. "
+            "Оценка GeoIntel: около 25% в год."
         ),
         expert_basis_en=(
-            "Crises with cross-border strikes happened in 2016, 2019 and 2025, about three in "
-            "ten years. GeoIntel judgement: about 15% a year."
+            "Deadly exchanges of fire across the Line of Control happened almost every year in "
+            "2013–2020; after the February 2021 ceasefire it was quiet until the May 2025 strikes. "
+            "GeoIntel judgement: about 25% a year."
         ),
         side_a=_t("IND"),
         side_b=_t("PAK"),
@@ -637,7 +639,7 @@ CATALOGUE: tuple[Scenario, ...] = (
             ("north korea", "dprk"),
             ("south korea", "attack", "invade", "clash", "war "),
         ),
-        market_exclude=("missile test", "nuclear test", "launch", "kim jong un meet"),
+        market_exclude=("missile test", "nuclear test", "launch", "meet", "diplomatic", "talks"),
         milex=_t("PRK KOR JPN"),
         gpr=_t("KOR JPN"),
         exposures=(
