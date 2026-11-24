@@ -236,7 +236,7 @@ function groupPanel() {
   const st = groupStats(g);
   const note = groupNote(g, lang);
   return `<aside class="brief" id="country-panel">
-    <label class="select compact"><span>${lens === 'blocs' ? t().lensBlocs : t().lensRegions}</span><select data-field="group">${groupsForLens().map((x) =>
+    <label class="select compact"><span>${lens === 'blocs' ? (lang === 'ru' ? 'Блок' : 'Bloc') : (lang === 'ru' ? 'Регион' : 'Region')}</span><select data-field="group">${groupsForLens().map((x) =>
       `<option value="${x.key}"${x.key === g.key ? ' selected' : ''}>${escape(groupName(x, lang))}</option>`).join('')}</select></label>
     <h2>${escape(groupName(g, lang))}</h2>
     <p class="muted-text">${t().groupMembers(st.members.length)}${note ? ' ' + escape(note) : ''}</p>
