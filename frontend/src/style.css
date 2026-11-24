@@ -76,9 +76,11 @@ main:focus { outline: none; }
 }
 .hero > p, .page-head > p { font-size: 18px; color: var(--ink-2); max-width: 62ch; }
 .stats { display: flex; flex-wrap: wrap; gap: 12px 44px; margin: 14px 0 0; }
-.stats div { display: flex; flex-direction: column-reverse; }
+.stats { align-items: flex-start; }
+.stats div { display: flex; flex-direction: column; }
+.stats dd { order: -1; }
 .stats dd { margin: 0; font-family: 'IBM Plex Sans Condensed', sans-serif; font-size: 34px; font-weight: 600; line-height: 1; font-variant-numeric: tabular-nums; }
-.stats dt { color: var(--muted); font-size: 13px; margin-top: 6px; max-width: 22ch; }
+.stats dt { color: var(--muted); font-size: 13px; margin-top: 8px; max-width: 24ch; }
 
 /* Explorer: map + brief */
 .explorer { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 20px; align-items: start; }

@@ -86,7 +86,7 @@ function comparison(type: string, h: HorizonKey, p: number): string {
   const avg = worldAverage(type, h);
   if (!avg) return '';
   const ratio = p / avg;
-  const fmt = (x: number) => (x >= 10 ? x.toFixed(0) : x.toFixed(1)).replace('.', lang === 'ru' ? ',' : '.');
+  const fmt = (x: number) => (x >= 10 ? x.toFixed(0) : x.toFixed(1).replace(/\.0$/, '')).replace('.', lang === 'ru' ? ',' : '.');
   if (ratio >= 1.5) return t().timesHigher(fmt(ratio));
   if (ratio <= 0.67) return t().timesLower(fmt(1 / ratio));
   return t().aboutAverage;
