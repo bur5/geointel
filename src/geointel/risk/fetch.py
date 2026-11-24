@@ -14,7 +14,9 @@ COUPS_URLS = (
     "https://www.uky.edu/~clthyn2/coup_data/powell_thyne_coups_final.txt",
     "http://www.uky.edu/~clthyn2/coup_data/powell_thyne_coups_final.txt",
 )
-USER_AGENT = "GeoIntel risk snapshot (https://github.com/bur5/geointel)"
+USER_AGENT = (
+    "Mozilla/5.0 (compatible; GeoIntel-risk-snapshot/0.1; +https://github.com/bur5/geointel)"
+)
 
 
 def ucdp_acd_urls() -> list[tuple[str, str]]:
