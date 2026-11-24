@@ -50,3 +50,35 @@ def parse(text: str, reference_year: int, start_year: int = 1990) -> TypeHistory
         unresolved_labels=unresolved,
         records=rows,
     )
+
+
+def events(text: str, start_year: int = 1990) -> list[dict]:
+    """Located M6.5+ earthquakes for hotspot maps."""
+    result = []
+    for row in csv.DictReader(io.StringIO(text)):
+        try:
+            year = int(row["time"][:4])
+            month = int(row["time"][5:7])
+            magnitude = float(row["mag"])
+            lat, lon = float(row["latitude"]), float(row["longitude"])
+        except (KeyError, ValueError):
+            continue
+        if year < start_year or magnitude < MIN_MAGNITUDE:
+            continue
+        code = resolve_usgs_place(row.get("place", ""))
+        result.append(
+            {
+                "hazard": "EQ",
+                "id": f"EQ-{row.get('id')}",
+                "name": row.get("place", ""),
+                "alert": "Red" if magnitude >= 7.5 else "Orange",
+                "year": year,
+                "month": month,
+                "countries": [code] if code else [],
+                "severity": f"M{magnitude:.1f}",
+                "magnitude": magnitude,
+                "lat": lat,
+                "lon": lon,
+            }
+        )
+    return result
