@@ -1,10 +1,12 @@
 import './style.css';
 import { band, changesSince, loadHazards, loadSnapshot, percent, readVisit, writeVisit } from './data';
 import type {
-  Change, CountryEntry, EventTypeEntry, HazardSummary, HorizonKey, Lang, Probability, Risk, Snapshot, VisitMemory,
+  Change, CountryEntry, EventTypeEntry, HazardDetails, HazardSummary, HorizonKey, Lang, Probability, Risk, Snapshot, VisitMemory,
 } from './data';
 import { dictionaries } from './i18n';
-import { drawCountryMap, drawMap } from './map';
+import { drawCountryMap, drawMap, neighboursOf } from './map';
+import { businessVerdict, levelLabel, spillover, travelVerdict } from './insights';
+import type { Level, Verdict } from './insights';
 
 const pages = [
   ['overview', 'navOverview'],
@@ -27,6 +29,10 @@ let snapshot: Snapshot | undefined;
 let previousVisit: VisitMemory | undefined;
 let loadError = false;
 let updateMapSelection: ((key: string) => void) | undefined;
+let hazardsData: HazardDetails | undefined;
+const VIEWS = ['view_travel', 'view_business'] as const;
+const isView = (key: string) => (VIEWS as readonly string[]).includes(key);
+const levelClass = (level: Level) => (['', 'low', 'elevated', 'high', 'critical'] as const)[level];
 
 const t = () => dictionaries[lang];
 const escape = (value: string) => value.replace(/[&<>"']/g, (c) => ({
@@ -64,6 +70,19 @@ const horizonLabel = (key: string) => {
   return h ? (lang === 'ru' ? h.label_ru : h.label_en) : key;
 };
 const isConflict = (key: string) => key.endsWith('conflict');
+const labelOf = (key: string) => typeLabel(typeEntry(key));
+const travelOf = (c: CountryEntry) => travelVerdict(c, snapshot!, labelOf, lang, hazardsData, t().months);
+const businessOf = (c: CountryEntry) => businessVerdict(c, labelOf, lang);
+const viewVerdict = (c: CountryEntry): Verdict => (eventType === 'view_travel' ? travelOf(c) : businessOf(c));
+const viewKind = () => (eventType === 'view_travel' ? 'travel' : 'business') as 'travel' | 'business';
+const levelBadge = (kind: 'travel' | 'business', level: Level) =>
+  `<span class="level level-${levelClass(level)}"><b>${level}</b>${escape(levelLabel(kind, level, lang))}</span>`;
+function neighbourCountries(country: CountryEntry): CountryEntry[] {
+  const shapes = shapeToIso();
+  const key = country.numeric ?? (country.iso3 === 'XKX' ? 'name:Kosovo' : '');
+  const map = byIso();
+  return neighboursOf(key).map((k) => map.get(shapes.get(k) ?? '')).filter((c): c is CountryEntry => !!c);
+}
 const questionText = (key: string, risk: Risk) =>
   risk.question === 'active_at_end' ? t().qActive : isConflict(key) ? t().qOnsetConflict : t().qEvent;
 const confidenceText = (value: Risk['confidence']) => ({
@@ -130,7 +149,8 @@ function typeSelect() {
       return `<option value="${entry.key}"${entry.key === eventType ? ' selected' : ''}${entry.available ? '' : ' disabled'}>${escape(typeLabel(entry) + suffix)}</option>`;
     }).join('');
     return options ? `<optgroup label="${escape(label)}">${options}</optgroup>` : '';
-  }).join('');
+  }).join('') + `<optgroup label="${escape(t().groupViews)}">${VIEWS.map((key) =>
+    `<option value="${key}"${key === eventType ? ' selected' : ''}>${escape(key === 'view_travel' ? t().viewTravel : t().viewBusiness)}</option>`).join('')}</optgroup>`;
 }
 
 function horizonSwitch() {
@@ -158,6 +178,10 @@ function stats() {
 }
 
 function legend() {
+  if (isView(eventType)) {
+    const kind = viewKind();
+    return `<div class="legend">${([1, 2, 3, 4] as Level[]).map((l) => `<span class="legend-key"><i class="sw-${levelClass(l)}"></i>${l} — ${escape(levelLabel(kind, l, lang))}</span>`).join('')}</div>`;
+  }
   const steps = [['minimal', '0'], ['low', '1%'], ['elevated', '5%'], ['high', '20%'], ['critical', '50%']];
   return `<div class="legend">
     <div class="legend-scale"><span class="legend-title">${t().legendProbability}</span>
@@ -168,10 +192,10 @@ function legend() {
 }
 
 function mapBlock() {
-  return `<section class="map-card" aria-label="${escape(typeLabel(typeEntry(eventType)))}">
+  return `<section class="map-card" aria-label="${escape(isView(eventType) ? t().groupViews : typeLabel(typeEntry(eventType)))}">
     <div class="toolbar">
       <label class="select"><span>${t().eventType}</span><select data-field="type">${typeSelect()}</select></label>
-      <div class="toolbar-group"><span>${t().horizon}</span>${horizonSwitch()}</div>
+      ${isView(eventType) ? `<p class="toolbar-note">${eventType === 'view_travel' ? t().viewTravelNote : t().viewBusinessNote}</p>` : `<div class="toolbar-group"><span>${t().horizon}</span>${horizonSwitch()}</div>`}
     </div>
     <div class="map-stage" id="map"><svg viewBox="0 0 900 440" role="img" tabindex="0" aria-label="${escape(typeLabel(typeEntry(eventType)))}">
       <defs><pattern id="hatch" patternUnits="userSpaceOnUse" width="6" height="6" patternTransform="rotate(45)">
@@ -192,6 +216,8 @@ function briefPanel() {
   return `<aside class="brief" id="country-panel" aria-labelledby="brief-heading">
     <label class="select compact"><span>${t().selectCountry}</span><select data-field="country">${countryOptions()}</select></label>
     <h2 id="brief-heading">${escape(countryName(country, selected))}</h2>
+    ${country ? `<div class="brief-verdicts"><div><span>${t().forTravel}</span>${levelBadge('travel', travelOf(country).level)}</div>
+      <div><span>${t().forBusiness}</span>${levelBadge('business', businessOf(country).level)}</div></div>` : ''}
     <div class="brief-summary">${summarySentences(country, horizon)}</div>
     <ul class="brief-list">${rows}</ul>
     <a class="button" href="#country">${t().openCountry}</a>
@@ -199,6 +225,15 @@ function briefPanel() {
 }
 
 function ranking() {
+  if (isView(eventType)) {
+    const kind = viewKind();
+    const rows = (snapshot?.countries ?? []).map((c) => ({ c, v: viewVerdict(c) }))
+      .sort((a, b) => b.v.level - a.v.level || countryName(a.c).localeCompare(countryName(b.c), lang))
+      .filter((x) => x.v.level >= 3).slice(0, 40);
+    return `<section class="section"><div class="section-head"><h2>${kind === 'travel' ? t().rankTravel : t().rankBusiness}</h2></div>
+      <ol class="ranking">${rows.map(({ c, v }) => `<li><button type="button" data-select="${c.iso3}">
+        <span class="rank-name">${escape(countryName(c))}</span>${levelBadge(kind, v.level)}</button></li>`).join('')}</ol></section>`;
+  }
   const rows = (snapshot?.countries ?? [])
     .filter((c) => c.risks[eventType])
     .map((c) => ({ c, r: c.risks[eventType] }))
@@ -243,9 +278,26 @@ function countryPage() {
       <h1>${escape(countryName(country, selected))}</h1>
       <div class="lead-summary"><h2>${t().summaryTitle}</h2>${summarySentences(country, '1y')}</div>
     </section>
+    ${country ? implications(country) : ''}
     <section class="section hazards" id="hazards" aria-live="polite"><div class="section-head"><h2>${t().hazardsTitle}</h2><p>${t().hazardsLead}</p></div>
       <div class="loading-inline">${t().hazardsLoading}</div></section>
     <section class="section"><div class="section-head"><h2>${t().allRisks}</h2><p>${t().intervalText}</p></div><div class="risk-blocks">${blocks}</div></section>`;
+}
+
+function verdictCard(title: string, kind: 'travel' | 'business', v: Verdict, extra = '') {
+  return `<article class="verdict"><h3>${title}</h3>${levelBadge(kind, v.level)}
+    <ul>${v.reasons.map((r) => `<li>${escape(r)}</li>`).join('')}</ul>${extra}</article>`;
+}
+
+function implications(country: CountryEntry) {
+  const travel = travelOf(country);
+  const advisory = country.advisory;
+  const travelExtra = `<p class="source-line">${travel.official ? t().officialSource : t().modelSource}${advisory?.url ? ` · <a href="${escape(advisory.url)}" rel="noreferrer">travel.state.gov</a>` : ''}</p>
+    ${advisory?.summary ? `<details><summary>${t().officialText}</summary><p lang="en">${escape(advisory.summary)}</p></details>` : ''}`;
+  const lines = spillover(country, neighbourCountries(country), (c) => countryName(c), lang);
+  return `<section class="section"><div class="section-head"><h2>${t().implicationsTitle}</h2><p>${t().implicationsLead}</p></div>
+    <div class="verdicts">${verdictCard(t().forTravel, 'travel', travel, travelExtra)}${verdictCard(t().forBusiness, 'business', businessOf(country))}
+      <article class="verdict"><h3>${t().forOthers}</h3><ul>${lines.map((l) => `<li>${escape(l)}</li>`).join('')}</ul></article></div></section>`;
 }
 
 function seasonChart(months: number[]) {
@@ -371,7 +423,9 @@ function render() {
     const countries = byIso();
     updateMapSelection = drawMap(map, [...shapes].find(([, iso]) => iso === selected)?.[0] ?? '',
       (key) => {
-        const risk = countries.get(shapes.get(key) ?? '')?.risks[eventType];
+        const country = countries.get(shapes.get(key) ?? '');
+        if (isView(eventType)) return country ? 'v-' + levelClass(viewVerdict(country).level) : '';
+        const risk = country?.risks[eventType];
         if (!risk) return '';
         return risk.question === 'active_at_end' ? 'active' : band(risk.horizons[horizon].p);
       },
@@ -379,6 +433,7 @@ function render() {
         const country = countries.get(shapes.get(key) ?? '');
         const risk = country?.risks[eventType];
         const label = country ? countryName(country) : fallback;
+        if (country && isView(eventType)) return `${label}: ${viewVerdict(country).level} — ${levelLabel(viewKind(), viewVerdict(country).level, lang)}`;
         if (!risk) return label + ': ' + t().legendNoData.toLowerCase();
         const v = risk.horizons[horizon];
         return `${label}: ${pct(v.p)} (${pct(v.low)} – ${pct(v.high)})${risk.active ? ', ' + t().ongoing : ''}`;
@@ -435,7 +490,8 @@ async function start() {
       store('geointel.prevVisit.v1', JSON.stringify(previousVisit));
     }
     writeVisit(snapshot);
-    if (!typeEntry(eventType)?.available) eventType = snapshot.event_types.find((e) => e.available)?.key ?? eventType;
+    void loadHazards().then((data) => { hazardsData = data; if (currentPage() === 'overview') render(); });
+    if (!isView(eventType) && !typeEntry(eventType)?.available) eventType = snapshot.event_types.find((e) => e.available)?.key ?? eventType;
     if (!byIso().has(selected)) selected = snapshot.countries[0]?.iso3 ?? '';
   } catch {
     loadError = true;

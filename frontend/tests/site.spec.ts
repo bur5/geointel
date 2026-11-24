@@ -28,6 +28,9 @@ test('overview renders live snapshot with map and ranking', async ({ page }) => 
   await expect(page.getByRole('button', { name: '10 лет' })).toHaveAttribute('aria-pressed', 'true');
   await page.locator('[data-field="type"]').selectOption('major_earthquake');
   await expect(page.locator('#map')).toBeVisible();
+  await page.locator('[data-field="type"]').selectOption('view_travel');
+  await expect(page.locator('#map path.country.v-critical').first()).toBeVisible();
+  await shoot(page, 'overview-travel');
   await page.setViewportSize({ width: 390, height: 844 });
   await shoot(page, 'overview-mobile');
   expect(errors).toEqual([]);
@@ -43,6 +46,7 @@ test('country, changes, assistant and method pages; language switch', async ({ p
   await page.locator('[data-field="country"]').selectOption('JPN');
   await expect(page.locator('.hazard-card').first()).toBeVisible();
   await expect(page.locator('.country-map circle').first()).toBeVisible();
+  await expect(page.locator('.verdict')).toHaveCount(3);
   await shoot(page, 'country-japan');
   await page.goto('/#changes');
   await expect(page.locator('.changes li')).toHaveCount(1);

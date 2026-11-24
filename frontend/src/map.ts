@@ -1,5 +1,5 @@
 import { geoMercator, geoNaturalEarth1, geoPath, geoGraticule10 } from 'd3-geo';
-import { feature } from 'topojson-client';
+import { feature, neighbors } from 'topojson-client';
 import type { FeatureCollection, Geometry } from 'geojson';
 import type { GeometryCollection, Topology } from 'topojson-specification';
 import atlas from 'world-atlas/countries-110m.json';
@@ -162,4 +162,16 @@ export function drawCountryMap(svg: SVGSVGElement, key: string, points: MapPoint
     svg.append(dot);
   }
   return true;
+}
+
+let neighborIndex: Map<string, string[]> | undefined;
+/** Land neighbours of a map shape (shared borders in the 1:110m atlas). */
+export function neighboursOf(key: string): string[] {
+  if (!neighborIndex) {
+    const geometries = topology.objects.countries.geometries;
+    const keys = geography.features.map((country) => shapeKey(country));
+    const lists = neighbors(geometries as never) as number[][];
+    neighborIndex = new Map(keys.map((k, i) => [k, (lists[i] ?? []).map((j) => keys[j])]));
+  }
+  return neighborIndex.get(key) ?? [];
 }

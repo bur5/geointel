@@ -103,3 +103,42 @@ def test_hazard_details_group_by_country_and_month():
     assert japan["major_earthquake"]["months"][2] == 1  # March 2011
     assert japan["tsunami"]["events"][0]["severity"].startswith("39 m")
     assert japan["major_earthquake"]["events"][0]["lat"] == 38.3
+
+
+def test_travel_advisories_parse_level_and_country():
+    from geointel.risk.sources import advisories
+
+    items = [
+        {
+            "Title": "Belarus - Level 4: Do Not Travel",
+            "Link": "u1",
+            "Category": ["BO"],
+            "Summary": "<p><b>Do not travel</b> due to&nbsp;risk</p>",
+            "Updated": "2025-09-04",
+        },
+        {"Title": "Mexico - Level 2: Exercise Increased Caution", "Link": "u2", "Summary": ""},
+        {"Title": "Atlantis - Level 1: Exercise Normal Precautions"},
+        {"Title": "Something without a level"},
+    ]
+    parsed, unresolved = advisories.parse(items)
+    assert parsed["BLR"]["level"] == 4 and parsed["BLR"]["summary"] == "Do not travel due to risk"
+    assert parsed["MEX"]["level"] == 2
+    assert unresolved == 1
+
+
+def test_exposure_latest_values_and_world_share():
+    from geointel.risk.sources import exposure
+
+    def payload(rows):
+        return [{}, [{"countryiso3code": c, "date": str(y), "value": v} for c, y, v in rows]]
+
+    data = {
+        "NY.GDP.MKTP.CD": payload(
+            [("USA", 2023, 75.0), ("USA", 2024, 80.0), ("SAU", 2024, 20.0), ("WLD", 2024, 100.0)]
+        ),
+        "NY.GDP.PETR.RT.ZS": payload([("SAU", 2022, 25.0), ("SAU", 2023, None)]),
+    }
+    profiles = exposure.latest(data)
+    assert profiles["USA"]["gdp_usd"] == {"value": 80.0, "year": 2024}
+    assert profiles["SAU"]["oil_rents_gdp"]["year"] == 2022
+    assert profiles["USA"]["world_gdp_share"]["value"] == 80.0

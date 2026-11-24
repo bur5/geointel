@@ -12,13 +12,25 @@ from geointel.risk.taxonomy import EventType
 
 
 def load_histories(
-    raw_dir: Path, reference_year: int
+    raw_dir: Path, reference_year: int, extras: dict | None = None
 ) -> tuple[dict[EventType, TypeHistory | None], list[dict], list[dict]]:
     """Parse whatever sources were fetched successfully; failures stay unavailable.
 
     Returns event-type histories, source status records and located hazard events.
     """
-    from geointel.risk.sources import coups, fts, gdacs, ncei_tsunami, ucdp_acd, usgs, worldbank
+    from geointel.risk.sources import (
+        advisories,
+        coups,
+        exposure,
+        fts,
+        gdacs,
+        ncei_tsunami,
+        ucdp_acd,
+        usgs,
+        worldbank,
+    )
+
+    extras = extras if extras is not None else {}
 
     manifest_path = raw_dir / "manifest.json"
     manifest = json.loads(manifest_path.read_text()) if manifest_path.exists() else {}
@@ -63,6 +75,12 @@ def load_histories(
         payload = {int(k): v for k, v in json.loads(path.read_text()).items()}
         histories[EventType.HUMANITARIAN_CRISIS] = fts.history(payload)
 
+    def travel(path: Path) -> None:
+        extras["advisories"], _ = advisories.parse(json.loads(path.read_text()))
+
+    def structure(path: Path) -> None:
+        extras["profiles"] = exposure.latest(json.loads(path.read_text()))
+
     loaders: list[tuple[str, str, Callable[[Path], None]]] = [
         ("ucdp_acd", ucdp_acd.SOURCE, ucdp),
         ("coups", coups.SOURCE, coup),
@@ -71,6 +89,8 @@ def load_histories(
         ("tsunami", ncei_tsunami.SOURCE, tsunamis),
         ("worldbank", worldbank.SOURCE, economy),
         ("fts", fts.SOURCE, humanitarian),
+        ("advisories", advisories.SOURCE, travel),
+        ("exposure", exposure.SOURCE, structure),
     ]
     for key, name, loader in loaders:
         info = manifest.get(key, {})
@@ -139,11 +159,14 @@ def main(argv: list[str] | None = None) -> int:
     from geointel.risk.snapshot import build_snapshot
 
     now = datetime.now(UTC)
-    histories, sources, hazard_events = load_histories(args.raw_dir, now.year)
+    extras: dict = {}
+    histories, sources, hazard_events = load_histories(args.raw_dir, now.year, extras)
     previous = None
     if args.previous and args.previous.is_file():
         previous = json.loads(args.previous.read_text())
-    snapshot = build_snapshot(histories, sources, generated_at=now, previous=previous)
+    snapshot = build_snapshot(
+        histories, sources, generated_at=now, previous=previous, extras=extras
+    )
     available = sum(1 for t in snapshot["event_types"] if t["available"])
     _print_summary(snapshot)
     args.out.parent.mkdir(parents=True, exist_ok=True)

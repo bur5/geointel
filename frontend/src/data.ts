@@ -10,9 +10,13 @@ export interface Risk {
   horizons: Record<HorizonKey, Probability>;
   basis: { exposure_years: number; event_years: number; last_event_year: number | null };
 }
+export interface Advisory { level: 1 | 2 | 3 | 4; title: string; url: string | null; updated: string | null; summary: string }
+export type Profile = Record<string, { value: number; year: number }>;
 export interface CountryEntry {
   iso3: string; iso2: string; numeric: string | null; name: string;
   risks: Record<string, Risk>;
+  advisory?: Advisory | null;
+  profile?: Profile | null;
 }
 export interface EventTypeEntry {
   key: string; label_en: string; label_ru: string; resolution_en: string; resolution_ru: string;

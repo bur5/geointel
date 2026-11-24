@@ -247,6 +247,26 @@ details p { margin-top: 6px; color: var(--ink-2); font-size: 13px; max-width: 80
 .group-title { font-size: 14px; font-weight: 600; color: var(--muted); }
 .missing { color: var(--muted); font-size: 13px; }
 
+/* Implications */
+.toolbar-note { color: var(--muted); font-size: 13px; max-width: 46ch; margin: 0; }
+.level { display: inline-flex; align-items: center; gap: 8px; padding: 4px 10px 4px 4px; border-radius: 999px; font-size: 13px; font-weight: 500; width: fit-content; }
+.level b { display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; color: #fff; font-size: 12px; }
+.level-low { background: #e8f4ee; color: #1f6b4f; } .level-low b { background: #2e8b67; }
+.level-elevated { background: #fbf1df; color: #8a5414; } .level-elevated b { background: #d98a2b; }
+.level-high { background: #fbe7e2; color: #a33b26; } .level-high b { background: var(--r-high); }
+.level-critical { background: #f7e0e4; color: #8f1d2c; } .level-critical b { background: var(--r-critical); }
+.country.v-low { fill: #9ed3bb; } .country.v-elevated { fill: var(--r-elevated); }
+.country.v-high { fill: var(--r-high); } .country.v-critical { fill: var(--r-critical); }
+.legend-key i.sw-low { background: #9ed3bb; } .legend-key i.sw-elevated { background: var(--r-elevated); }
+.legend-key i.sw-high { background: var(--r-high); } .legend-key i.sw-critical { background: var(--r-critical); }
+.brief-verdicts { display: grid; gap: 8px; }
+.brief-verdicts div { display: flex; justify-content: space-between; align-items: center; gap: 10px; font-size: 13px; color: var(--muted); }
+.verdicts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+.verdict { border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; display: grid; gap: 10px; align-content: start; }
+.verdict h3 { font-size: 15px; }
+.verdict ul { margin: 0; padding-left: 18px; display: grid; gap: 6px; font-size: 13.5px; color: var(--ink-2); }
+.source-line { font-size: 12px; color: var(--muted); }
+
 /* Natural hazards */
 .select optgroup { font-weight: 600; color: var(--muted); }
 .loading-inline, .muted-text { color: var(--muted); font-size: 14px; }
@@ -282,6 +302,7 @@ details p { margin-top: 6px; color: var(--ink-2); font-size: 13px; max-width: 80
 .impact { font-size: 13.5px; color: var(--ink-2); padding-top: 10px; border-top: 1px solid var(--line); }
 
 @media (max-width: 1080px) {
+  .verdicts { grid-template-columns: 1fr; }
   .explorer { grid-template-columns: 1fr; }
   .brief { position: static; }
   .ranking { grid-template-columns: 1fr; }
