@@ -9,9 +9,13 @@ from itertools import pairwise
 from json import dumps
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
-from geointel.domain.schemas import NormalizedForecastSignal, NormalizedOperationalEvent
+from geointel.domain.schemas import (
+    NormalizedForecastSignal,
+    NormalizedOperationalEvent,
+    reject_boolean_prediction,
+)
 
 
 class Level(StrEnum):
@@ -27,7 +31,11 @@ _SEVERITY = (Level.NORMAL, Level.WATCH, Level.WARNING, Level.CRITICAL)
 
 class _Record(BaseModel):
     model_config = ConfigDict(
-        frozen=True, extra="forbid", allow_inf_nan=False, str_strip_whitespace=True
+        frozen=True,
+        extra="forbid",
+        allow_inf_nan=False,
+        str_strip_whitespace=True,
+        revalidate_instances="always",
     )
 
 
@@ -95,12 +103,20 @@ class TargetMapping(_Record):
         )
 
 
+class ActivityMapping(_Record):
+    feed: Feed
+    target: str = Field(min_length=1)
+    version: str = Field(min_length=1)
+    review_ref: str = Field(min_length=1)
+
+
 class Scope(_Record):
     region: str = Field(min_length=1)
     geographic_unit: str = Field(min_length=1)
     horizon_months: int | None = Field(default=None, ge=1)
     feeds: tuple[Feed, ...] = Field(min_length=1)
     target_mappings: tuple[TargetMapping, ...] = ()
+    activity_mappings: tuple[ActivityMapping, ...] = ()
 
     @model_validator(mode="after")
     def comparable_feeds(self):
@@ -121,19 +137,58 @@ class Scope(_Record):
             )
         ):
             raise ValueError("each forecast feed requires one matching reviewed target mapping")
+        activity = {feed for feed in self.feeds if feed.model is None}
+        if (
+            len(self.activity_mappings) != len(activity)
+            or {mapping.feed for mapping in self.activity_mappings} != activity
+        ):
+            raise ValueError("each activity feed requires one versioned reviewed target mapping")
+        targets = {feed.metric for feed in forecasts}
+        targets.update(mapping.target for mapping in self.activity_mappings)
+        if len(targets) != 1:
+            raise ValueError("all forecast and activity mappings must share the same target")
+        activity_mappings = sorted(self.activity_mappings, key=lambda item: _feed_key(item.feed))
+        object.__setattr__(self, "activity_mappings", tuple(activity_mappings))
         object.__setattr__(self, "feeds", tuple(sorted(self.feeds, key=_feed_key)))
         mappings = sorted(self.target_mappings, key=lambda mapping: _feed_key(mapping.feed))
         object.__setattr__(self, "target_mappings", tuple(mappings))
         return self
 
 
-class OperationalReceipt(_Record):
-    receipt_id: str = Field(min_length=1)
+class OperationalQuery(_Record):
     provider: str = Field(min_length=1)
     country: str = Field(min_length=1)
     event_type: str = Field(min_length=1)
     period_start: date
     period_end: date
+
+    def receipt_id_for(self, collection_id: str) -> str:
+        return _fingerprint(
+            "operational-receipt-v1",
+            collection_id,
+            self.provider,
+            self.country,
+            self.event_type,
+            self.period_start.isoformat(),
+            self.period_end.isoformat(),
+        )
+
+
+class OperationalAttestation(_Record):
+    """Archived audit of the exact filtered operational query."""
+
+    query: OperationalQuery
+    evidence_ref: str = Field(min_length=1)
+    kind: Literal["operational_events"]
+    pagination_exhausted: Literal[True]
+    unrestricted: Literal[True]
+    counts_reconciled: Literal[True]
+
+
+class OperationalReceipt(OperationalQuery):
+    receipt_id: str = Field(min_length=1)
+    collection_id: str = Field(min_length=1)
+    attestation: OperationalAttestation | None = None
     completed_at: datetime | None = None
     available_at: datetime
     status: Literal["verified_complete", "partial", "truncated", "stale", "ambiguous"]
@@ -143,6 +198,8 @@ class OperationalReceipt(_Record):
     @model_validator(mode="after")
     def validate_receipt(self):
         utc_day(self.available_at)
+        if self.receipt_id != self.receipt_id_for(self.collection_id):
+            raise ValueError("receipt ID must bind the collection and exact query scope")
         if self.period_start > self.period_end or any(not item.strip() for item in self.source_ids):
             raise ValueError("invalid receipt window or source identifiers")
         if self.completed_at is not None:
@@ -153,6 +210,11 @@ class OperationalReceipt(_Record):
             self.completed_at is None or utc_day(self.completed_at) <= self.period_end
         ):
             raise ValueError("complete coverage requires completed retrieval of a closed window")
+        if self.status == "verified_complete" and (
+            self.attestation is None
+            or self.attestation.query.receipt_id_for(self.collection_id) != self.receipt_id
+        ):
+            raise ValueError("complete coverage requires an audit of the exact operational query")
         object.__setattr__(self, "source_ids", tuple(sorted(set(self.source_ids))))
         return self
 
@@ -174,6 +236,8 @@ class Observation(_Record):
     issue_date: date | None = None
     target_start: date | None = None
     target_end: date | None = None
+
+    _reject_boolean = field_validator("value", mode="before")(reject_boolean_prediction)
 
     @model_validator(mode="after")
     def valid_measurement(self):
@@ -216,21 +280,23 @@ class Observation(_Record):
             or (self.value is not None and not self.value.is_integer())
         ):
             raise ValueError("observed activity requires closed windows and integer counts")
-        elif self.complete and (
-            self.receipt is None
-            or self.receipt.status != "verified_complete"
-            or (
-                self.receipt.provider,
-                self.receipt.event_type,
-                self.receipt.country,
-                self.receipt.period_start,
-                self.receipt.period_end,
-                utc_day(self.receipt.available_at),
+        elif self.receipt is None:
+            if self.complete:
+                raise ValueError(
+                    "complete activity observations require matching verified coverage"
+                )
+        else:
+            coverage = self.receipt
+            if (
+                coverage.provider,
+                coverage.event_type,
+                coverage.country,
+                coverage.period_start,
+                coverage.period_end,
+                utc_day(coverage.available_at),
                 "country",
-                len(self.receipt.source_ids),
-                (self.receipt.receipt_id, *self.receipt.source_ids),
-            )
-            != (
+                coverage.receipt_id,
+            ) != (
                 self.feed.provider,
                 self.feed.metric,
                 self.region,
@@ -238,11 +304,19 @@ class Observation(_Record):
                 self.period_end,
                 self.available_on,
                 self.geographic_unit,
-                self.value,
-                self.source_ids,
-            )
-        ):
-            raise ValueError("complete activity observations require matching verified coverage")
+                self.source_ids[0],
+            ):
+                raise ValueError(
+                    "activity observation does not match the receipt scope or availability"
+                )
+            if self.complete and (
+                coverage.status != "verified_complete"
+                or self.value != len(coverage.source_ids)
+                or self.source_ids[1:] != coverage.source_ids
+            ):
+                raise ValueError(
+                    "complete activity observations require matching verified coverage"
+                )
         return self
 
     @classmethod
@@ -255,6 +329,7 @@ class Observation(_Record):
         period_end: date,
     ) -> "Observation":
         """Accept an aligned external probability under a reviewed target mapping."""
+        reject_boolean_prediction(signal.prediction)
         issued = utc_day(signal.issue_date)
         retrieved = utc_day(signal.retrieved_at)
         target = (utc_day(signal.target_start), utc_day(signal.target_end))
@@ -305,6 +380,7 @@ class Observation(_Record):
         cls, events: Iterable[NormalizedOperationalEvent], *, receipt: OperationalReceipt
     ) -> "Observation":
         """Count distinct records whose identities match a verified operational receipt."""
+        receipt = OperationalReceipt.model_validate(receipt)
         ids = set()
         for event in events:
             if (
@@ -410,6 +486,7 @@ def _fingerprint(*parts: str) -> str:
 
 
 def stream_id(scope: Scope, thresholds: Thresholds) -> str:
+    scope = Scope.model_validate(scope)
     return _fingerprint("early-warning-v1", scope.model_dump_json(), thresholds.model_dump_json())
 
 
@@ -434,6 +511,7 @@ def _inspect(
         for row in observations:
             if row.feed != feed or row.period_end not in ends or row.available_on > revision_cutoff:
                 continue
+            row = Observation.model_validate(row)
             alternatives = slots.setdefault(row.period_end, [])
             if row not in alternatives:
                 alternatives.append(row)
@@ -659,6 +737,7 @@ def evaluate(
     cutoff = revision_cutoff if revision_cutoff is not None else as_of
     if cutoff > as_of:
         raise ValueError("revision cutoff cannot follow as_of")
+    scope = Scope.model_validate(scope)
     stream = stream_id(scope, thresholds)
     if previous and (
         previous.stream_id != stream

@@ -15,10 +15,11 @@ same-candidate recovery, and canonical feed ordering. Use
 | [PR #35](https://github.com/bur5/geointel/pull/35) | `d10c93ede23ac402c31288ad9e6fbaab3ad9cb16` | Evaluator architecture and synthetic regression baseline |
 | [PR #37](https://github.com/bur5/geointel/pull/37) | `639d7e25ef0a1df41f111e8b25e8452c9a082759` | Selected input and recovery safeguards |
 | [PR #33](https://github.com/bur5/geointel/pull/33) | `df34d1bdd4f0edf0e30012bd67f1c669b77989f8` | Proposed collection coverage and eligibility |
+| [PR #46](https://github.com/bur5/geointel/pull/46) | `b7956e594e9c609aa4a93e45ff6fc55ff6dcad4b` | Proposed integrated coverage, monitoring diagnostics and historical context |
 | [PR #24](https://github.com/bur5/geointel/pull/24) | `d296ee720a45753ef4c1cf49fb23a77120a71303` | Proposed historical representation and taxonomy changes |
 
 The heads of #35 and #37 both fork directly from the verified base. The inspected heads of
-#24 and #33 are outside the ancestry of that base. The branch uses existing Pydantic and
+#24, #33 and #46 are outside the ancestry of that base. The branch uses existing Pydantic and
 SQLAlchemy dependencies and is isolated from pipeline entry points, API routes, monitoring
 and notifications.
 
@@ -35,8 +36,14 @@ The persisted adapters read ORM fields and explicit source metadata. The country
 resolve aliases through the repository's bounded, reviewed country mapping. Other geography
 units require an exact configured identity. A scope pins the mapping for every expected
 model and canonicalizes the feed and mapping order. Feed identifiers use their configured
-provider-native spelling. Map provider aliases before constructing a scope. Changing a model
-version, mapping, feed roster, scope or thresholds creates a new stream.
+provider-native spelling. Map provider aliases before constructing a scope. Each activity feed in the roster requires an `ActivityMapping` naming its exact provider and
+event filter, canonical conflict target, mapping version and review reference. Every mapping in
+a scope must share a single target. Only activity from that roster can corroborate a forecast
+for CRITICAL. Use an approved mapping artifact as the source of these configuration values.
+Changing a model version, mapping, feed roster, scope or thresholds creates a new stream.
+The VIEWS payload, normalized signal and advisory observation boundaries reject Boolean
+predictions before numeric coercion. Stored VIEWS forecasts are also checked when raw
+adapter provenance is present.
 
 Each scheduled slot is a fixed-width inclusive UTC date window. Forecasts sit in the slot
 containing their issue date. The reviewed mapping derives full target months from that issue
@@ -51,16 +58,20 @@ calendar conventions require their own reviewed mapping.
 A trusted collector should persist one immutable receipt per exact provider, canonical
 country, event filter and UTC period. `OperationalReceipt` carries that scope, the receipt
 ID, the operational classification, completion time, availability time, coverage status
-and the distinct source identities for the exact filter. For a verified receipt,
+and the distinct source identities for the exact filter. The receipt ID is derived from the
+collection ID, provider, country, event filter and both window boundaries. A copied receipt
+with any different binding is rejected. For a verified receipt,
 completion must occur after the final UTC date in the window, and availability must be at
 or after completion. The persisted adapter also checks record persistence against receipt
 availability. Feed freshness is assessed relative to the newest structurally usable slot.
 
 Issuance of `verified_complete` requires auditable success, exact query and verified
 scopes, complete pagination, reconciled counts and no unresolved restrictions, rejections,
-truncation, stale snapshot or ambiguous terminal page. Archive the provider query,
-pagination proofs and audit metadata behind the immutable receipt ID. The evaluator
-validates the receipt and its binding to records. The receipt issuer is responsible for
+truncation, stale snapshot or ambiguous terminal page. An `OperationalAttestation` must name
+the same exact query and an immutable audit reference, and affirm exhausted pagination, an
+unrestricted query and reconciled counts. Archive the provider query and evidence for those
+claims behind that reference. The evaluator validates the receipt binding, attestation and
+source membership. The receipt issuer is responsible for
 verifying the upstream audit and establishing the earliest actual availability. A verified
 complete result with an empty source roster establishes zero returned events for that
 provider and filter.
@@ -106,9 +117,10 @@ action.
 ## Persistence, cutoffs and replay
 
 - The PostgreSQL implementation uses a single history table and a checkpoint table,
-  defined in `early_warning_store.metadata`. It is tested against schemas owned by the
-  PostgreSQL fixtures. A deployment migration will need to create the two tables, composite
-  primary keys, foreign key and unique nullable transition ID constraint from that metadata.
+  defined in `early_warning_store.metadata`. Alembic revision `0009_early_warning` creates
+  the tables, composite primary keys, foreign key and unique nullable transition ID. Its
+  downgrade removes both advisory tables and their contents. The migration is tested for
+  clean install, downgrade to `0008`, and re-upgrade on a disposable database.
 - A method-versioned hash identifies the canonical scope and threshold configuration. An
   occurrence is keyed by namespace, stream, scheduled period end, UTC evaluation date
   and explicit UTC revision cutoff. An exact retry returns the originally persisted
@@ -135,8 +147,9 @@ action.
 
 ## Integration dependencies
 
-1. **PR #33 coverage.** If its versioned `CoverageDecision` lands, consume individual
-   collection entries from the projection and the per-record eligibility diagnostics.
+1. **PR #46 and PR #33 coverage.** If the versioned `CoverageDecision` lands, consume
+   individual collection entries and per-record eligibility as inputs to the audit.
+   A coverage status alone cannot certify an exact event-filter window.
    Certify only eligible operational event queries with verified exact provider, country,
    UTC dates and event filter. Require `complete_empty` or `complete_with_records`,
    and inspect verification, page termination, restrictions, rejections and record audit.
@@ -147,11 +160,28 @@ action.
 2. **PR #24 historical evidence.** If its profile and taxonomy are adopted, keep that
    projection on the contextual read path. Review forecast-category mappings against the
    updated taxonomy and rerun existing monitoring and four-category forecast regressions.
-3. **Operational read path.** Approve the provider/model roster, target windows, exact
-   event filters, source revision policy and receipt producer. Add the standalone schema
-   as a reviewed Alembic revision against the then-current head. Grant the runtime role
-   inserts on history, select and update on checkpoints, and selects required for retries.
-   Keep scheduling, API exposure and monitoring integration outside this patch.
+3. **Operational read path.** Approve the provider/model roster, activity mappings, target
+   windows, exact event filters, source revision policy and receipt producer. Keep scheduling,
+   API exposure and monitoring integration outside this patch.
+
+### PostgreSQL runtime grants
+
+Run the migration as the schema owner. Provision a dedicated, non-owner runtime login
+through the existing database administration process. For the default PostgreSQL
+`public` schema, the advisory writer needs these grants in its database. Substitute the
+actual database, schema and role identifiers.
+
+```sql
+GRANT CONNECT ON DATABASE geointel TO geointel_advisory;
+GRANT USAGE ON SCHEMA public TO geointel_advisory;
+GRANT SELECT, INSERT ON public.early_warning_history TO geointel_advisory;
+GRANT SELECT, INSERT, UPDATE ON public.early_warning_checkpoints TO geointel_advisory;
+```
+
+Checkpoint INSERT supports the first evaluation. UPDATE supports row locking and writes.
+The test suite authenticates through separate non-owner PostgreSQL logins, exercises
+concurrent retries and state recovery, and verifies history deletion is denied. Migration
+DDL and production role provisioning remain administrator operations.
 
 ## Remaining risks and independent review
 
@@ -167,7 +197,7 @@ action.
 - Trace an exact retry, transaction rollback, late record and replay through the history
   and checkpoint. Check that competing revisions and incomplete readings remain visible
   and monitoring remains the owner of alert handling.
-- Verify the reviewed branch base and confirm the deployment migration, collector changes
+- Verify the reviewed branch base and confirm migration rollout, collector changes
   and threshold approval independently before wiring an operational entry point.
 
 ## Validation
@@ -180,8 +210,7 @@ recovery, coverage and source identity, provider semantics, model alignment and 
 historical forecast immutability, existing monitoring and API behavior, concurrent retries,
 transaction rollback and replay. These tests validate deterministic behavior with fixtures.
 
-Executed against PostgreSQL 16 with the existing Alembic chain upgraded through `0008`.
-The full suite passed all **222** tests. The focused advisory and PostgreSQL suite passed
-**45** tests. The focused monitoring, API, domain and provider suite passed **89** tests.
-Ruff lint and format checks passed, as did mypy for the three advisory modules. Pytest
-reported one Starlette TestClient deprecation warning.
+The PostgreSQL CI job runs the legacy integration suite and all advisory tests. Set
+`POSTGRES_TEST_URL` to a disposable PostgreSQL 16 database with permissions to create
+temporary schemas, databases and roles for the tests. The tests use separate runtime
+logins with the grants above for advisory persistence.

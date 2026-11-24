@@ -5,7 +5,11 @@ from copy import deepcopy
 from datetime import date
 
 from geointel.domain.models import Event, Forecast, ForecastSignal
-from geointel.domain.schemas import NormalizedForecastSignal, NormalizedOperationalEvent
+from geointel.domain.schemas import (
+    NormalizedForecastSignal,
+    NormalizedOperationalEvent,
+    reject_boolean_prediction,
+)
 from geointel.early_warning import Observation, OperationalReceipt, TargetMapping, utc_day
 from geointel.geography import resolve_country
 
@@ -20,6 +24,9 @@ def signal_observation(
     """Use the later of retrieval and local persistence for point-in-time availability."""
     if signal.id is None or signal.created_at is None:
         raise ValueError("a persisted external forecast signal is required")
+    raw = (signal.provenance or {}).get("raw_adapter_record")
+    if signal.provider == "VIEWS" and isinstance(raw, dict):
+        reject_boolean_prediction(raw.get("prediction"))
     location = signal.source_location
     if signal.geographic_unit == "country":
         location = resolve_country(location).name

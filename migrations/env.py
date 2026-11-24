@@ -5,12 +5,13 @@ from sqlalchemy import engine_from_config, pool
 
 from geointel.config import get_settings
 from geointel.domain.models import Base
+from geointel.early_warning_store import metadata as advisory_metadata
 
 config = context.config
 if config.config_file_name:
     fileConfig(config.config_file_name)
 config.set_main_option("sqlalchemy.url", get_settings().database_url)
-target_metadata = Base.metadata
+target_metadata = [Base.metadata, advisory_metadata]
 
 
 def run_migrations_offline():

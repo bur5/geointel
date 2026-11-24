@@ -110,6 +110,12 @@ class NormalizedNewsReport(BaseModel):
         return value
 
 
+def reject_boolean_prediction(value: object) -> object:
+    if isinstance(value, bool):
+        raise ValueError("Boolean predictions or observation values are invalid")
+    return value
+
+
 class NormalizedForecastSignal(BaseModel):
     """A provider model output; deliberately not observed Evidence or an Event."""
 
@@ -125,6 +131,7 @@ class NormalizedForecastSignal(BaseModel):
     horizon_months: int | None = Field(default=None, ge=1)
     target_variable: str
     prediction: float
+    _reject_boolean = field_validator("prediction", mode="before")(reject_boolean_prediction)
     unit: str | None = None
     scale: str | None = None
     retrieved_at: datetime

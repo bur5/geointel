@@ -111,3 +111,16 @@ def test_malformed_payload_is_rejected(payload):
     with pytest.raises(VIEWSError, match="1 attempts"):
         VIEWSConnector("https://example.test", "forecasts", client=client).collect("Spain", 12)
     client.close()
+
+
+@pytest.mark.parametrize("boolean", [True, False])
+def test_views_ingestion_rejects_json_booleans_before_float_coercion(boolean):
+    raw = {**SYNTHETIC_RECORD, "prediction": boolean, "unit": "probability", "scale": "0-1"}
+    with httpx.Client(
+        transport=httpx.MockTransport(lambda _: httpx.Response(200, json={"forecasts": [raw]}))
+    ) as client:
+        connector = VIEWSConnector("https://example.test", "forecasts", client=client)
+        with pytest.raises(VIEWSError, match="validation"):
+            connector.collect("Spain", 12)
+        raw["prediction"] = int(boolean)
+        assert connector.collect("Spain", 12)[0].prediction == int(boolean)

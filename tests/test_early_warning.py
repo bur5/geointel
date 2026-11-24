@@ -1,19 +1,27 @@
 import os
+import subprocess
+import sys
 from concurrent.futures import ThreadPoolExecutor
 from datetime import UTC, date, datetime, time, timedelta
 from threading import Barrier
 from uuid import uuid4
 
 import pytest
-from sqlalchemy import create_engine, func, select
+from alembic.autogenerate import compare_metadata
+from alembic.migration import MigrationContext
+from sqlalchemy import create_engine, func, inspect, select, text
+from sqlalchemy.exc import ProgrammingError
 from sqlalchemy.schema import CreateSchema, DropSchema
 
 from geointel.domain.models import AnalysisRun, Event, Forecast, ForecastSignal
 from geointel.domain.schemas import NormalizedForecastSignal, NormalizedOperationalEvent
 from geointel.early_warning import (
+    ActivityMapping,
     Feed,
     Level,
     Observation,
+    OperationalAttestation,
+    OperationalQuery,
     OperationalReceipt,
     Scope,
     State,
@@ -41,6 +49,11 @@ def scope(*feeds):
         geographic_unit="country",
         feeds=feeds,
         target_mappings=tuple(mapping(feed) for feed in feeds if feed.model),
+        activity_mappings=tuple(
+            ActivityMapping(feed=feed, target=MODEL_A.metric, version="1", review_ref="fixture")
+            for feed in feeds
+            if feed.model is None
+        ),
         horizon_months=1 if any(feed.model for feed in feeds) else None,
     )
 
@@ -56,15 +69,30 @@ def mapping(feed):
     )
 
 
-def receipt(end, ids=(), status="verified_complete"):
+def receipt(end, ids=(), status="verified_complete", *, country="Exampleland", feed=EVENTS):
     completed = datetime.combine(end + timedelta(days=1), time(), UTC)
-    return OperationalReceipt(
-        provider=EVENTS.provider,
-        country="Exampleland",
-        event_type=EVENTS.metric,
+    query = OperationalQuery(
+        provider=feed.provider,
+        country=country,
+        event_type=feed.metric,
         period_start=end - timedelta(days=6),
         period_end=end,
-        receipt_id=f"collection-{end}",
+    )
+    collection_id = f"collection-{end}"
+    return OperationalReceipt(
+        **query.model_dump(),
+        collection_id=collection_id,
+        receipt_id=query.receipt_id_for(collection_id),
+        attestation=OperationalAttestation(
+            query=query,
+            evidence_ref="test-audit",
+            kind="operational_events",
+            pagination_exhausted=True,
+            unrestricted=True,
+            counts_reconciled=True,
+        )
+        if status == "verified_complete"
+        else None,
         source_ids=ids,
         status=status,
         temporal_classification="recent_operational",
@@ -76,7 +104,7 @@ def receipt(end, ids=(), status="verified_complete"):
 def sample(feed, end, value):
     forecast = feed.model is not None
     ids = tuple(f"{end}-{i}" for i in range(value or 0)) if not forecast else ()
-    coverage = receipt(end, ids) if not forecast else None
+    coverage = receipt(end, ids, feed=feed) if not forecast else None
     target = mapping(feed).window(end) if forecast else (None, None)
     return Observation(
         feed=feed,
@@ -324,6 +352,10 @@ def test_normalized_forecast_adapter_requires_explicit_probability_semantics():
     assert row.feed == MODEL_A
     assert row.value == 0.20
     assert row.source_ids == ("a1",)
+    with pytest.raises(ValueError, match="Boolean"):
+        NormalizedForecastSignal.model_validate({**signal.model_dump(), "prediction": True})
+    with pytest.raises(ValueError, match="Boolean"):
+        Observation.from_forecast(signal.model_copy(update={"prediction": True}), **args)
     for update in (
         {"unit": None},
         {"unit": "forecast_event_count"},
@@ -480,10 +512,20 @@ def test_persisted_external_signal_uses_ingest_time_and_canonical_country():
     assert row.region == "Spain"
     assert row.available_on == END + timedelta(days=1)
     assert row.source_ids == ("external",)
+    stored.provider = "VIEWS"
+    stored.prediction = 1.0
+    stored.provenance = {"raw_adapter_record": {"prediction": True}}
+    with pytest.raises(ValueError, match="Boolean"):
+        signal_observation(
+            stored,
+            mapping=mapping(MODEL_A),
+            period_start=END - timedelta(days=6),
+            period_end=END,
+        )
 
 
 def test_persisted_count_requires_operational_provenance_and_matching_receipt():
-    closed = receipt(END, ("one",)).model_copy(update={"country": "Spain"})
+    closed = receipt(END, ("one",), country="Spain")
     issued = datetime.combine(END, time(), UTC)
     normalized = NormalizedOperationalEvent(
         provider=EVENTS.provider,
@@ -515,16 +557,32 @@ def advisory_db():
     engine = create_engine(url)
     with engine.connect() as connection:
         assert connection.dialect.name == "postgresql"
-    # Each test owns a schema so reruns and parallel workers cannot collide.
+    # Each test owns a schema and logs in as a distinct non-owner role.
     schema = f"ew_test_{uuid4().hex}"
+    role = f"{schema}_login"
+    password = uuid4().hex
     with engine.begin() as connection:
         connection.execute(CreateSchema(schema))
         metadata.create_all(connection.execution_options(schema_translate_map={None: schema}))
+        connection.execute(text(f"CREATE ROLE {role} LOGIN PASSWORD '{password}'"))
+        connection.execute(text(f"GRANT USAGE ON SCHEMA {schema} TO {role}"))
+        connection.execute(
+            text(f"GRANT SELECT, INSERT ON {schema}.early_warning_history TO {role}")
+        )
+        connection.execute(
+            text(f"GRANT SELECT, INSERT, UPDATE ON {schema}.early_warning_checkpoints TO {role}")
+        )
+    runtime = create_engine(
+        engine.url.set(username=role, password=password),
+        execution_options={"schema_translate_map": {None: schema}},
+    )
     try:
-        yield engine.execution_options(schema_translate_map={None: schema})
+        yield runtime
     finally:
+        runtime.dispose()
         with engine.begin() as connection:
             connection.execute(DropSchema(schema, cascade=True))
+            connection.execute(text(f"DROP ROLE {role}"))
         engine.dispose()
 
 
@@ -641,3 +699,171 @@ def test_postgres_caught_failure_leaves_no_checkpoint(advisory_db):
     with advisory_db.connect() as connection:
         assert connection.scalar(select(func.count()).select_from(checkpoints)) == 0
         assert connection.scalar(select(func.count()).select_from(history)) == 0
+
+
+def test_activity_corroboration_requires_review_of_the_exact_feed_and_target():
+    unrelated = Feed(provider=EVENTS.provider, metric="Public demonstrations")
+    forecast_rows = samples(MODEL_A, [0.25, 0.25, 0.44])
+    activity_rows = samples(EVENTS, [1, 2, 11])
+    unreviewed_rows = samples(unrelated, [1, 2, 11])
+    original = scope(MODEL_A, EVENTS)
+    values = original.model_dump()
+    reviewed = values["activity_mappings"][0]
+    for settings, message in (
+        ({"activity_mappings": ()}, "one versioned reviewed"),
+        ({"activity_mappings": ({**reviewed, "target": "political_violence"},)}, "same target"),
+        ({"activity_mappings": ({**reviewed, "version": ""},)}, "at least 1"),
+        ({"activity_mappings": ({**reviewed, "review_ref": ""},)}, "at least 1"),
+        ({"feeds": (MODEL_A, unrelated)}, "one versioned reviewed"),
+    ):
+        with pytest.raises(ValueError, match=message):
+            Scope.model_validate({**values, **settings})
+    record, _ = assess(forecast_rows + unreviewed_rows, feeds=(MODEL_A,))
+    assert record.level == Level.WARNING
+    record, _ = assess(forecast_rows + unreviewed_rows, feeds=(MODEL_A, EVENTS))
+    assert record.level == Level.INSUFFICIENT_DATA
+    record, state = assess(forecast_rows + activity_rows, feeds=(MODEL_A, EVENTS))
+    assert record.level == Level.CRITICAL
+    updated = Scope.model_validate({**values, "activity_mappings": ({**reviewed, "version": "2"},)})
+    with pytest.raises(ValueError, match="previous state must match"):
+        evaluate(
+            updated,
+            forecast_rows + activity_rows,
+            previous=state,
+            as_of=record.as_of,
+            period_end=END,
+        )
+
+
+def test_operational_receipt_is_bound_to_collection_filter_country_and_window():
+    verified = receipt(END)
+    for update in (
+        {"provider": "other"},
+        {"event_type": "Other"},
+        {"country": "Elsewhere"},
+        {"period_start": verified.period_start - WEEK},
+        {"period_end": END + WEEK},
+        {"collection_id": "other-collection"},
+    ):
+        reused = verified.model_copy(update=update)
+        with pytest.raises(ValueError, match="receipt ID must bind"):
+            Observation.from_events([], receipt=reused)
+    assert Observation.from_events([], receipt=verified).value == 0
+
+
+def test_complete_status_cannot_replace_an_exact_operational_audit():
+    verified = receipt(END)
+    audit = verified.attestation
+    with pytest.raises(ValueError, match="verified_complete"):
+        OperationalReceipt.model_validate(
+            {**verified.model_dump(), "status": "complete_empty", "attestation": None}
+        )
+    for proof in (
+        None,
+        audit.model_copy(update={"query": audit.query.model_copy(update={"event_type": "All"})}),
+        audit.model_copy(
+            update={
+                "query": audit.query.model_copy(
+                    update={"period_start": verified.period_start - WEEK}
+                )
+            }
+        ),
+    ):
+        with pytest.raises(ValueError, match="audit of the exact operational query"):
+            Observation.from_events([], receipt=verified.model_copy(update={"attestation": proof}))
+    for update in (
+        {"kind": "historical_release"},
+        {"kind": "media"},
+        {"pagination_exhausted": False},
+        {"unrestricted": False},
+        {"counts_reconciled": False},
+    ):
+        with pytest.raises(ValueError):
+            Observation.from_events(
+                [],
+                receipt=verified.model_copy(
+                    update={"attestation": audit.model_copy(update=update)}
+                ),
+            )
+    derived = sample(EVENTS, END, 0)
+    invalid = derived.model_copy(
+        update={"receipt": verified.model_copy(update={"attestation": None})}
+    )
+    with pytest.raises(ValueError, match="audit of the exact operational query"):
+        assess([*samples(EVENTS, [0, 0, 0])[:-1], invalid], feeds=(EVENTS,))
+
+
+@pytest.mark.parametrize("boolean", [True, False])
+def test_boolean_observation_rejected_even_with_validation_bypass(boolean):
+    rows = samples(MODEL_A, [0.0, 0.0, 1.0])
+    with pytest.raises(ValueError, match="Boolean"):
+        Observation.model_validate({**rows[-1].model_dump(), "value": boolean})
+    with pytest.raises(ValueError, match="Boolean"):
+        assess([*rows[:-1], rows[-1].model_copy(update={"value": boolean})])
+    assert assess(rows)[0].level == Level.WARNING
+
+
+def test_postgres_runtime_login_resumes_checkpoint_and_cannot_mutate_history(advisory_db):
+    rows = samples(MODEL_A, [0.25, 0.25, 0.40, 0.40, 0.40], end=END + 2 * WEEK)
+    with advisory_db.begin() as connection:
+        assert connection.scalar(text("SELECT current_user")).startswith("ew_test_")
+        assert not connection.scalar(
+            text("SELECT rolsuper FROM pg_roles WHERE rolname = current_user")
+        )
+        initial = persist(connection, rows)
+        assert initial.event_id
+    for offset, expected in ((1, Level.WARNING), (2, Level.NORMAL)):
+        day = END + offset * WEEK
+        with advisory_db.begin() as connection:
+            record = persist(connection, rows, end=day, as_of=day, cutoff=day)
+            assert record.level == expected
+            assert record.event_id is None
+    with advisory_db.begin() as connection, pytest.raises(ProgrammingError, match="permission"):
+        with connection.begin_nested():
+            connection.execute(history.delete())
+    with advisory_db.begin() as connection:
+        assert connection.scalar(select(func.count(history.c.event_id))) == 1
+
+
+def test_postgres_migration_install_upgrade_and_rollback():
+    url = os.getenv("POSTGRES_TEST_URL")
+    if not url:
+        pytest.skip("POSTGRES_TEST_URL requires a disposable PostgreSQL database")
+    owner = create_engine(url, isolation_level="AUTOCOMMIT")
+    name = f"ew_migration_{uuid4().hex}"
+    with owner.connect() as connection:
+        assert connection.dialect.name == "postgresql"
+        connection.execute(text(f"CREATE DATABASE {name}"))
+    database = create_engine(owner.url.set(database=name))
+    env = {**os.environ, "DATABASE_URL": database.url.render_as_string(hide_password=False)}
+
+    def migrate(command, revision):
+        subprocess.run([sys.executable, "-m", "alembic", command, revision], env=env, check=True)
+
+    try:
+        migrate("upgrade", "head")
+        tables = set(inspect(database).get_table_names())
+        assert {"early_warning_history", "early_warning_checkpoints", "forecasts"} <= tables
+        with database.begin() as connection:
+            context = MigrationContext.configure(
+                connection,
+                opts={
+                    "include_name": lambda name, kind, _: kind != "table" or name in metadata.tables
+                },
+            )
+            assert compare_metadata(context, metadata) == []
+            assert persist(connection, samples(MODEL_A, [0.25, 0.25, 0.40])).event_id
+        migrate("downgrade", "0008")
+        assert set(inspect(database).get_table_names()) == tables - {
+            "early_warning_history",
+            "early_warning_checkpoints",
+        }
+        migrate("upgrade", "head")
+        assert set(inspect(database).get_table_names()) == tables
+        with database.begin() as connection:
+            assert connection.scalar(select(func.count()).select_from(history)) == 0
+    finally:
+        database.dispose()
+        with owner.connect() as connection:
+            connection.execute(text(f"DROP DATABASE {name}"))
+        owner.dispose()
