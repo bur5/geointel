@@ -1,0 +1,85 @@
+import json
+from copy import deepcopy
+from pathlib import Path
+
+from geointel.historical_validation.audit import Fold, Registration, StudyConstraints, audit_fold
+from geointel.historical_validation.report import (
+    BenchmarkReport, EvaluationPanel, OutcomePublication, ReportPlan, ReportRequest, build_report,
+)
+
+fixtures = Path("tests/fixtures")
+base = json.loads((fixtures / "synthetic_benchmark_request.json").read_text())
+receipt = Registration.model_validate_json(
+    (fixtures / "synthetic_benchmark_registration.json").read_bytes()
+)
+
+def two_folds():
+    data = deepcopy(base)
+    second = deepcopy(data["folds"][0])
+    second.update(key="second", geography_id="SECOND")
+    data["folds"].append(second)
+    data["plan"]["geography_ids"].append("SECOND")
+    return data
+
+def registered(data):
+    for fold in data["folds"]:
+        fold["protocol"]["plan_sha256"] = ReportPlan.model_validate(data["plan"]).digest()
+    return Registration.model_validate(data["folds"][0]["protocol"])
+
+def report(data, receipt, panel=None):
+    return build_report(
+        ReportRequest.model_validate(data), verified_registration=receipt, resolved_panel=panel
+    )
+
+data = two_folds()
+panel = EvaluationPanel(
+    snapshot=data["plan"]["panel_snapshot"],
+    slots=tuple(Fold.model_validate(fold).evaluation_case().model_dump() for fold in data["folds"]),
+)
+data["plan"]["panel_sha256"] = panel.digest()
+panel_receipt = registered(data)
+complete = report(data, panel_receipt, panel)
+data["folds"].pop()
+partial = report(data, panel_receipt, panel)
+assert partial.panel_status == "incomplete"
+
+def attempt(label, operation):
+    try:
+        result = operation()
+    except ValueError as exc:
+        print(label, "rejected:", str(exc).splitlines()[1].strip())
+    else:
+        print(label, "accepted", result.panel_status, result.outcome_publication_status)
+
+audit_payload = dict(
+    partial.model_dump(),
+    audits=complete.audits,
+    missing_panel_slots=(),
+    panel_status="verified",
+    evidence_status="demonstration",
+)
+attempt("Added audit and asserted panel verification", lambda: BenchmarkReport.model_validate(audit_payload))
+publication = OutcomePublication.model_validate(dict(
+    base["outcomes"], available_at=base["plan"]["outcome_as_of"],
+    availability_evidence="synthetic:unverified-release"
+))
+publication_payload = dict(
+    report(base, receipt).model_dump(),
+    outcome_publication=publication,
+    outcome_publication_status="verified",
+)
+attempt("Self-asserted publication record", lambda: BenchmarkReport.model_validate(publication_payload))
+
+data = two_folds()
+data["folds"][1]["fitted_at"] = "2000-01-05T00:00:00.000001Z"
+data["folds"][1]["development"][0]["label"]["available_at"] = data["folds"][1]["fitted_at"]
+second_receipt = registered(data)
+constraints = StudyConstraints.model_validate(data["plan"]["constraints"])
+assert all(not audit_fold(Fold.model_validate(fold), constraints).findings for fold in data["folds"])
+attempt("Cross-fold timestamp conflict", lambda: report(data, second_receipt))
+
+data = deepcopy(base)
+fold = data["folds"][0]
+fold["feature_inputs"] = [dict(fold["development"][0]["label"],
+                               available_at="2000-01-05T00:00:00.000001Z")]
+attempt("Development/evaluation timestamp conflict", lambda: report(data, receipt))

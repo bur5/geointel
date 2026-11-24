@@ -1,0 +1,9 @@
+from pathlib import Path
+from geointel.historical_validation.audit import Registration
+from geointel.historical_validation.report import EvaluationPanel, ReportRequest, build_report
+fixtures = Path("tests/fixtures")
+request = ReportRequest.model_validate_json((fixtures / "synthetic_benchmark_request.json").read_bytes())
+receipt = Registration.model_validate_json((fixtures / "synthetic_benchmark_registration.json").read_bytes())
+panel = EvaluationPanel.model_validate_json((fixtures / "synthetic_benchmark_panel.json").read_bytes())
+report = build_report(request, verified_registration=receipt, resolved_panel=panel)
+print(request.plan.digest(), panel.digest(), report.input_sha256, sep="\n")

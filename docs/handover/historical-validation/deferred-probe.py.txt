@@ -1,0 +1,20 @@
+from pathlib import Path
+from geointel.historical_validation.audit import Registration
+from geointel.historical_validation.report import BenchmarkReport, EvaluationPanel, OutcomePublication, ReportRequest, build_report, verify_report_v1
+p = Path("tests/fixtures")
+r = ReportRequest.model_validate_json((p/"synthetic_benchmark_request.json").read_bytes())
+reg = Registration.model_validate_json((p/"synthetic_benchmark_registration.json").read_bytes())
+panel = EvaluationPanel.model_validate_json((p/"synthetic_benchmark_panel.json").read_bytes())
+pub = OutcomePublication(**r.outcomes.model_dump(), availability_evidence="synthetic:publisher:release", available_at=r.plan.outcome_as_of)
+def verify(saved):
+    return verify_report_v1(BenchmarkReport.model_validate_json(saved), original_request=r, registration=reg, required_panel=panel, evidence_mode="synthetic", outcome_publication=pub, source_snapshots=(*r.snapshot_declarations(), pub.snapshot_declaration()))
+before = build_report(r, verified_registration=reg, resolved_panel=panel).model_dump_json()
+after = build_report(r, verified_registration=reg, resolved_panel=panel, verified_outcome_publication=pub).model_dump_json()
+assert verify(after).outcome_publication_status == "verified"
+try:
+    print("Deferred result", verify(before))
+except ValueError as error:
+    print("Deferred failure:", error)
+    assert str(error) == "report content differs from the manifest rebuilt from trusted evidence"
+else:
+    print("Deferred verification passed")
