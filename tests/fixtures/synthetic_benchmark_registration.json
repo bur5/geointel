@@ -1,0 +1,7 @@
+{
+  "snapshot": "synthetic:protocol",
+  "availability_evidence": "synthetic:protocol:log",
+  "available_at": "2000-01-01T00:00:00Z",
+  "plan_sha256": "34c2d2eff2639b3dba00c039a0ec7a95f3475f6e28e90ac2a70bf9d18aa586e8",
+  "evidence_mode": "synthetic"
+}
