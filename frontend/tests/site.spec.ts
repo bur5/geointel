@@ -2,6 +2,7 @@ import { expect, test } from '@playwright/test';
 import { mkdirSync, readFileSync } from 'node:fs';
 
 const fixture = readFileSync(new URL('./fixture-risk.json', import.meta.url), 'utf8');
+const hazards = readFileSync(new URL('./fixture-hazards.json', import.meta.url), 'utf8');
 const shots = process.env.GEOINTEL_SCREENSHOTS;
 const shoot = async (page: import('@playwright/test').Page, name: string) => {
   if (!shots) return;
@@ -11,6 +12,7 @@ const shoot = async (page: import('@playwright/test').Page, name: string) => {
 
 test.beforeEach(async ({ page }) => {
   await page.route('**/data/risk.json', (route) => route.fulfill({ body: fixture, contentType: 'application/json' }));
+  await page.route('**/data/hazards.json', (route) => route.fulfill({ body: hazards, contentType: 'application/json' }));
 });
 
 test('overview renders live snapshot with map and ranking', async ({ page }) => {
@@ -36,7 +38,12 @@ test('country, changes, assistant and method pages; language switch', async ({ p
   await page.goto('/#country');
   await page.locator('[data-field="country"]').selectOption('SDN');
   await expect(page.locator('.risk-block').first()).toBeVisible();
+  await expect(page.locator('#hazards')).toContainText('Серьёзных стихийных бедствий');
   await shoot(page, 'country');
+  await page.locator('[data-field="country"]').selectOption('JPN');
+  await expect(page.locator('.hazard-card').first()).toBeVisible();
+  await expect(page.locator('.country-map circle').first()).toBeVisible();
+  await shoot(page, 'country-japan');
   await page.goto('/#changes');
   await expect(page.locator('.changes li')).toHaveCount(1);
   await shoot(page, 'changes');

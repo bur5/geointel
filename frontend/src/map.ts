@@ -1,4 +1,4 @@
-import { geoNaturalEarth1, geoPath, geoGraticule10 } from 'd3-geo';
+import { geoMercator, geoNaturalEarth1, geoPath, geoGraticule10 } from 'd3-geo';
 import { feature } from 'topojson-client';
 import type { FeatureCollection, Geometry } from 'geojson';
 import type { GeometryCollection, Topology } from 'topojson-specification';
@@ -123,4 +123,42 @@ export function drawMap(
     layer.querySelector('.selected')?.classList.remove('selected');
     layer.querySelector('[data-country="' + CSS.escape(id) + '"]')?.classList.add('selected');
   };
+}
+
+export interface MapPoint { lat: number; lon: number; cls: string; title: string }
+
+/** Zoomed map of one country with event locations; returns false if the shape is unknown. */
+export function drawCountryMap(svg: SVGSVGElement, key: string, points: MapPoint[]): boolean {
+  const target = geography.features.find((country) => shapeKey(country) === key);
+  if (!target) return false;
+  const ns = 'http://www.w3.org/2000/svg';
+  const extent = {
+    type: 'FeatureCollection',
+    features: [target, ...(points.length ? [{
+      type: 'Feature', properties: {}, geometry: { type: 'MultiPoint', coordinates: points.map((p) => [p.lon, p.lat]) },
+    }] : [])],
+  };
+  const projection = geoMercator().fitExtent([[16, 16], [584, 324]], extent);
+  const draw = geoPath(projection);
+  svg.replaceChildren();
+  for (const country of geography.features) {
+    const shape = document.createElementNS(ns, 'path');
+    shape.setAttribute('d', draw(country) ?? '');
+    shape.setAttribute('class', shapeKey(country) === key ? 'cm-target' : 'cm-land');
+    svg.append(shape);
+  }
+  for (const point of points) {
+    const xy = projection([point.lon, point.lat]);
+    if (!xy) continue;
+    const dot = document.createElementNS(ns, 'circle');
+    dot.setAttribute('cx', String(xy[0]));
+    dot.setAttribute('cy', String(xy[1]));
+    dot.setAttribute('r', point.cls.includes('red') ? '6' : '4.5');
+    dot.setAttribute('class', 'cm-point ' + point.cls);
+    const title = document.createElementNS(ns, 'title');
+    title.textContent = point.title;
+    dot.append(title);
+    svg.append(dot);
+  }
+  return true;
 }

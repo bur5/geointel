@@ -1,10 +1,10 @@
 import './style.css';
-import { band, changesSince, loadSnapshot, percent, readVisit, writeVisit } from './data';
+import { band, changesSince, loadHazards, loadSnapshot, percent, readVisit, writeVisit } from './data';
 import type {
-  Change, CountryEntry, EventTypeEntry, HorizonKey, Lang, Probability, Risk, Snapshot, VisitMemory,
+  Change, CountryEntry, EventTypeEntry, HazardSummary, HorizonKey, Lang, Probability, Risk, Snapshot, VisitMemory,
 } from './data';
 import { dictionaries } from './i18n';
-import { drawMap } from './map';
+import { drawCountryMap, drawMap } from './map';
 
 const pages = [
   ['overview', 'navOverview'],
@@ -123,9 +123,13 @@ function summarySentences(country: CountryEntry | undefined, h: HorizonKey): str
 }
 
 function typeSelect() {
-  return (snapshot?.event_types ?? []).map((entry) => {
-    const suffix = !entry.modeled ? ` (${t().notModeled})` : !entry.available ? ` (${t().unavailable})` : '';
-    return `<option value="${entry.key}"${entry.key === eventType ? ' selected' : ''}${entry.available ? '' : ' disabled'}>${escape(typeLabel(entry) + suffix)}</option>`;
+  const groups = [['conflict', t().groupConflict], ['natural', t().groupNatural], ['society', t().groupSociety]] as const;
+  return groups.map(([group, label]) => {
+    const options = (snapshot?.event_types ?? []).filter((e) => (e.group ?? 'conflict') === group).map((entry) => {
+      const suffix = !entry.modeled ? ` (${t().notModeled})` : !entry.available ? ` (${t().unavailable})` : '';
+      return `<option value="${entry.key}"${entry.key === eventType ? ' selected' : ''}${entry.available ? '' : ' disabled'}>${escape(typeLabel(entry) + suffix)}</option>`;
+    }).join('');
+    return options ? `<optgroup label="${escape(label)}">${options}</optgroup>` : '';
   }).join('');
 }
 
@@ -232,7 +236,53 @@ function countryPage() {
       <h1>${escape(countryName(country, selected))}</h1>
       <div class="lead-summary"><h2>${t().summaryTitle}</h2>${summarySentences(country, '1y')}</div>
     </section>
+    <section class="section hazards" id="hazards" aria-live="polite"><div class="section-head"><h2>${t().hazardsTitle}</h2><p>${t().hazardsLead}</p></div>
+      <div class="loading-inline">${t().hazardsLoading}</div></section>
     <section class="section"><div class="section-head"><h2>${t().allRisks}</h2><p>${t().intervalText}</p></div><div class="risk-blocks">${blocks}</div></section>`;
+}
+
+function seasonChart(months: number[]) {
+  const max = Math.max(...months, 1);
+  return `<div class="season" role="img" aria-label="${escape(t().hazardSeason)}">${months.map((n, i) =>
+    `<span><i style="height:${Math.max((n / max) * 100, n ? 8 : 2)}%"${n ? '' : ' class="zero"'}></i><small>${t().months[i]}</small></span>`).join('')}</div>`;
+}
+
+function hazardCard(type: string, h: HazardSummary) {
+  const entry = typeEntry(type);
+  const events = h.events.slice(0, 6).map((e) => `<li><span class="dot ${e.alert === 'Red' ? 'red' : 'orange'}"></span>
+    <span class="ev-name">${escape(e.name || typeLabel(entry))}</span>
+    <span class="ev-meta">${e.month ? t().months[e.month - 1] + ' ' : ''}${e.year}${e.severity ? ' · ' + escape(e.severity) : ''}</span></li>`).join('');
+  return `<article class="hazard-card"><div class="hazard-head"><h3>${escape(typeLabel(entry))}</h3>
+      <p>${escape(t().hazardCount(h.count, h.red, h.first_year, h.last_year))}</p></div>
+    <div class="hazard-cols"><div><h4>${t().hazardSeason}</h4>${seasonChart(h.months)}</div>
+      <div><h4>${t().hazardEvents}</h4><ul class="events">${events}</ul></div></div>
+    <p class="impact"><strong>${t().hazardImpactTitle}.</strong> ${escape(t().impacts[type] ?? '')}</p></article>`;
+}
+
+async function fillHazards(iso3: string) {
+  const details = await loadHazards();
+  const node = root.querySelector<HTMLElement>('#hazards');
+  if (!node || currentPage() !== 'country' || selected !== iso3) return;
+  const head = node.querySelector('.section-head')?.outerHTML ?? '';
+  const data = details?.countries[iso3];
+  const order = ['major_earthquake', 'tsunami', 'tropical_cyclone', 'flood', 'volcano', 'drought', 'wildfire'];
+  const kinds = order.filter((k) => data?.[k]?.count);
+  if (!data || !kinds.length) {
+    node.innerHTML = head + `<p class="muted-text">${t().hazardsNone}</p><p class="muted-text small">${t().tornadoNote}</p>`;
+    return;
+  }
+  const points = kinds.flatMap((k) => data[k].events
+    .filter((e) => e.lat !== null && e.lon !== null)
+    .map((e) => ({ lat: e.lat!, lon: e.lon!, cls: (e.alert === 'Red' ? 'red' : 'orange') + ' hz-' + k,
+      title: `${typeLabel(typeEntry(k))}: ${e.name} (${e.year})${e.severity ? ', ' + e.severity : ''}` })));
+  node.innerHTML = head + `<div class="hazard-layout"><div class="country-map"><svg viewBox="0 0 600 340" role="img" aria-label="${escape(t().hazardsTitle)}"></svg>
+      <div class="cm-legend"><span><i class="red"></i>${t().alertRed}</span><span><i class="orange"></i>${t().alertOrange}</span></div></div>
+    <div class="hazard-cards">${kinds.map((k) => hazardCard(k, data[k])).join('')}</div></div>
+    <p class="muted-text small">${t().tornadoNote}</p>`;
+  const svg = node.querySelector<SVGSVGElement>('.country-map svg');
+  const country = byIso().get(iso3);
+  const key = country?.numeric ?? (iso3 === 'XKX' ? 'name:Kosovo' : '');
+  if (svg && !drawCountryMap(svg, key, points)) svg.closest('.country-map')?.remove();
 }
 
 function changeList(changes: Change[]) {
@@ -307,6 +357,7 @@ function render() {
     </header>
     <main id="workspace" tabindex="-1">${body(page)}</main>
     <footer class="footer">${t().brand}. ${t().summaryCaveat} Natural Earth.</footer>`;
+  if (page === 'country' && snapshot) void fillHazards(selected);
   const map = root.querySelector<HTMLElement>('#map');
   if (map && snapshot) {
     const shapes = shapeToIso();

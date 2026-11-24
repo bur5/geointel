@@ -16,7 +16,8 @@ export interface CountryEntry {
 }
 export interface EventTypeEntry {
   key: string; label_en: string; label_ru: string; resolution_en: string; resolution_ru: string;
-  modeled: boolean; available: boolean; source?: string; data_window?: [number, number];
+  modeled: boolean; available: boolean; group?: 'conflict' | 'natural' | 'society';
+  source?: string; data_window?: [number, number];
   records?: number; unresolved_labels?: number;
 }
 export interface SourceEntry {
@@ -118,4 +119,24 @@ export function changesSince(visit: VisitMemory, snapshot: Snapshot, threshold =
     }
   }
   return result.sort((a, b) => Math.abs(b.delta ?? 1) - Math.abs(a.delta ?? 1));
+}
+
+export interface HazardEvent {
+  name: string; alert: 'Orange' | 'Red' | null; year: number; month: number | null;
+  severity: string; lat: number | null; lon: number | null;
+}
+export interface HazardSummary {
+  count: number; red: number; first_year: number; last_year: number; months: number[]; events: HazardEvent[];
+}
+export interface HazardDetails {
+  schema: string; generated_at: string;
+  countries: Record<string, Record<string, HazardSummary>>;
+}
+
+let hazardsPromise: Promise<HazardDetails | undefined> | undefined;
+export function loadHazards(): Promise<HazardDetails | undefined> {
+  hazardsPromise ??= fetch(import.meta.env.BASE_URL + 'data/hazards.json', { cache: 'no-cache' })
+    .then((response) => (response.ok ? response.json() as Promise<HazardDetails> : undefined))
+    .catch(() => undefined);
+  return hazardsPromise;
 }
