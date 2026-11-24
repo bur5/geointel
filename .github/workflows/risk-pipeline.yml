@@ -83,14 +83,11 @@ jobs:
           git commit -qm "Risk snapshot ${day}" || { echo "No changes"; exit 0; }
           git push origin risk-data
 
-  deploy-site:
+  build-site:
     needs: build
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -113,5 +110,15 @@ jobs:
       - uses: actions/upload-pages-artifact@v3
         with:
           path: frontend/dist
+
+  deploy-site:
+    # Deployment runs in its own job after the Pages artifact upload has completed.
+    needs: build-site
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
       - id: deployment
         uses: actions/deploy-pages@v4
