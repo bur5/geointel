@@ -584,23 +584,89 @@ def test_reverify_serialized_manifest_with_external_evidence(trusted_evidence):
         verify_report_v1(changed, **trusted_evidence)
 
 
-def test_legacy_verification_flags_have_no_authority(trusted_evidence):
+def test_v4_cannot_assert_verification_flags(trusted_evidence):
     report = render_with_evidence(trusted_evidence)
     for field in ("panel_status", "outcome_publication_status"):
         with pytest.raises(ValidationError):
             BenchmarkReport.model_validate(dict(report.model_dump(), **{field: "verified"}))
-    legacy = BenchmarkReport.model_validate(
-        dict(
-            report.model_dump(),
-            schema_version=3,
-            panel_status="verified",
-            outcome_publication_status="verified",
-        )
+
+
+@pytest.fixture
+def legacy_report():
+    wire = (FIXTURES / "synthetic_benchmark_report_v3.json").read_bytes()
+    data = json.loads(wire)
+    assert data["schema_version"] == 3
+    assert "dataset_version" not in data["registration"]
+    assert data["panel_status"] == data["outcome_publication_status"] == "verified"
+    return BenchmarkReport.model_validate_json(wire)
+
+
+def test_genuine_v3_manifest_migrates_and_reverifies(legacy_report, trusted_evidence):
+    assert legacy_report.schema_version == 4
+    assert legacy_report.panel_status == legacy_report.outcome_publication_status == "unverified"
+    wire = legacy_report.model_dump_json()
+    assert json.loads(wire)["schema_version"] == 4
+    migrated = BenchmarkReport.model_validate_json(wire)
+    assert migrated == render_with_evidence(trusted_evidence)
+    result = verify_report_v1(migrated, **trusted_evidence)
+    assert result.panel_status == result.outcome_publication_status == "verified"
+    assert result.matches(legacy_report)
+
+
+def test_genuine_v3_accepts_additional_authenticated_metadata(legacy_report, trusted_evidence):
+    sources = trusted_evidence["source_snapshots"]
+    receipt = trusted_evidence["registration"].model_copy(update={"dataset_version": "registry-v1"})
+    feature = next(source for source in sources if source.snapshot == "synthetic:train-feature")
+    enriched = feature.model_copy(
+        update={"dataset_version": "features-v1", "issued_at": feature.available_at}
     )
-    assert legacy.panel_status == legacy.outcome_publication_status == "unverified"
-    result = verify_report_v1(legacy, **trusted_evidence)
-    assert result.matches(legacy)
-    assert not result.matches(report)
+    trusted_evidence.update(
+        registration=receipt,
+        source_snapshots=tuple(
+            enriched if source.snapshot == feature.snapshot else source for source in sources
+        ),
+    )
+    result = verify_report_v1(legacy_report, **trusted_evidence)
+    assert result.panel_status == "verified"
+    assert result.matches(legacy_report)
+    assert legacy_report.registration.dataset_version is None
+
+
+@pytest.mark.parametrize("version", [None, "contradictory"])
+def test_populated_request_version_requires_trusted_agreement(payload, trusted_evidence, version):
+    payload["folds"][0]["forecast"]["dataset_version"] = "declared"
+    request = ReportRequest.model_validate(payload)
+    publication = trusted_evidence["outcome_publication"]
+    sources = (*request.snapshot_declarations(), publication.snapshot_declaration())
+    trusted_evidence.update(original_request=request, source_snapshots=sources)
+    report = render_with_evidence(trusted_evidence)
+    assert verify_report_v1(report, **trusted_evidence).matches(report)
+    trusted_evidence["source_snapshots"] = tuple(
+        source.model_copy(update={"dataset_version": version})
+        if source.issued_at is not None
+        else source
+        for source in sources
+    )
+    with pytest.raises(ValueError, match="source snapshot evidence differs"):
+        verify_report_v1(report, **trusted_evidence)
+
+
+def test_genuine_v3_rejects_contradictory_trusted_records(legacy_report, trusted_evidence):
+    snapshots = trusted_evidence["source_snapshots"]
+    receipt = trusted_evidence["registration"]
+    resolved = next(source for source in snapshots if source.snapshot == receipt.snapshot)
+    trusted_evidence["registration"] = receipt.model_copy(update={"dataset_version": "v1"})
+    trusted_evidence["source_snapshots"] = (
+        *snapshots,
+        resolved.model_copy(update={"dataset_version": "v2"}),
+    )
+    with pytest.raises(ValueError, match="conflicting snapshot declarations"):
+        verify_report_v1(legacy_report, **trusted_evidence)
+
+    trusted_evidence["registration"] = receipt
+    trusted_evidence["source_snapshots"] += (resolved.model_copy(update={"dataset_version": "v1"}),)
+    with pytest.raises(ValueError, match="conflicting snapshot declarations"):
+        verify_report_v1(legacy_report, **trusted_evidence)
 
 
 def test_verify_requires_original_request(trusted_evidence):
@@ -647,7 +713,7 @@ def test_verify_rejects_embedded_publication_with_different_evidence(trusted_evi
         verify_report_v1(changed, **trusted_evidence)
 
 
-@pytest.mark.parametrize("change", ["missing", "timestamp", "version", "issue_time"])
+@pytest.mark.parametrize("change", ["missing", "timestamp", "issue_time", "source_reference"])
 def test_verify_rejects_changed_source_metadata(trusted_evidence, change):
     report = render_with_evidence(trusted_evidence)
     snapshots = trusted_evidence["source_snapshots"]
@@ -655,7 +721,7 @@ def test_verify_rejects_changed_source_metadata(trusted_evidence, change):
     other = tuple(source for source in snapshots if source.snapshot != forecast.snapshot)
     updates = {
         "timestamp": {"available_at": forecast.available_at + timedelta(microseconds=1)},
-        "version": {"dataset_version": "different"},
+        "source_reference": {"availability_evidence": "different"},
         "issue_time": {"issued_at": forecast.issued_at - timedelta(microseconds=1)},
     }
     trusted_evidence["source_snapshots"] = (
@@ -765,7 +831,11 @@ def test_complete_manifest_cannot_verify_against_incomplete_original(payload, tr
     payload["folds"].pop()
     partial_evidence = dict(full_evidence, original_request=ReportRequest.model_validate(payload))
     incomplete = render_with_evidence(partial_evidence)
-    assert verify_report_v1(incomplete, **partial_evidence).panel_status == "incomplete"
+    result = verify_report_v1(incomplete, **partial_evidence)
+    assert result.panel_status == "incomplete"
+    assert result.outcome_publication_status == "verified"
+    assert result.scoring_status == "unsupported"
+    assert not incomplete.comparisons
     assert incomplete.evidence_status == "blocked"
     assert complete.panel_status == "unverified"
     legacy_claim = BenchmarkReport.model_validate(
@@ -780,3 +850,23 @@ def test_complete_manifest_cannot_verify_against_incomplete_original(payload, tr
     assert legacy_claim.panel_status == legacy_claim.outcome_publication_status == "unverified"
     with pytest.raises(ValueError, match="audits differ"):
         verify_report_v1(legacy_claim, **partial_evidence)
+
+
+def test_publication_at_freeze_never_grants_scoring_eligibility(legacy_report, trusted_evidence):
+    assert trusted_evidence["outcome_publication"].available_at == legacy_report.plan.outcome_as_of
+    result = verify_report_v1(legacy_report, **trusted_evidence)
+    assert result.panel_status == result.outcome_publication_status == "verified"
+    assert result.scoring_status == "unsupported"
+    assert not legacy_report.comparisons
+
+
+def test_timely_publication_does_not_override_outcome_maturity(payload, trusted_evidence):
+    payload["plan"]["constraints"]["outcome_maturity"] = "P4D"
+    receipt = register_synthetic_plan(payload)
+    assert trusted_evidence["outcome_publication"].available_at.isoformat() == (
+        "2000-01-15T00:00:00+00:00"
+    )
+    with pytest.raises(ValidationError, match="has not matured by the outcome freeze"):
+        render(
+            payload, receipt, verified_outcome_publication=trusted_evidence["outcome_publication"]
+        )

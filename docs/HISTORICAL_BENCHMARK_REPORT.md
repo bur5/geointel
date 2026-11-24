@@ -62,9 +62,11 @@ The `outcomes` block identifies the realized vintage, which may be selected and
 published after registration. Pass `verified_outcome_publication` only after
 independently confirming the availability timestamp and evidence reference for
 that exact dataset version and snapshot. Availability at the freeze passes,
-and later availability is rejected. Publication verification establishes
-availability of the exact outcome vintage. Per-case outcome completeness
-and accuracy require separate checks.
+and later availability is rejected. This checks publication-time eligibility
+for the exact outcome vintage. The registered maturity lag is checked separately
+against each evaluation window and the freeze. A timely release and a complete
+forecast panel still require per-case outcome completeness and accuracy checks
+before scoring.
 
 The request hash covers the normalized request, including the one outcome vintage,
 and preserves list order. Any fold finding blocks the report. Both the request and
@@ -103,7 +105,9 @@ PYCODE
 `BenchmarkReport.model_validate` and `model_validate_json` parse structural
 manifests. Schema version 4 records `unverified` for panel and publication checks,
 or `incomplete` where the embedded roster accounts for missing required slots.
-Schema-version 3 files still parse, with embedded verification claims downgraded.
+Reading schema version 3 migrates the manifest to schema version 4 and
+downgrades embedded verification claims. A subsequent serialization emits
+version 4. The migration preserves the existing request digest.
 `build_report` retains its signature and returns a structural manifest. Callers
 that used its `verified` statuses should migrate to `verify_report_v1`.
 
@@ -113,7 +117,12 @@ authenticated `registration`, registered `required_panel`, trusted
 to `verify_report_v1`. Supply source snapshots as `SnapshotEvidence` records
 resolved independently, including the exact snapshot ID, availability time and
 evidence reference, dataset version where declared, and actual issue time for
-forecast snapshots. Use `ReportRequest.snapshot_declarations()` to enumerate
+forecast snapshots. Independently authenticated metadata can fill fields
+omitted by the request, including legacy dataset versions. Each populated
+request field must match the trusted evidence. Conflicts between declarations
+for the same snapshot are rejected across sources, folds, and roles. Extra
+trusted metadata is kept in the evidence context and leaves the archived
+request and its digest intact. Use `ReportRequest.snapshot_declarations()` to enumerate
 which references and fields need resolution. The verifier recomputes all audits
 and panel accounting, checks publication and source metadata, and compares the
 rebuilt manifest with the supplied one. It relies on the caller to authenticate
@@ -121,12 +130,22 @@ the independent records and their source identities.
 
 Verification returns a frozen `VerifiedReport` whose digest covers the normalized
 manifest content. Keep this result in the trusted caller. For a saved manifest,
-rerun verification from independent evidence. Use `result.matches(report)` before reusing a prior result with
-a manifest. Changes to the normalized content require re-verification. A verified result can still report an incomplete panel or coexist
-with blocked audit findings. Provenance review remains required for clean
+rerun verification from independent evidence. Use `result.matches(report)`
+before reusing a prior result with a manifest. Changes to the normalized content
+or to the trusted evidence require re-verification. A verified result can still
+report an incomplete panel or coexist with blocked audit findings. All results
+currently report `scoring_status="unsupported"`. Provenance review remains required for clean
 historical or prospective manifests. Synthetic examples are illustrative.
 Empirical performance claims require independently authenticated forecast
 and outcome archives, plus an eligible scoring analysis.
+
+The cross-version test fixture `tests/fixtures/synthetic_benchmark_report_v3.json`
+was generated with `build_report` from PR #44 commit
+`3516810c74763a4c21d2c858969b24970723cf3f` using the checked-in synthetic
+request, receipt, and panel. It uses publication at the request's freeze and
+the evidence reference `synthetic:publisher:release`. Tests parse the original
+serialized bytes and reverify them with synthetic evidence, including optional
+metadata that the original schema could not express.
 
 ## PR #34 adapter requirements
 

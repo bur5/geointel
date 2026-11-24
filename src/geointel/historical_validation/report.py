@@ -255,6 +255,7 @@ class BenchmarkReport(Record):
         # Legacy wire claims carry no authority, including when loaded from a model instance.
         object.__setattr__(self, "panel_status", structural_panel)
         object.__setattr__(self, "outcome_publication_status", "unverified")
+        object.__setattr__(self, "schema_version", 4)
         return self
 
 
@@ -292,7 +293,13 @@ def build_report(
     """
     request = ReportRequest.model_validate(request)
     verified_registration = Registration.model_validate(verified_registration)
-    if request.folds[0].protocol != verified_registration:
+    protocol = request.folds[0].protocol
+    trusted_receipt = SnapshotEvidence.from_vintage(verified_registration)
+    if (
+        protocol.plan_sha256 != verified_registration.plan_sha256
+        or protocol.evidence_mode != verified_registration.evidence_mode
+        or not trusted_receipt.corroborates(SnapshotEvidence.from_vintage(protocol))
+    ):
         raise ValueError("fold protocol conflicts with the verified registration")
     audits = tuple(audit_fold(fold, request.plan.constraints) for fold in request.folds)
     mode = verified_registration.evidence_mode
@@ -309,7 +316,8 @@ def build_report(
         else ()
     )
     _check_outcome_version(
-        request.outcomes, snapshot_inventory(chain(request.snapshot_declarations(), published))
+        request.outcomes,
+        snapshot_inventory(chain(request.snapshot_declarations(), (trusted_receipt,), published)),
     )
     if resolved_panel is not None:
         resolved_panel = resolved_panel.canonical()
@@ -320,7 +328,7 @@ def build_report(
         evidence_status=_status(mode, audits, incomplete=panel_status == "incomplete"),
         plan=request.plan,
         outcomes=request.outcomes,
-        registration=verified_registration,
+        registration=protocol,
         resolved_panel=resolved_panel,
         panel_status="incomplete" if panel_status == "incomplete" else "unverified",
         missing_panel_slots=missing_slots,
@@ -339,6 +347,7 @@ class VerifiedReport:
     report_sha256: str
     panel_status: Literal["incomplete", "verified"]
     outcome_publication_status: Literal["verified"] = field(default="verified", init=False)
+    scoring_status: Literal["unsupported"] = field(default="unsupported", init=False)
 
     def matches(self, report: BenchmarkReport) -> bool:
         """Check whether this result applies to the supplied manifest."""
@@ -391,14 +400,18 @@ def verify_report_v1(
     resolved_sources = snapshot_inventory(
         SnapshotEvidence.model_validate(source) for source in source_snapshots
     )
-    if any(resolved_sources.get(key) != value for key, value in expected_sources.items()):
+    snapshot_inventory(
+        chain(resolved_sources.values(), (SnapshotEvidence.from_vintage(registration),))
+    )
+    if any(
+        key not in resolved_sources or not resolved_sources[key].corroborates(declared)
+        for key, declared in expected_sources.items()
+    ):
         raise ValueError(
             "source snapshot evidence differs from the original request or publication"
         )
     digest = _report_digest(report)
-    if digest != _report_digest(
-        expected.model_copy(update={"schema_version": report.schema_version})
-    ):
+    if digest != _report_digest(expected):
         raise ValueError("report content differs from the manifest rebuilt from trusted evidence")
     return VerifiedReport(
         report_sha256=digest,

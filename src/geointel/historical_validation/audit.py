@@ -45,6 +45,18 @@ class SnapshotEvidence(Vintage):
 
     issued_at: UTCDateTime | None = None
 
+    def corroborates(self, declared: "SnapshotEvidence") -> bool:
+        """Require trusted evidence to substantiate each populated declaration."""
+        return (
+            self.snapshot == declared.snapshot
+            and self.availability_evidence == declared.availability_evidence
+            and self.available_at == declared.available_at
+            and (
+                declared.dataset_version is None or self.dataset_version == declared.dataset_version
+            )
+            and (declared.issued_at is None or self.issued_at == declared.issued_at)
+        )
+
     @classmethod
     def from_vintage(cls, vintage: Vintage, *, issued_at: datetime | None = None) -> Self:
         return cls(
