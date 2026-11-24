@@ -155,3 +155,50 @@ export function loadHazards(): Promise<HazardDetails | undefined> {
     .catch(() => undefined);
   return hazardsPromise;
 }
+
+export interface ScenarioComponent {
+  kind: 'history' | 'expert' | 'market'; annual: number; low: number; high: number; weight: number;
+  detail_ru: string; detail_en: string; url: string | null;
+}
+export interface ScenarioIndicator {
+  key: string; direction: -1 | 0 | 1; label_ru: string; label_en: string; value: string; source: string;
+}
+export interface ScenarioWarning { date: string; source: string; url: string; direction: -1 | 0 | 1; summary_ru: string; summary_en: string }
+export type ScenarioRole = 'party' | 'frontline' | 'ally' | 'economic';
+export interface ScenarioAffected { iso3: string; role: ScenarioRole; reason_ru: string; reason_en: string }
+export interface Scenario {
+  key: string; title_ru: string; title_en: string; event_ru: string; event_en: string; polarity: 1 | -1;
+  annual: Probability; horizons: Record<HorizonKey, Probability>; confidence: 'low' | 'medium';
+  indicator_factor: number; components: ScenarioComponent[]; indicators: ScenarioIndicator[];
+  warnings: ScenarioWarning[]; market_candidates: { question: string; p: number; end: string; volume: number; slug: string }[];
+  market_status: 'matched' | 'no_match' | 'unavailable'; affected: ScenarioAffected[]; calibration: string;
+}
+export interface ScenarioFile { schema: string; generated_at: string; scenarios: Scenario[] }
+
+export interface Share { iso3: string; share: number }
+export interface Count { iso3: string; n: number }
+export interface MigrationEntry {
+  year?: number; hosted?: number; hosted_from?: Count[]; abroad?: number; abroad_in?: Count[]; idps?: number;
+  hosted_per_1000?: number; abroad_per_1000?: number;
+  asylum_eu?: { months: string[]; values: number[]; last12: number; change: number | null };
+}
+export interface LinkEntry {
+  trade?: { exports_usd?: number; exports_to?: Share[]; imports_usd_mirror?: number; imports_from?: Share[]; year: number | null };
+  migration?: MigrationEntry;
+  milex?: { value: number; year: number; change5: number | null; series: [number, number][] };
+}
+export interface Route { key: string; ru: string; en: string; from: string[]; to: string[] }
+export interface LinksFile {
+  schema: string; generated_at: string; routes: Route[];
+  sources: { key: string; name: string; status: string; version?: string | null }[];
+  countries: Record<string, LinkEntry>;
+}
+
+const cachedJson = <T>(name: string) => {
+  let promise: Promise<T | undefined> | undefined;
+  return () => (promise ??= fetch(import.meta.env.BASE_URL + 'data/' + name, { cache: 'no-cache' })
+    .then((response) => (response.ok ? response.json() as Promise<T> : undefined))
+    .catch(() => undefined));
+};
+export const loadScenarios = cachedJson<ScenarioFile>('scenarios.json');
+export const loadLinks = cachedJson<LinksFile>('links.json');

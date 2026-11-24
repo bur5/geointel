@@ -7,8 +7,8 @@ Components (each shown separately on the site):
 * ``expert`` - a curated reference-class prior with a written basis (GeoIntel judgement);
 * ``market`` - a matching Polymarket price, converted to an annual hazard.
 
-Components are pooled on the log-odds scale; the indicator panel then nudges the odds by a
-bounded factor. Nothing here is calibrated yet and every scenario says so.
+Components are pooled as a weighted average (a linear opinion pool, which does not let one
+extreme source dominate); the indicator panel then nudges the odds by a bounded factor. Nothing here is calibrated yet and every scenario says so.
 """
 
 import math
@@ -490,7 +490,6 @@ CATALOGUE: tuple[Scenario, ...] = (
         market_exclude=("ceasefire", "nuclear deal", "regime", "leader", "khamenei"),
         milex=_t("IRN ISR SAU"),
         gpr=_t("IRN ISR SAU"),
-        war_context=_t("ISR IRN"),
         exposures=(
             Exposure("party", _t("IRN ISR USA"), "Стороны сценария.", "Parties to the scenario."),
             Exposure(
@@ -522,6 +521,34 @@ CATALOGUE: tuple[Scenario, ...] = (
                 _t("EGY"),
                 "Доходы Суэцкого канала падают при атаках в Красном море.",
                 "Suez Canal revenue falls when shipping in the Red Sea is attacked.",
+            ),
+        ),
+        warnings=(
+            Warning(
+                "2026-07-08",
+                "Dawn (live coverage, Reuters/AFP)",
+                "https://www.dawn.com/news/1976395/iran-has-no-plans-to-negotiate-with-us-deputy-fm-says",
+                1,
+                "США нанесли удары по Ирану в ответ на атаки на суда в Ормузском проливе; Тегеран "
+                "ответил.",
+                "The US struck Iran in response to attacks on ships in the Strait of Hormuz; "
+                "Tehran retaliated.",
+            ),
+            Warning(
+                "2026-06-08",
+                "Dawn (live coverage, Reuters/AFP)",
+                "https://www.dawn.com/news/1976395/iranian-petrochemical-plant-hit-in-attack-irgc-launches-missiles-toward-israeli-air-bases",
+                1,
+                "Новый обмен ударами между Израилем и Ираном, перемирие под угрозой.",
+                "A new exchange of strikes between Israel and Iran, putting the truce at risk.",
+            ),
+            Warning(
+                "2026-02-28",
+                "Dawn (live coverage, Reuters/AFP)",
+                "https://www.dawn.com/news/1976395/iran-says-fully-restoring-security-in-hormuz-depends-on-cessation-of-us-blockade-threats",
+                1,
+                "США и Израиль начали совместные удары по Ирану.",
+                "The US and Israel launched joint strikes on Iran.",
             ),
         ),
     ),
@@ -677,16 +704,20 @@ def history_component(
         "annual": round(a / (a + b), 4),
         "low": round(beta_ppf(0.05, a, b), 4),
         "high": round(beta_ppf(0.95, a, b), 4),
-        "weight": 0.5,
+        "weight": 0.35,
         "detail_ru": (
-            f"Годы межгосударственного конфликта между сторонами по UCDP/PRIO с {first_year} г.: "
+            f"Годы межгосударственного конфликта между сторонами по UCDP/PRIO с {first_year} "
+            f"по {last_year} г.: "
             f"{len(years)}; за последние 30 лет: {', '.join(map(str, recent)) or 'нет'}. "
-            f"Недавние годы весят больше (полупериод {half_life:.0f} лет)."
+            f"Недавние годы весят больше (полупериод {half_life:.0f} лет). Вес низкий: данные "
+            "отстают на год, а сценарии как раз о разрыве с прошлым."
         ),
         "detail_en": (
-            f"Years of interstate conflict between the sides in UCDP/PRIO since {first_year}: "
+            f"Years of interstate conflict between the sides in UCDP/PRIO, {first_year}–"
+            f"{last_year}: "
             f"{len(years)}; in the last 30 years: {', '.join(map(str, recent)) or 'none'}. "
-            f"Recent years weigh more (half-life {half_life:.0f} years)."
+            f"Recent years weigh more (half-life {half_life:.0f} years). Low weight: the data "
+            "lag a year and a structural break is exactly what scenarios are about."
         ),
         "url": "https://ucdp.uu.se/downloads/",
     }
@@ -722,14 +753,17 @@ def market_component(candidates: list[dict], today: date) -> dict | None:
     # Prefer liquid markets that resolve at least a month out.
     later = [m for m in usable if (date.fromisoformat(m["end"]) - today).days >= 30] or usable
     best = max(later, key=lambda m: m["volume"])
-    years = max((date.fromisoformat(best["end"]) - today).days / 365.25, 1 / 12)
+    days = (date.fromisoformat(best["end"]) - today).days
+    years = max(days / 365.25, 1 / 12)
     hazard = _p_to_hazard(best["p"], years)
+    # Short windows say little about a whole year: their weight shrinks below six months.
+    weight = (1.5 if best["volume"] >= 100_000 else 0.75) * max(0.3, min(1.0, days / 180))
     return {
         "kind": "market",
         "annual": round(hazard, 4),
         "low": round(min(hazard * 0.6, 0.999), 4),
         "high": round(min(hazard * 1.6, 0.999), 4),
-        "weight": 1.5 if best["volume"] >= 100_000 else 0.75,
+        "weight": round(weight, 2),
         "detail_ru": (
             f"Рынок Polymarket: «{best['question']}» — {best['p'] * 100:.1f}% к {best['end']}, "
             + f"объём торгов ${best['volume']:,.0f}. ".replace(",", " ")
@@ -840,7 +874,7 @@ def indicator_factor(signals: list[dict], polarity: int) -> float:
     """Bounded odds multiplier: escalation signals raise escalation scenarios and lower
     de-escalation ones. Market trend is excluded (the market already counts once)."""
     net = sum(s["direction"] for s in signals if s["key"] != "market_trend")
-    return round(min(max(math.exp(0.15 * net * polarity), 0.6), 1.8), 3)
+    return round(min(max(math.exp(0.12 * net * polarity), 0.65), 1.6), 3)
 
 
 # --------------------------------------------------------------------------------------
@@ -849,8 +883,8 @@ def indicator_factor(signals: list[dict], polarity: int) -> float:
 
 def pool(components: list[dict], factor: float) -> dict:
     total = sum(c["weight"] for c in components)
-    mean = sum(c["weight"] * _logit(c["annual"]) for c in components) / total
-    annual = _expit(mean + math.log(factor))
+    mean = sum(c["weight"] * c["annual"] for c in components) / total  # linear opinion pool
+    annual = _expit(_logit(mean) + math.log(factor))
     low = min(c["low"] for c in components)
     high = max(c["high"] for c in components)
     low, high = min(low, annual), max(high, annual)
