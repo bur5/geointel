@@ -346,6 +346,7 @@ class VerifiedReport:
 
     report_sha256: str
     panel_status: Literal["incomplete", "verified"]
+    verified_outcome_publication: OutcomePublication
     outcome_publication_status: Literal["verified"] = field(default="verified", init=False)
     scoring_status: Literal["unsupported"] = field(default="unsupported", init=False)
 
@@ -378,7 +379,11 @@ def verify_report_v1(
     outcome_publication: OutcomePublication,
     source_snapshots: tuple[SnapshotEvidence, ...],
 ) -> VerifiedReport:
-    """Recompute and compare using records independently authenticated by the caller."""
+    """Verify the archived content using evidence independently authenticated by the caller.
+
+    Optional evidence omitted from the archive participates in verification
+    while the result's digest remains bound to the normalized archive.
+    """
     report = BenchmarkReport.model_validate(report)
     request = ReportRequest.model_validate(original_request)
     registration = Registration.model_validate(registration)
@@ -410,10 +415,20 @@ def verify_report_v1(
         raise ValueError(
             "source snapshot evidence differs from the original request or publication"
         )
+    archived_expected = expected
+    if report.resolved_panel is None:
+        archived_expected = build_report(
+            request,
+            verified_registration=registration,
+            verified_outcome_publication=publication,
+        )
+    if report.outcome_publication is None:
+        archived_expected = archived_expected.model_copy(update={"outcome_publication": None})
     digest = _report_digest(report)
-    if digest != _report_digest(expected):
+    if digest != _report_digest(archived_expected):
         raise ValueError("report content differs from the manifest rebuilt from trusted evidence")
     return VerifiedReport(
         report_sha256=digest,
         panel_status="incomplete" if expected.missing_panel_slots else "verified",
+        verified_outcome_publication=publication,
     )

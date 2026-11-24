@@ -128,6 +128,24 @@ and panel accounting, checks publication and source metadata, and compares the
 rebuilt manifest with the supplied one. It relies on the caller to authenticate
 the independent records and their source identities.
 
+A manifest may be saved before the outcome publication record or registered
+panel has been resolved. When verifying that archive, pass the independently
+resolved records to `verify_report_v1`. The verifier checks all supplied records
+against the original request, including the exact outcome vintage and freeze.
+It compares the archived report with the recomputed content in the archive's
+original shape. A field that was populated in the archive must agree with the
+independent evidence. An omitted field can be resolved for verification while
+remaining absent in the archived report.
+
+Use `result.verified_outcome_publication` for the independently authenticated
+publication record. The result's `report_sha256` binds the normalized archive
+with its original omissions. Keep the original file and any independently
+recorded file checksum to authenticate its bytes, including for schema v3
+archives. When you want a new report carrying the resolved records, call
+`build_report` with `resolved_panel` and `verified_outcome_publication`. The new
+report has the same request digest and a different report digest if it adds
+previously omitted evidence. Verify the new report separately.
+
 Verification returns a frozen `VerifiedReport` whose digest covers the normalized
 manifest content. Keep this result in the trusted caller. For a saved manifest,
 rerun verification from independent evidence. Use `result.matches(report)`
@@ -139,12 +157,14 @@ historical or prospective manifests. Synthetic examples are illustrative.
 Empirical performance claims require independently authenticated forecast
 and outcome archives, plus an eligible scoring analysis.
 
-The cross-version test fixture `tests/fixtures/synthetic_benchmark_report_v3.json`
-was generated with `build_report` from PR #44 commit
+The cross-version test fixtures `tests/fixtures/synthetic_benchmark_report_v3.json`
+and `tests/fixtures/synthetic_benchmark_report_v3_deferred_publication.json`
+were generated with `build_report` from PR #44 commit
 `3516810c74763a4c21d2c858969b24970723cf3f` using the checked-in synthetic
-request, receipt, and panel. It uses publication at the request's freeze and
-the evidence reference `synthetic:publisher:release`. Tests parse the original
-serialized bytes and reverify them with synthetic evidence, including optional
+request, receipt, and panel. The first includes publication at the request's
+freeze with evidence reference `synthetic:publisher:release`. The second was
+saved with no publication record. Tests parse the original serialized bytes and
+reverify both archives with synthetic evidence, including optional
 metadata that the original schema could not express.
 
 ## PR #34 adapter requirements

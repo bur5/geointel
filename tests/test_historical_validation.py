@@ -870,3 +870,117 @@ def test_timely_publication_does_not_override_outcome_maturity(payload, trusted_
         render(
             payload, receipt, verified_outcome_publication=trusted_evidence["outcome_publication"]
         )
+
+
+@pytest.fixture(params=["v3-deferred", "v3-materialized", "v4-deferred", "v4-materialized"])
+def archived_publication_report(request, trusted_evidence):
+    materialized = request.param.endswith("materialized")
+    if request.param.startswith("v3"):
+        suffix = "" if materialized else "_deferred_publication"
+        wire = (FIXTURES / f"synthetic_benchmark_report_v3{suffix}.json").read_bytes()
+        assert json.loads(wire)["schema_version"] == 3
+    elif materialized:
+        wire = render_with_evidence(trusted_evidence).model_dump_json()
+    else:
+        wire = build_report(
+            trusted_evidence["original_request"],
+            verified_registration=trusted_evidence["registration"],
+            resolved_panel=trusted_evidence["required_panel"],
+        ).model_dump_json()
+    archived = BenchmarkReport.model_validate_json(wire)
+    assert archived.schema_version == 4
+    assert (archived.outcome_publication is not None) == materialized
+    return archived
+
+
+def test_verify_archived_publication_without_materializing(
+    archived_publication_report, trusted_evidence
+):
+    archive = archived_publication_report
+    original_wire = archive.model_dump_json()
+    result = verify_report_v1(archive, **trusted_evidence)
+    assert result.matches(archive)
+    assert result.outcome_publication_status == "verified"
+    assert result.verified_outcome_publication == trusted_evidence["outcome_publication"]
+    assert result.scoring_status == "unsupported"
+    assert archive.model_dump_json() == original_wire
+    assert archive.outcome_publication_status == "unverified"
+
+    materialized = render_with_evidence(trusted_evidence)
+    assert result.matches(materialized) == (archive.outcome_publication is not None)
+    assert materialized.input_sha256 == archive.input_sha256
+
+
+@pytest.mark.parametrize("missing", ["publication", "source"])
+def test_archived_reports_still_require_independent_publication(
+    archived_publication_report, trusted_evidence, missing
+):
+    archive = archived_publication_report
+    if missing == "publication":
+        trusted_evidence["outcome_publication"] = None
+        with pytest.raises(ValidationError):
+            verify_report_v1(archive, **trusted_evidence)
+    else:
+        publication = trusted_evidence["outcome_publication"]
+        trusted_evidence["source_snapshots"] = tuple(
+            source
+            for source in trusted_evidence["source_snapshots"]
+            if source.snapshot != publication.outcome_snapshot
+        )
+        with pytest.raises(ValueError, match="source snapshot evidence differs"):
+            verify_report_v1(archive, **trusted_evidence)
+
+
+def test_deferred_publication_still_checks_exact_vintage_and_freeze(
+    archived_publication_report, trusted_evidence
+):
+    archive = archived_publication_report
+    publication = trusted_evidence["outcome_publication"]
+    cases = [
+        ({"dataset_version": "wrong"}, "different outcome vintage"),
+        ({"outcome_snapshot": "wrong"}, "different outcome vintage"),
+        (
+            {"available_at": publication.available_at + timedelta(microseconds=1)},
+            "unavailable at the outcome freeze",
+        ),
+    ]
+    for changes, message in cases:
+        altered = publication.model_copy(update=changes)
+        with pytest.raises(ValueError, match=message):
+            verify_report_v1(archive, **dict(trusted_evidence, outcome_publication=altered))
+
+
+def test_archived_publication_rejects_changed_report_content(
+    archived_publication_report, trusted_evidence
+):
+    archive = archived_publication_report
+    changed = archive.model_copy(update={"limitations": ("Altered archival limitations.",)})
+    with pytest.raises(ValueError, match="report content differs"):
+        verify_report_v1(changed, **trusted_evidence)
+    substituted = archive.audits[0].model_copy(update={"fold_key": "fabricated"})
+    with pytest.raises(ValueError, match="audits differ"):
+        verify_report_v1(archive.model_copy(update={"audits": (substituted,)}), **trusted_evidence)
+
+    if archive.outcome_publication is not None:
+        changed_publication = archive.outcome_publication.model_copy(
+            update={"availability_evidence": "synthetic:untrusted-reference"}
+        )
+        changed = archive.model_copy(update={"outcome_publication": changed_publication})
+        with pytest.raises(ValueError, match="report content differs"):
+            verify_report_v1(changed, **trusted_evidence)
+
+
+def test_verify_report_saved_before_panel_and_publication_resolution(trusted_evidence):
+    archive = build_report(
+        trusted_evidence["original_request"], verified_registration=trusted_evidence["registration"]
+    )
+    result = verify_report_v1(archive, **trusted_evidence)
+    assert result.panel_status == "verified"
+    assert result.matches(archive)
+    assert archive.resolved_panel is None
+    assert archive.outcome_publication is None
+    bad_panel = trusted_evidence["required_panel"].model_copy(
+        update={"snapshot": "substituted-panel"}
+    )
+    with pytest.raises(ValueError, match="differs from registered panel content"):
+        verify_report_v1(archive, **dict(trusted_evidence, required_panel=bad_panel))
