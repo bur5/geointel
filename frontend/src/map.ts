@@ -138,7 +138,8 @@ export function drawCountryMap(svg: SVGSVGElement, key: string, points: MapPoint
       type: 'Feature', properties: {}, geometry: { type: 'MultiPoint', coordinates: points.map((p) => [p.lon, p.lat]) },
     }] : [])],
   };
-  const projection = geoMercator().fitExtent([[16, 16], [584, 324]], extent);
+  type Extent = Parameters<ReturnType<typeof geoMercator>['fitExtent']>[1];
+  const projection = geoMercator().fitExtent([[16, 16], [584, 324]], extent as unknown as Extent);
   const draw = geoPath(projection);
   svg.replaceChildren();
   for (const country of geography.features) {
