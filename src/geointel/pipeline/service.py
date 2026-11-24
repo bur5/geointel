@@ -1,7 +1,9 @@
 import logging
 from datetime import UTC, datetime
+from typing import TypeVar
 
 from sqlalchemy import func, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from geointel import __version__
@@ -51,6 +53,7 @@ from geointel.providers.runtime import sanitize_text
 
 logger = logging.getLogger(__name__)
 PIPELINE_VERSION = __version__
+_NamedRow = TypeVar("_NamedRow", Location, Source)
 
 
 class AnalysisPipeline:
@@ -75,11 +78,7 @@ class AnalysisPipeline:
 
     def _run(self, request: AnalysisRequest) -> AnalysisRun:
         rotation_sequence = self.session.scalar(select(func.count()).select_from(AnalysisRun)) or 0
-        location = self.session.scalar(select(Location).where(Location.name == request.location))
-        if not location:
-            location = Location(name=request.location)
-            self.session.add(location)
-            self.session.flush()
+        location = self._get_or_create_named(Location(name=request.location))
         run = AnalysisRun(
             location_id=location.id,
             question=request.question,
@@ -284,15 +283,13 @@ class AnalysisPipeline:
         ]
         news_reports = self._merge_news_duplicates(news_reports)
         for item in evidence:
-            source = self.session.scalar(select(Source).where(Source.name == item.source_name))
-            if not source:
-                source = Source(
+            source = self._get_or_create_named(
+                Source(
                     name=item.source_name,
                     source_type="structured_data",
                     reliability=item.reliability.value,
                 )
-                self.session.add(source)
-                self.session.flush()
+            )
             self.session.add(
                 Evidence(
                     analysis_run_id=run.id,
@@ -310,13 +307,9 @@ class AnalysisPipeline:
                 )
             )
         for item in events:
-            source = self.session.scalar(select(Source).where(Source.name == item.provider))
-            if not source:
-                source = Source(
-                    name=item.provider, source_type="operational_events", reliability="reported"
-                )
-                self.session.add(source)
-                self.session.flush()
+            source = self._get_or_create_named(
+                Source(name=item.provider, source_type="operational_events", reliability="reported")
+            )
             self.session.add(
                 Event(
                     analysis_run_id=run.id,
@@ -617,6 +610,29 @@ class AnalysisPipeline:
         self.session.commit()
         self.session.refresh(run)
         return run
+
+    def _get_or_create_named(self, row: _NamedRow) -> _NamedRow:
+        model = type(row)
+        query = select(model).where(model.name == row.name)
+        existing = self.session.scalar(query)
+        if existing is not None:
+            return existing
+        if self.session.get_bind().dialect.name != "postgresql":
+            self.session.add(row)
+            self.session.flush()
+            return row
+        # Flush pending analysis work before isolating the potentially competing insert.
+        self.session.flush()
+        try:
+            with self.session.begin_nested():
+                self.session.add(row)
+                self.session.flush()
+        except IntegrityError:
+            existing = self.session.scalar(query)
+            if existing is None:
+                raise
+            return existing
+        return row
 
     def _strategic_analysis(self, run, request, evidence, events, signals) -> list[dict]:
         from geointel.domain.schemas import StrategicLensContext

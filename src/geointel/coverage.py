@@ -317,13 +317,17 @@ def decide_collection(
         except ValidationError:
             verification = None
         received_count = audit.get("received")
+        pages = audit.get("page_evidence", [])
+        row_counts = [page.get("row_count") if isinstance(page, dict) else None for page in pages]
         if (
             verification
             and actual is not None
             and actual == verification.scope
             and audit.get("status") == "SUCCEEDED"
             and audit.get("page_count", 0) > 0
-            and len(audit.get("page_evidence", [])) == audit["page_count"]
+            and len(pages) == audit["page_count"]
+            and all(type(count) is int and count >= 0 for count in row_counts)
+            and sum(count for count in row_counts if isinstance(count, int)) == received_count
             and type(received_count) is int
             and received_count >= 0
             and audit.get("accepted") == len(received)

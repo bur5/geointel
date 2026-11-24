@@ -329,3 +329,177 @@ def test_postgres_collection_coverage_json_round_trip(session):
     assert CoverageDecision.from_metadata(persisted).projection("ACLED")["state"] == "not_attempted"
     assert persisted["collection_coverage"]["collections"][0]["event_counts"]["confirmed"] is None
     assert persisted["connector_outcomes"][0]["status"] == "disabled"
+
+
+def test_postgres_empty_and_failed_historical_collections_are_diagnostic(session):
+    from uuid import uuid4
+
+    import httpx
+
+    from geointel.connectors.ucdp import UCDPConnector
+    from geointel.domain.models import Alert
+    from geointel.domain.schemas import Confidence, SynthesisOutput
+    from geointel.monitoring import MonitoringService
+
+    class RoutedModel(OfflineModel):
+        fail = False
+
+        def generate(self, role, payload, output_type):
+            result = super().generate(role, payload, output_type)
+            if output_type is SynthesisOutput:
+                result.assessments[0].confidence = Confidence.HIGH if self.fail else Confidence.LOW
+            return result
+
+    model = RoutedModel()
+
+    def response(_):
+        if model.fail:
+            return httpx.Response(503)
+        return httpx.Response(200, json={"TotalPages": 0, "TotalCount": 0, "Result": []})
+
+    with httpx.Client(transport=httpx.MockTransport(response)) as client:
+        connector = UCDPConnector(
+            "https://example.test",
+            "25.1",
+            client=client,
+            official_api=True,
+            access_token="fixture",
+            retries=0,
+        )
+        connectors = []
+        svc = MonitoringService(
+            session, lambda: AnalysisPipeline(session, ModelRouter(model, model, model), connectors)
+        )
+        target = svc.add_target(svc.create_watchlist(uuid4().hex), "ESP", "Spain")
+        svc.run_target(target)
+        model.fail = True
+        svc.run_target(target)
+        alerts = select(Alert).where(Alert.target_id == target.id)
+        existing = session.scalars(alerts).one()
+        last_seen = existing.last_observed_at
+
+        connectors.append(connector)
+        for failed in (False, True, False, True):
+            model.fail = failed
+            run = svc.run_target(target)
+            assert run.status == "completed"
+            receipt = run.analysis_run.collection_metadata["collection_coverage"]["collections"][0]
+            assert receipt["state"] == ("failed" if failed else "complete_empty")
+            assert not run.analysis_run.collection_metadata["historical_observation_count"]
+            assert all(not change.material for change in run.changes)
+            assert session.scalars(alerts).one().last_observed_at == last_seen
+
+        class Operational:
+            failed = False
+
+            def __init__(self, name):
+                self.connector_name = name
+
+            def collect(self, location, horizon_months):
+                if self.failed:
+                    raise RuntimeError("synthetic operational outage")
+                return []
+
+        acled, views = Operational("ACLED"), Operational("VIEWS")
+        connectors.extend([acled, views])
+        svc.run_target(target)
+        acled.failed = views.failed = True
+        outage = svc.run_target(target)
+        operational_alert = session.scalars(
+            alerts.where(Alert.monitoring_run_id == outage.id)
+        ).one()
+        last_operational_seen = operational_alert.last_observed_at
+        for failed in (False, True):
+            model.fail = failed
+            repeated = svc.run_target(target)
+            assert all(not change.material for change in repeated.changes)
+        assert len(session.scalars(alerts).all()) == 2
+        assert operational_alert.last_observed_at == last_operational_seen
+
+
+def test_postgres_concurrent_target_and_failed_finalization(postgres_engine):
+    from concurrent.futures import ThreadPoolExecutor
+    from threading import Barrier
+    from uuid import uuid4
+
+    from sqlalchemy.schema import CreateSchema, DropSchema
+
+    from geointel.domain.models import Alert, Base, MonitoringRun, WatchlistTarget
+    from geointel.domain.schemas import Confidence, SynthesisOutput
+    from geointel.monitoring import AlertEngine, MonitoringService
+
+    schema = f"monitoring_{uuid4().hex}"
+    with postgres_engine.begin() as connection:
+        connection.execute(CreateSchema(schema))
+    isolated = postgres_engine.execution_options(schema_translate_map={None: schema})
+    try:
+        Base.metadata.create_all(isolated)
+        rendezvous = Barrier(2, timeout=15)
+
+        class RoutedModel(OfflineModel):
+            high = False
+
+            def generate(self, role, payload, output_type):
+                result = super().generate(role, payload, output_type)
+                if output_type is SynthesisOutput:
+                    result.assessments[0].confidence = (
+                        Confidence.HIGH if self.high else Confidence.LOW
+                    )
+                return result
+
+        class ConcurrentPipeline(AnalysisPipeline):
+            def run(self, request):
+                result = super().run(request)
+                rendezvous.wait()
+                return result
+
+        class FailingAlertEngine(AlertEngine):
+            def evaluate(self, session, *args):
+                assert super().evaluate(session, *args) is not None
+                session.flush()
+                raise RuntimeError("injected failure after alert flush")
+
+        with Session(isolated) as owner:
+            model = RoutedModel()
+            router = ModelRouter(model, model, model)
+            svc = MonitoringService(owner, lambda: AnalysisPipeline(owner, router))
+            target = svc.add_target(svc.create_watchlist("Concurrent fixture"), "ESP", "Spain")
+            target_id = target.id
+
+            def run_concurrently():
+                with Session(isolated) as worker:
+                    worker_model = RoutedModel()
+                    worker_router = ModelRouter(worker_model, worker_model, worker_model)
+                    monitoring = MonitoringService(
+                        worker, lambda: ConcurrentPipeline(worker, worker_router)
+                    )
+                    return monitoring.run_target(worker.get(WatchlistTarget, target_id)).id
+
+            with ThreadPoolExecutor(max_workers=2) as pool:
+                ids = list(pool.map(lambda _: run_concurrently(), range(2)))
+            runs = [owner.get(MonitoringRun, run_id) for run_id in ids]
+            first, second = sorted(runs, key=lambda run: run.completed_at)
+            assert first.status == second.status == "completed", [run.error_reason for run in runs]
+            assert first.baseline_established and not second.baseline_established
+            assert second.previous_monitoring_run_id == first.id
+            owner.refresh(target)
+            schedule = target.next_due_at
+
+            model.high = True
+            svc.alert_engine = FailingAlertEngine()
+            failed = svc.run_target(target)
+            assert failed.status == "failed"
+            assert failed.error_reason == "injected failure after alert flush"
+            assert failed.analysis_run.status == "completed"
+            assert len(failed.analysis_run.forecasts) == 4
+            assert not failed.changes
+            assert owner.scalars(select(Alert)).all() == []
+            assert target.next_due_at == schedule
+
+            svc.alert_engine = AlertEngine()
+            recovered = svc.run_target(target)
+            assert recovered.previous_monitoring_run_id == second.id
+            assert owner.scalars(select(Alert)).one().monitoring_run_id == recovered.id
+    finally:
+        with postgres_engine.begin() as connection:
+            connection.execute(DropSchema(schema, cascade=True))

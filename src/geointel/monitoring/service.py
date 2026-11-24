@@ -11,7 +11,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from geointel import __version__
-from geointel.coverage import CoverageDecision
+from geointel.coverage import CONNECTOR_KINDS, CoverageDecision
 from geointel.domain.models import (
     Alert,
     AnalysisRun,
@@ -82,14 +82,15 @@ class ChangeDetector:
             current = current | current["assessment_records"]
         old_events, new_events = set(previous["event_ids"]), set(current["event_ids"])
         added = sorted(new_events - old_events)
+        new_event_providers = {identity.split(":", 1)[0] for identity in added}
+        corroborated = len(new_event_providers) >= 2
         if added:
-            material = len(added) >= 2 and len(current.get("event_sources", [])) >= 2
             self._add(
                 changes,
                 "new_operational_events",
                 sorted(old_events),
                 added,
-                material,
+                corroborated,
                 (
                     "New unique operational event identities were observed; independence is "
                     "required for materiality."
@@ -110,16 +111,32 @@ class ChangeDetector:
         )
         old_health, new_health = previous["source_health"], current["source_health"]
         if old_health != new_health:
-            failed = [k for k, v in new_health.items() if v in {"failed", "missing"}]
+            if "assessment_records" in current:
+                operational = {
+                    name for name, kind in CONNECTOR_KINDS.items() if kind in {"events", "forecast"}
+                }
+                old_operational = {k: v for k, v in old_health.items() if k in operational}
+                new_operational = {k: v for k, v in new_health.items() if k in operational}
+            else:
+                old_operational, new_operational = old_health, new_health
+            failed = [k for k, v in new_operational.items() if v in {"failed", "missing"}]
+            material = (
+                not eligibility_baseline
+                and len(failed) >= 2
+                and (
+                    "assessment_records" not in current
+                    or any(old_operational.get(k) != new_operational[k] for k in failed)
+                )
+            )
             self._add(
                 changes,
                 "source_availability_change",
-                old_health,
-                new_health,
-                len(failed) >= 2 and model_changes_material,
+                old_operational if material else old_health,
+                new_operational if material else new_health,
+                material,
                 "Source health changed; this is data quality, not geopolitical escalation.",
                 [],
-                failed,
+                sorted(failed),
             )
         self._compare_map(
             changes, "uncertainty_change", previous, current, "uncertainty", model_changes_material
@@ -134,7 +151,8 @@ class ChangeDetector:
             previous,
             current,
             "recency",
-            current.get("recency") == "current_corroborated",
+            current.get("recency") == "current_corroborated"
+            and ("assessment_records" not in current or corroborated),
         )
         return changes
 
@@ -347,8 +365,8 @@ class MonitoringService:
         )
         self.session.add(attempt)
         self.session.commit()
+        analysis_id = None
         try:
-            previous = self._previous_comparable(target)
             analysis = self.pipeline_factory().run(
                 AnalysisRequest(
                     location=target.display_name,
@@ -356,7 +374,16 @@ class MonitoringService:
                     horizon_months=target.horizon_months,
                 )
             )
-            attempt.analysis_run_id = analysis.id
+            analysis_id = analysis.id
+            # Analysis commits independently. Serialize comparison and alert writes after it.
+            target = self.session.scalars(
+                select(WatchlistTarget)
+                .where(WatchlistTarget.id == attempt.target_id)
+                .with_for_update()
+                .execution_options(populate_existing=True)
+            ).one()
+            previous = self._previous_comparable(target)
+            attempt.analysis_run_id = analysis_id
             attempt.previous_monitoring_run_id = previous.id if previous else None
             attempt.previous_analysis_run_id = previous.analysis_run_id if previous else None
             attempt.baseline_established = previous is None
@@ -380,7 +407,9 @@ class MonitoringService:
             attempt.status = "completed"
             attempt.completed_at = now_utc()
             target.last_successful_run_at = attempt.completed_at
-            target.next_due_at = next_due(target.cadence, when)
+            target.next_due_at = next_due(
+                target.cadence, max(when, utc(previous.started_at)) if previous else when
+            )
             self.session.flush()
             self.alert_engine.evaluate(
                 self.session,
@@ -391,16 +420,15 @@ class MonitoringService:
                 attempt.source_availability,
             )
             self.session.commit()
-            self.session.refresh(attempt)
-            return attempt
         except Exception as exc:
             self.session.rollback()
             attempt = self.session.get(MonitoringRun, attempt.id)
+            attempt.analysis_run_id = analysis_id
             attempt.status = "failed"
             attempt.completed_at = now_utc()
             attempt.error_reason = " ".join(str(exc).split())[:500] or type(exc).__name__
             self.session.commit()
-            return attempt
+        return attempt
 
     def _previous_comparable(self, target):
         runs = self.session.scalars(
@@ -410,7 +438,7 @@ class MonitoringService:
                 MonitoringRun.status == "completed",
                 MonitoringRun.analysis_run_id.is_not(None),
             )
-            .order_by(MonitoringRun.started_at.desc())
+            .order_by(MonitoringRun.completed_at.desc(), MonitoringRun.id.desc())
         ).all()
         for run in runs:
             analysis = run.analysis_run
@@ -467,7 +495,6 @@ class MonitoringService:
         disagreements = sorted((run.analyst_output or {}).get("source_disagreements", []))
         strategic = sorted(str(x) for a in run.strategic_analyses for x in a.retrieved_claim_ids)
         event_ids = sorted(f"{e.source_id}:{e.source_record_id}" for e in run.events)
-        event_sources = sorted({str(e.source_id) for e in run.events})
         recency = MonitoringService._event_recency(run.events)
         decision = CoverageDecision.from_metadata(run.collection_metadata)
         assessment = {}
@@ -490,7 +517,6 @@ class MonitoringService:
                 "event_ids": sorted(
                     f"{event.source_id}:{event.source_record_id}" for event in events
                 ),
-                "event_sources": sorted({str(event.source_id) for event in events}),
                 "signals": {
                     f"{signal.provider}:{signal.source_record_id}": signals[
                         f"{signal.provider}:{signal.source_record_id}"
@@ -503,13 +529,16 @@ class MonitoringService:
         return {
             **assessment,
             "has_history": bool(
-                metadata.get("historical_observation_count")
+                any(
+                    entry.requested_scope.kind == "historical_release"
+                    for entry in decision.collections
+                )
+                or metadata.get("historical_observation_count")
                 or metadata.get("historical_conflict_coverage_available")
             ),
             "forecasts": forecasts,
             "changed_categories": list(forecasts),
             "event_ids": event_ids,
-            "event_sources": event_sources,
             "signals": signals,
             "signal_providers": sorted({s.provider for s in run.forecast_signals}),
             "disagreements": disagreements,

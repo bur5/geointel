@@ -289,3 +289,27 @@ def test_ineligible_events_are_persisted_but_excluded_from_reasoning(session, cl
     assert receipt.event_counts.confirmed is None
     assert all("excluded from assessment" in item for item in run.analyst_output["recent_events"])
     assert len(run.analyst_output["recent_events"]) == 2
+
+
+@pytest.mark.parametrize("page_rows", [0, 1])
+def test_empty_receipt_requires_consistent_page_counts(session, clock, page_rows):
+    class ReceiptConnector(ACLEDConnector):
+        def collect(self, location, horizon_months=12):
+            result = super().collect(location, horizon_months)
+            self.last_audit.page_evidence[0]["row_count"] = page_rows
+            return result
+
+    envelope = {
+        "data": [],
+        "next_cursor": None,
+        "data_query_restrictions": {"date_recency": "unrestricted"},
+    }
+    with httpx.Client(
+        transport=httpx.MockTransport(lambda _: httpx.Response(200, json=envelope))
+    ) as client:
+        connector = ReceiptConnector(
+            "https://example.test", None, client=client, official_api=True, oauth=OAuth()
+        )
+        _, receipt = load_collection(session, run_with(session, connector).id)
+    assert receipt.state == (CoverageState.UNKNOWN if page_rows else CoverageState.COMPLETE_EMPTY)
+    assert receipt.event_counts.confirmed == (None if page_rows else 0)

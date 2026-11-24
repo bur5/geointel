@@ -240,3 +240,33 @@ def test_legacy_rollout_uses_first_v1_eligibility_baseline(session):
     assert next_run.previous_analysis_run_id == initial.analysis_run_id
     assert not next_run.baseline_established
     assert session.scalars(select(Alert)).all() == []
+
+
+def test_unchanged_provider_cannot_corroborate_new_events():
+    detector = ChangeDetector()
+    before = state(assessment_records={"event_ids": ["B:old"]})
+    after = state(
+        assessment_records={"event_ids": ["B:old", "A:1", "A:2"], "recency": "current_corroborated"}
+    )
+    changes = detector.detect(before, after)
+    assert {c["change_type"] for c in changes} == {"new_operational_events", "data_recency_change"}
+    assert all(not c["material"] for c in changes)
+    after["assessment_records"]["event_ids"].append("B:new")
+    assert all(c["material"] for c in detector.detect(before, after))
+
+
+def test_operational_health_materiality_excludes_historical_health():
+    detector = ChangeDetector()
+    before = state(has_history=True, assessment_records={})
+    outage = state(
+        has_history=True,
+        assessment_records={},
+        source_health=before["source_health"] | {"ACLED": "failed", "VIEWS": "failed"},
+    )
+    (change,) = detector.detect(before, outage)
+    assert change["material"]
+    assert "UCDP" not in change["current_state"]["value"]
+    historical_outage = outage | {"source_health": outage["source_health"] | {"UCDP": "failed"}}
+    (change,) = detector.detect(outage, historical_outage)
+    assert not change["material"]
+    assert change["current_state"]["value"]["UCDP"] == "failed"

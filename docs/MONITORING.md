@@ -37,14 +37,19 @@ analysis artifacts, prints JSON, and never executes target text. It does not del
 
 Every attempt starts a `MonitoringRun`. Success links the ordinary completed `AnalysisRun`, source
 health, trigger, completion time, and prior comparable IDs. Failure is retained with a bounded
-reason and no fabricated analysis link. Connector failure is different: the normal pipeline may
+reason. If analysis committed before monitoring failed, the failed attempt retains that analysis
+link. Its changes, alert writes, and schedule updates roll back together. PostgreSQL serializes
+finalization per target with a row lock after the analysis commit. Concurrent runs compare in
+finalization order. Connector failure is different: the normal pipeline may
 complete and disclose missing inputs, so the monitoring run succeeds.
 
 The first successful run is a baseline and cannot alert. A prior run is comparable only when it is
 for the same target, completed, has the same horizon, a compatible pipeline version, and four
 forecasts. The historical-profile release can compare against v0.1.7 for rollout. The first snapshot
 with a v1 coverage decision establishes the eligibility baseline. An earlier legacy run can still
-provide source-health diagnostics. Legacy-to-legacy comparisons use the original rules.
+provide source-health diagnostics. Genuine operational changes during that first comparison
+may go unalerted because there is no comparable eligible baseline. Changing this rollout policy
+requires Owner approval. Legacy-to-legacy comparisons continue to use raw snapshots.
 
 ## Structured changes and materiality
 
@@ -55,19 +60,19 @@ contains before/after state, category/source references, explanation, materialit
 analysis-run provenance, and detection time.
 
 Deterministic v0.1.0 materiality rules are conservative: structured forecast state or uncertainty
-change is reviewable; at least two unique events from at least two represented sources are needed
+change is reviewable; new events from at least two distinct sources are needed
 for event materiality; predictive change needs multiple providers; multiple missing/failed sources
 may create a **data-quality** alert; corroborated stale-to-current recency may be material. An
 isolated event, duplicate provider ID, wording/order/timestamp change, one outage, strategic-only
 change, or first baseline is not independently material. Numeric magnitude is never invented.
 
-When either comparable snapshot records historical observations, forecast and uncertainty changes
-remain available as diagnostics. Model-only confidence changes cannot independently alert in those
-comparisons because the forecast schema cannot reliably attribute their causes. Source-health changes
-also remain diagnostic in those comparisons because historical retrieval can affect source health.
-Eligible operational events, predictive signals, and event recency continue to use their own
-materiality rules. A comparison without historical observations uses existing model-change rules
-after the eligibility baseline has been established.
+When either snapshot includes a historical collection, including an empty or failed retrieval,
+forecast and uncertainty changes remain diagnostic because the forecast schema cannot reliably
+attribute their causes. Persisted historical presence also protects older snapshots and historical
+observations without a typed receipt. Historical source-health changes are diagnostic. Material
+operational source-health changes use the operational health projection, which keeps historical
+outages out of the alert fingerprint. Operational event and recency alerts require corroboration
+among newly added providers in v1 comparisons. Predictive signal materiality remains independent.
 
 ## Alert engine and lifecycle
 
