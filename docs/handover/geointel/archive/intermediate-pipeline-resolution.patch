@@ -1,0 +1,31 @@
+diff --git a/src/geointel/pipeline/service.py b/src/geointel/pipeline/service.py
+index 81969c3..57e880e 100644
+--- a/src/geointel/pipeline/service.py
++++ b/src/geointel/pipeline/service.py
+@@ -487,3 +486,0 @@ class AnalysisPipeline:
+-<<<<<<< HEAD
+-            "recent_events": [x.model_dump(mode="json") for x in assessment_events],
+-=======
+@@ -491,2 +488 @@ class AnalysisPipeline:
+-            "recent_events": [x.model_dump(mode="json") for x in events],
+->>>>>>> d296ee7 (Release v0.1.8 auditable historical conflict profiles and taxonomy safety)
++            "recent_events": [x.model_dump(mode="json") for x in assessment_events],
+@@ -513 +509 @@ class AnalysisPipeline:
+-            "source_disagreements": self._alignment_disagreements(signals, events),
++            "source_disagreements": self._alignment_disagreements(assessment_signals, assessment_events),
+@@ -553 +549,5 @@ class AnalysisPipeline:
+-<<<<<<< HEAD
++        if any(
++            x.probability_low is not None or x.probability_high is not None
++            for x in synthesis.assessments
++        ):
++            raise ValueError("v0.1.8 has no calibrated probability mechanism")
+@@ -577,8 +576,0 @@ class AnalysisPipeline:
+-=======
+-        if any(
+-            x.probability_low is not None or x.probability_high is not None
+-            for x in synthesis.assessments
+-        ):
+-            raise ValueError("v0.1.8 has no calibrated probability mechanism")
+-        run.analyst_output = analyst.model_dump(mode="json")
+->>>>>>> d296ee7 (Release v0.1.8 auditable historical conflict profiles and taxonomy safety)

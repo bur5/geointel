@@ -1,0 +1,5485 @@
+{
+  "columns": [
+    "path",
+    "diagnostic",
+    "count"
+  ],
+  "checkouts": {
+    "geointel": {
+      "sha": "3245d1033117d03239e6a9a34d35ce0819320886",
+      "count": 399,
+      "diagnostics": [
+        [
+          "src/geointel/api/app.py",
+          "Argument 1 to \"append\" of \"list\" has incompatible type \"ACLEDConnector | DisabledConnector\"; expected \"EvidenceConnector\"  [arg-type]",
+          1
+        ],
+        [
+          "src/geointel/api/app.py",
+          "Argument 1 to \"append\" of \"list\" has incompatible type \"CASTConnector | DisabledConnector\"; expected \"EvidenceConnector\"  [arg-type]",
+          1
+        ],
+        [
+          "src/geointel/api/app.py",
+          "Argument 1 to \"append\" of \"list\" has incompatible type \"GDELTConnector\"; expected \"EvidenceConnector\"  [arg-type]",
+          1
+        ],
+        [
+          "src/geointel/api/app.py",
+          "Argument 1 to \"append\" of \"list\" has incompatible type \"NewsAPIConnector\"; expected \"EvidenceConnector\"  [arg-type]",
+          1
+        ],
+        [
+          "src/geointel/api/app.py",
+          "Argument 1 to \"append\" of \"list\" has incompatible type \"UCDPConnector | DisabledConnector\"; expected \"EvidenceConnector\"  [arg-type]",
+          1
+        ],
+        [
+          "src/geointel/api/app.py",
+          "Argument 1 to \"append\" of \"list\" has incompatible type \"VIEWSConnector | DisabledConnector\"; expected \"EvidenceConnector\"  [arg-type]",
+          1
+        ],
+        [
+          "src/geointel/api/app.py",
+          "Missing type arguments for generic type \"dict\"  [type-arg]",
+          1
+        ],
+        [
+          "src/geointel/config.py",
+          "Function is missing a return type annotation  [no-untyped-def]",
+          1
+        ],
+        [
+          "src/geointel/connectors/acled.py",
+          "\"ACLEDError\" has no attribute \"category\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/connectors/acled.py",
+          "Function is missing a type annotation  [no-untyped-def]",
+          2
+        ],
+        [
+          "src/geointel/connectors/acled.py",
+          "Item \"None\" of \"ACLEDOAuthClient | None\" has no attribute \"access_token\"  [union-attr]",
+          1
+        ],
+        [
+          "src/geointel/connectors/acled.py",
+          "Item \"None\" of \"str | None\" has no attribute \"lstrip\"  [union-attr]",
+          1
+        ],
+        [
+          "src/geointel/connectors/acled.py",
+          "Missing type arguments for generic type \"dict\"  [type-arg]",
+          2
+        ],
+        [
+          "src/geointel/connectors/cast.py",
+          "\"CASTError\" has no attribute \"category\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/connectors/cast.py",
+          "Function is missing a type annotation  [no-untyped-def]",
+          1
+        ],
+        [
+          "src/geointel/connectors/cast.py",
+          "Function is missing a type annotation for one or more parameters  [no-untyped-def]",
+          1
+        ],
+        [
+          "src/geointel/connectors/cast.py",
+          "Item \"None\" of \"ACLEDOAuthClient | None\" has no attribute \"access_token\"  [union-attr]",
+          1
+        ],
+        [
+          "src/geointel/connectors/cast.py",
+          "Missing type arguments for generic type \"dict\"  [type-arg]",
+          2
+        ],
+        [
+          "src/geointel/connectors/gdelt.py",
+          "\"GDELTError\" has no attribute \"category\"  [attr-defined]",
+          2
+        ],
+        [
+          "src/geointel/connectors/gdelt.py",
+          "Call to untyped function \"normalize\" of \"GDELTConnector\" in typed context  [no-untyped-call]",
+          1
+        ],
+        [
+          "src/geointel/connectors/gdelt.py",
+          "Function is missing a type annotation  [no-untyped-def]",
+          2
+        ],
+        [
+          "src/geointel/connectors/gdelt.py",
+          "Function is missing a type annotation for one or more parameters  [no-untyped-def]",
+          1
+        ],
+        [
+          "src/geointel/connectors/gdelt.py",
+          "Returning Any from function declared to return \"list[Any]\"  [no-any-return]",
+          1
+        ],
+        [
+          "src/geointel/connectors/newsapi.py",
+          "\"NewsAPIError\" has no attribute \"category\"  [attr-defined]",
+          2
+        ],
+        [
+          "src/geointel/connectors/newsapi.py",
+          "Argument 1 to \"get\" of \"dict\" has incompatible type \"Any | None\"; expected \"str\"  [arg-type]",
+          1
+        ],
+        [
+          "src/geointel/connectors/newsapi.py",
+          "Call to untyped function \"normalize\" of \"NewsAPIConnector\" in typed context  [no-untyped-call]",
+          1
+        ],
+        [
+          "src/geointel/connectors/newsapi.py",
+          "Function is missing a type annotation  [no-untyped-def]",
+          1
+        ],
+        [
+          "src/geointel/connectors/newsapi.py",
+          "Function is missing a type annotation for one or more parameters  [no-untyped-def]",
+          1
+        ],
+        [
+          "src/geointel/connectors/newsapi.py",
+          "Need type annotation for \"output\" (hint: \"output: list[<type>] = ...\")  [var-annotated]",
+          1
+        ],
+        [
+          "src/geointel/connectors/ucdp.py",
+          "Function is missing a type annotation for one or more parameters  [no-untyped-def]",
+          1
+        ],
+        [
+          "src/geointel/connectors/ucdp.py",
+          "Item \"None\" of \"str | None\" has no attribute \"lstrip\"  [union-attr]",
+          1
+        ],
+        [
+          "src/geointel/connectors/ucdp.py",
+          "Missing type arguments for generic type \"dict\"  [type-arg]",
+          2
+        ],
+        [
+          "src/geointel/connectors/ucdp.py",
+          "Returning Any from function declared to return \"list[dict[Any, Any]]\"  [no-any-return]",
+          1
+        ],
+        [
+          "src/geointel/connectors/views.py",
+          "Item \"None\" of \"str | None\" has no attribute \"lstrip\"  [union-attr]",
+          1
+        ],
+        [
+          "src/geointel/connectors/views.py",
+          "Missing type arguments for generic type \"dict\"  [type-arg]",
+          2
+        ],
+        [
+          "src/geointel/coverage.py",
+          "Argument \"geography\" to \"RecordDecision\" has incompatible type \"str\"; expected \"Literal['pass', 'fail', 'unknown', 'not_applicable']\"  [arg-type]",
+          1
+        ],
+        [
+          "src/geointel/coverage.py",
+          "Argument \"publication_freshness\" to \"RecordDecision\" has incompatible type \"str\"; expected \"Literal['pass', 'fail', 'unknown', 'not_applicable']\"  [arg-type]",
+          1
+        ],
+        [
+          "src/geointel/coverage.py",
+          "Call to untyped function \"_country\" in typed context  [no-untyped-call]",
+          5
+        ],
+        [
+          "src/geointel/coverage.py",
+          "Call to untyped function \"_utc\" in typed context  [no-untyped-call]",
+          6
+        ],
+        [
+          "src/geointel/coverage.py",
+          "Function is missing a return type annotation  [no-untyped-def]",
+          1
+        ],
+        [
+          "src/geointel/coverage.py",
+          "Function is missing a type annotation  [no-untyped-def]",
+          2
+        ],
+        [
+          "src/geointel/coverage.py",
+          "Missing type arguments for generic type \"dict\"  [type-arg]",
+          2
+        ],
+        [
+          "src/geointel/coverage.py",
+          "Missing type arguments for generic type \"list\"  [type-arg]",
+          2
+        ],
+        [
+          "src/geointel/coverage.py",
+          "Need type annotation for \"decisions\" (hint: \"decisions: dict[<type>, <type>] = ...\")  [var-annotated]",
+          1
+        ],
+        [
+          "src/geointel/domain/models.py",
+          "Function is missing a type annotation  [no-untyped-def]",
+          2
+        ],
+        [
+          "src/geointel/domain/models.py",
+          "Missing type arguments for generic type \"dict\"  [type-arg]",
+          30
+        ],
+        [
+          "src/geointel/domain/models.py",
+          "Missing type arguments for generic type \"list\"  [type-arg]",
+          27
+        ],
+        [
+          "src/geointel/domain/schemas.py",
+          "Function is missing a return type annotation  [no-untyped-def]",
+          3
+        ],
+        [
+          "src/geointel/domain/schemas.py",
+          "Missing type arguments for generic type \"dict\"  [type-arg]",
+          18
+        ],
+        [
+          "src/geointel/domain/schemas.py",
+          "Unsupported operand types for > (\"float\" and \"None\")  [operator]",
+          1
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "\"SectionInput\" has no attribute \"actors\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "\"SectionInput\" has no attribute \"attributed_author\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "\"SectionInput\" has no attribute \"case_ids\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "\"SectionInput\" has no attribute \"claim_type\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "\"SectionInput\" has no attribute \"concept_slugs\"  [attr-defined]",
+          2
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "\"SectionInput\" has no attribute \"counterexamples\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "\"SectionInput\" has no attribute \"description\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "\"SectionInput\" has no attribute \"end_date\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "\"SectionInput\" has no attribute \"extraction_confidence\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "\"SectionInput\" has no attribute \"factual_summary\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "\"SectionInput\" has no attribute \"geography\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "\"SectionInput\" has no attribute \"ingestion_metadata\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "\"SectionInput\" has no attribute \"interpretation_notes\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "\"SectionInput\" has no attribute \"limitations\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "\"SectionInput\" has no attribute \"name\"  [attr-defined]",
+          3
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "\"SectionInput\" has no attribute \"outcome\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "\"SectionInput\" has no attribute \"section_id\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "\"SectionInput\" has no attribute \"slug\"  [attr-defined]",
+          4
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "\"SectionInput\" has no attribute \"source_provenance\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "\"SectionInput\" has no attribute \"start_date\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "\"SectionInput\" has no attribute \"text\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "Argument 1 to \"scalar\" of \"Session\" has incompatible type \"Select[StrategicConcept]\"; expected \"TypedReturnsRows[Never]\"  [arg-type]",
+          1
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "Call to untyped function (unknown) in typed context  [no-untyped-call]",
+          1
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "Function is missing a return type annotation  [no-untyped-def]",
+          1
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "Function is missing a type annotation  [no-untyped-def]",
+          1
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "Incompatible types in assignment (expression has type \"CaseInput\", variable has type \"SectionInput\")  [assignment]",
+          1
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "Incompatible types in assignment (expression has type \"ClaimInput\", variable has type \"SectionInput\")  [assignment]",
+          1
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "Incompatible types in assignment (expression has type \"ConceptInput\", variable has type \"SectionInput\")  [assignment]",
+          1
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "Missing type arguments for generic type \"dict\"  [type-arg]",
+          13
+        ],
+        [
+          "src/geointel/knowledge/lenses.py",
+          "Function is missing a type annotation  [no-untyped-def]",
+          2
+        ],
+        [
+          "src/geointel/monitoring/__main__.py",
+          "\"Watchlist\" has no attribute \"next_due_at\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/monitoring/__main__.py",
+          "Call to untyped function \"present_run\" in typed context  [no-untyped-call]",
+          2
+        ],
+        [
+          "src/geointel/monitoring/__main__.py",
+          "Function is missing a type annotation  [no-untyped-def]",
+          1
+        ],
+        [
+          "src/geointel/monitoring/__main__.py",
+          "Incompatible types in assignment (expression has type \"MonitoringRun\", variable has type \"Watchlist\")  [assignment]",
+          1
+        ],
+        [
+          "src/geointel/monitoring/__main__.py",
+          "Incompatible types in assignment (expression has type \"WatchlistTarget\", variable has type \"Watchlist\")  [assignment]",
+          1
+        ],
+        [
+          "src/geointel/monitoring/__main__.py",
+          "Incompatible types in assignment (expression has type \"list[Any]\", variable has type \"dict[str, str]\")  [assignment]",
+          1
+        ],
+        [
+          "src/geointel/monitoring/__main__.py",
+          "Incompatible types in assignment (expression has type \"list[dict[str, list[Any] | str | None]]\", variable has type \"dict[str, str]\")  [assignment]",
+          1
+        ],
+        [
+          "src/geointel/monitoring/data_quality.py",
+          "Call to untyped function \"_collection_findings\" in typed context  [no-untyped-call]",
+          1
+        ],
+        [
+          "src/geointel/monitoring/data_quality.py",
+          "Call to untyped function \"_count\" in typed context  [no-untyped-call]",
+          4
+        ],
+        [
+          "src/geointel/monitoring/data_quality.py",
+          "Call to untyped function \"_geography\" in typed context  [no-untyped-call]",
+          5
+        ],
+        [
+          "src/geointel/monitoring/data_quality.py",
+          "Call to untyped function \"_inspect_record\" in typed context  [no-untyped-call]",
+          1
+        ],
+        [
+          "src/geointel/monitoring/data_quality.py",
+          "Call to untyped function \"_inspect_rows\" in typed context  [no-untyped-call]",
+          1
+        ],
+        [
+          "src/geointel/monitoring/data_quality.py",
+          "Call to untyped function \"_report\" in typed context  [no-untyped-call]",
+          3
+        ],
+        [
+          "src/geointel/monitoring/data_quality.py",
+          "Call to untyped function \"_signal_country\" in typed context  [no-untyped-call]",
+          1
+        ],
+        [
+          "src/geointel/monitoring/data_quality.py",
+          "Call to untyped function \"_thresholds\" in typed context  [no-untyped-call]",
+          1
+        ],
+        [
+          "src/geointel/monitoring/data_quality.py",
+          "Call to untyped function \"_timestamp\" in typed context  [no-untyped-call]",
+          8
+        ],
+        [
+          "src/geointel/monitoring/data_quality.py",
+          "Function is missing a type annotation  [no-untyped-def]",
+          9
+        ],
+        [
+          "src/geointel/monitoring/data_quality.py",
+          "Missing type arguments for generic type \"dict\"  [type-arg]",
+          1
+        ],
+        [
+          "src/geointel/monitoring/data_quality.py",
+          "Need type annotation for \"expired_timestamps\" (hint: \"expired_timestamps: list[<type>] = ...\")  [var-annotated]",
+          1
+        ],
+        [
+          "src/geointel/monitoring/data_quality.py",
+          "Need type annotation for \"findings\"  [var-annotated]",
+          1
+        ],
+        [
+          "src/geointel/monitoring/data_quality.py",
+          "Need type annotation for \"outcomes\" (hint: \"outcomes: dict[<type>, <type>] = ...\")  [var-annotated]",
+          1
+        ],
+        [
+          "src/geointel/monitoring/data_quality.py",
+          "Need type annotation for \"timestamps\" (hint: \"timestamps: list[<type>] = ...\")  [var-annotated]",
+          1
+        ],
+        [
+          "src/geointel/monitoring/service.py",
+          "\"object\" has no attribute \"run\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/monitoring/service.py",
+          "Argument 2 to \"historical_context\" has incompatible type \"str\"; expected \"ConflictType | None\"  [arg-type]",
+          1
+        ],
+        [
+          "src/geointel/monitoring/service.py",
+          "Call to untyped function \"_add\" of \"ChangeDetector\" in typed context  [no-untyped-call]",
+          3
+        ],
+        [
+          "src/geointel/monitoring/service.py",
+          "Call to untyped function \"_compare_map\" in typed context  [no-untyped-call]",
+          7
+        ],
+        [
+          "src/geointel/monitoring/service.py",
+          "Call to untyped function \"_previous_comparable\" in typed context  [no-untyped-call]",
+          1
+        ],
+        [
+          "src/geointel/monitoring/service.py",
+          "Function is missing a type annotation  [no-untyped-def]",
+          3
+        ],
+        [
+          "src/geointel/monitoring/service.py",
+          "Function is missing a type annotation for one or more parameters  [no-untyped-def]",
+          2
+        ],
+        [
+          "src/geointel/monitoring/service.py",
+          "Incompatible types in assignment (expression has type \"MonitoringRun | None\", variable has type \"MonitoringRun\")  [assignment]",
+          1
+        ],
+        [
+          "src/geointel/monitoring/service.py",
+          "Missing type arguments for generic type \"dict\"  [type-arg]",
+          9
+        ],
+        [
+          "src/geointel/monitoring/service.py",
+          "Returning Any from function declared to return \"str\"  [no-any-return]",
+          1
+        ],
+        [
+          "src/geointel/news/corroboration.py",
+          "Missing type arguments for generic type \"dict\"  [type-arg]",
+          2
+        ],
+        [
+          "src/geointel/news/relevance.py",
+          "Function is missing a return type annotation  [no-untyped-def]",
+          1
+        ],
+        [
+          "src/geointel/news/relevance.py",
+          "Function is missing a type annotation for one or more parameters  [no-untyped-def]",
+          1
+        ],
+        [
+          "src/geointel/news/relevance.py",
+          "Missing type arguments for generic type \"dict\"  [type-arg]",
+          4
+        ],
+        [
+          "src/geointel/pipeline/historical.py",
+          "Argument 1 to \"HistoricalFatalityStatistics\" has incompatible type \"**dict[str, int | None]\"; expected \"int\"  [arg-type]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/historical.py",
+          "Argument 1 to \"sum\" has incompatible type \"list[Any | None]\"; expected \"Iterable[bool]\"  [arg-type]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/historical.py",
+          "Call to untyped function \"features\" in typed context  [no-untyped-call]",
+          2
+        ],
+        [
+          "src/geointel/pipeline/historical.py",
+          "Function is missing a type annotation  [no-untyped-def]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/historical.py",
+          "Function is missing a type annotation for one or more parameters  [no-untyped-def]",
+          3
+        ],
+        [
+          "src/geointel/pipeline/historical.py",
+          "Missing type arguments for generic type \"tuple\"  [type-arg]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/historical.py",
+          "Need type annotation for \"counts\"  [var-annotated]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/historical.py",
+          "Need type annotation for \"windows\" (hint: \"windows: dict[<type>, <type>] = ...\")  [var-annotated]",
+          2
+        ],
+        [
+          "src/geointel/pipeline/historical.py",
+          "Returning Any from function declared to return \"str\"  [no-any-return]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/historical.py",
+          "Value of type variable \"SupportsRichComparisonT\" of \"max\" cannot be \"Any | None\"  [type-var]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/historical.py",
+          "Value of type variable \"_NumberT\" of \"median\" cannot be \"Any | None\"  [type-var]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/historical_review.py",
+          "Call to untyped function \"walk\" in typed context  [no-untyped-call]",
+          4
+        ],
+        [
+          "src/geointel/pipeline/historical_review.py",
+          "Function is missing a type annotation  [no-untyped-def]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/historical_review.py",
+          "Missing type arguments for generic type \"dict\"  [type-arg]",
+          2
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"EvidenceConnector\" has no attribute \"last_query_plan\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"alignment_notes\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"alignment_status\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"canonical_url\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"country\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"epistemic_status\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"event_type\"; maybe \"event_date\"?  [attr-defined]",
+          2
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"geographic_alignment_notes\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"geographic_alignment_status\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"geographic_unit\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"horizon_months\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"identity_metadata\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"issue_date\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"language\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"location\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"model_name\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"model_version\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"notes\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"prediction\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"provider\"  [attr-defined]",
+          3
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"provider_geography\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"publication_timestamp\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"publisher\"; maybe \"published_at\"?  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"requested_geography\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"retrieval_timestamp\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"scale\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"source_country\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"source_url\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"syndication_metadata\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"target_end\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"target_start\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"target_variable\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"temporal_alignment\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"temporal_classification\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"unit\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "Call to untyped function \"_deduplicate\" of \"AnalysisPipeline\" in typed context  [no-untyped-call]",
+          4
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "Call to untyped function \"_merge_news_duplicates\" of \"AnalysisPipeline\" in typed context  [no-untyped-call]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "Function is missing a type annotation  [no-untyped-def]",
+          3
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "Function is missing a type annotation for one or more parameters  [no-untyped-def]",
+          3
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "Incompatible types in assignment (expression has type \"NormalizedForecastSignal\", variable has type \"NormalizedEvidence\")  [assignment]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "Incompatible types in assignment (expression has type \"NormalizedNewsReport\", variable has type \"NormalizedEvidence\")  [assignment]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "Incompatible types in assignment (expression has type \"NormalizedOperationalEvent\", variable has type \"NormalizedEvidence\")  [assignment]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "Item \"None\" of \"Any | None\" has no attribute \"get\"  [union-attr]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "Missing type arguments for generic type \"dict\"  [type-arg]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "Need type annotation for \"received\" (hint: \"received: list[<type>] = ...\")  [var-annotated]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "Need type annotation for \"retrieved\" (hint: \"retrieved: list[<type>] = ...\")  [var-annotated]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "Need type annotation for \"unique\" (hint: \"unique: dict[<type>, <type>] = ...\")  [var-annotated]",
+          2
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "Need type annotation for \"unique\" (hint: \"unique: list[<type>] = ...\")  [var-annotated]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/taxonomy.py",
+          "Argument 1 to \"get\" of \"dict\" has incompatible type \"str | None\"; expected \"str\"  [arg-type]",
+          1
+        ],
+        [
+          "src/geointel/providers/__main__.py",
+          "Missing type arguments for generic type \"dict\"  [type-arg]",
+          1
+        ],
+        [
+          "src/geointel/providers/base.py",
+          "Missing type arguments for generic type \"dict\"  [type-arg]",
+          2
+        ],
+        [
+          "src/geointel/providers/offline.py",
+          "Incompatible types in assignment (expression has type \"ForecastOutput\", variable has type \"AnalystOutput\")  [assignment]",
+          1
+        ],
+        [
+          "src/geointel/providers/offline.py",
+          "Incompatible types in assignment (expression has type \"RedTeamOutput\", variable has type \"AnalystOutput\")  [assignment]",
+          1
+        ],
+        [
+          "src/geointel/providers/offline.py",
+          "Incompatible types in assignment (expression has type \"SynthesisOutput\", variable has type \"AnalystOutput\")  [assignment]",
+          1
+        ],
+        [
+          "src/geointel/providers/offline.py",
+          "Missing type arguments for generic type \"dict\"  [type-arg]",
+          1
+        ],
+        [
+          "src/geointel/providers/offline.py",
+          "Value of type \"Any | None\" is not indexable  [index]",
+          1
+        ],
+        [
+          "src/geointel/providers/registry.py",
+          "Value of type \"object\" is not indexable  [index]",
+          15
+        ],
+        [
+          "src/geointel/providers/runtime.py",
+          "Returning Any from function declared to return \"dict[str, Any]\"  [no-any-return]",
+          1
+        ],
+        [
+          "src/geointel/validation/domain.py",
+          "Function is missing a return type annotation  [no-untyped-def]",
+          1
+        ],
+        [
+          "src/geointel/validation/runner.py",
+          "\"Base\" has no attribute \"provenance\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/validation/runner.py",
+          "\"object\" has no attribute \"__iter__\"; maybe \"__dir__\" or \"__str__\"? (not iterable)  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/validation/runner.py",
+          "\"object\" has no attribute \"append\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/validation/runner.py",
+          "Call to untyped function \"_evaluate\" in typed context  [no-untyped-call]",
+          1
+        ],
+        [
+          "src/geointel/validation/runner.py",
+          "Call to untyped function \"_source_matrix\" of \"ValidationRunner\" in typed context  [no-untyped-call]",
+          1
+        ],
+        [
+          "src/geointel/validation/runner.py",
+          "Function is missing a type annotation  [no-untyped-def]",
+          2
+        ],
+        [
+          "src/geointel/validation/runner.py",
+          "Missing type arguments for generic type \"dict\"  [type-arg]",
+          2
+        ],
+        [
+          "src/geointel/validation/suite.py",
+          "Argument 1 to \"append\" of \"list\" has incompatible type \"FailedFixtureConnector\"; expected \"DisabledConnector\"  [arg-type]",
+          1
+        ],
+        [
+          "src/geointel/validation/suite.py",
+          "Argument 1 to \"append\" of \"list\" has incompatible type \"FixtureConnector\"; expected \"DisabledConnector\"  [arg-type]",
+          1
+        ],
+        [
+          "src/geointel/validation/suite.py",
+          "Function is missing a return type annotation  [no-untyped-def]",
+          3
+        ]
+      ]
+    },
+    "review-original": {
+      "sha": "b7956e594e9c609aa4a93e45ff6fc55ff6dcad4b",
+      "count": 401,
+      "diagnostics": [
+        [
+          "src/geointel/api/app.py",
+          "Argument 1 to \"append\" of \"list\" has incompatible type \"ACLEDConnector | DisabledConnector\"; expected \"EvidenceConnector\"  [arg-type]",
+          1
+        ],
+        [
+          "src/geointel/api/app.py",
+          "Argument 1 to \"append\" of \"list\" has incompatible type \"CASTConnector | DisabledConnector\"; expected \"EvidenceConnector\"  [arg-type]",
+          1
+        ],
+        [
+          "src/geointel/api/app.py",
+          "Argument 1 to \"append\" of \"list\" has incompatible type \"GDELTConnector\"; expected \"EvidenceConnector\"  [arg-type]",
+          1
+        ],
+        [
+          "src/geointel/api/app.py",
+          "Argument 1 to \"append\" of \"list\" has incompatible type \"NewsAPIConnector\"; expected \"EvidenceConnector\"  [arg-type]",
+          1
+        ],
+        [
+          "src/geointel/api/app.py",
+          "Argument 1 to \"append\" of \"list\" has incompatible type \"UCDPConnector | DisabledConnector\"; expected \"EvidenceConnector\"  [arg-type]",
+          1
+        ],
+        [
+          "src/geointel/api/app.py",
+          "Argument 1 to \"append\" of \"list\" has incompatible type \"VIEWSConnector | DisabledConnector\"; expected \"EvidenceConnector\"  [arg-type]",
+          1
+        ],
+        [
+          "src/geointel/api/app.py",
+          "Missing type arguments for generic type \"dict\"  [type-arg]",
+          1
+        ],
+        [
+          "src/geointel/config.py",
+          "Function is missing a return type annotation  [no-untyped-def]",
+          1
+        ],
+        [
+          "src/geointel/connectors/acled.py",
+          "\"ACLEDError\" has no attribute \"category\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/connectors/acled.py",
+          "Function is missing a type annotation  [no-untyped-def]",
+          2
+        ],
+        [
+          "src/geointel/connectors/acled.py",
+          "Item \"None\" of \"ACLEDOAuthClient | None\" has no attribute \"access_token\"  [union-attr]",
+          1
+        ],
+        [
+          "src/geointel/connectors/acled.py",
+          "Item \"None\" of \"str | None\" has no attribute \"lstrip\"  [union-attr]",
+          1
+        ],
+        [
+          "src/geointel/connectors/acled.py",
+          "Missing type arguments for generic type \"dict\"  [type-arg]",
+          2
+        ],
+        [
+          "src/geointel/connectors/cast.py",
+          "\"CASTError\" has no attribute \"category\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/connectors/cast.py",
+          "Function is missing a type annotation  [no-untyped-def]",
+          1
+        ],
+        [
+          "src/geointel/connectors/cast.py",
+          "Function is missing a type annotation for one or more parameters  [no-untyped-def]",
+          1
+        ],
+        [
+          "src/geointel/connectors/cast.py",
+          "Item \"None\" of \"ACLEDOAuthClient | None\" has no attribute \"access_token\"  [union-attr]",
+          1
+        ],
+        [
+          "src/geointel/connectors/cast.py",
+          "Missing type arguments for generic type \"dict\"  [type-arg]",
+          2
+        ],
+        [
+          "src/geointel/connectors/gdelt.py",
+          "\"GDELTError\" has no attribute \"category\"  [attr-defined]",
+          2
+        ],
+        [
+          "src/geointel/connectors/gdelt.py",
+          "Call to untyped function \"normalize\" of \"GDELTConnector\" in typed context  [no-untyped-call]",
+          1
+        ],
+        [
+          "src/geointel/connectors/gdelt.py",
+          "Function is missing a type annotation  [no-untyped-def]",
+          2
+        ],
+        [
+          "src/geointel/connectors/gdelt.py",
+          "Function is missing a type annotation for one or more parameters  [no-untyped-def]",
+          1
+        ],
+        [
+          "src/geointel/connectors/gdelt.py",
+          "Returning Any from function declared to return \"list[Any]\"  [no-any-return]",
+          1
+        ],
+        [
+          "src/geointel/connectors/newsapi.py",
+          "\"NewsAPIError\" has no attribute \"category\"  [attr-defined]",
+          2
+        ],
+        [
+          "src/geointel/connectors/newsapi.py",
+          "Argument 1 to \"get\" of \"dict\" has incompatible type \"Any | None\"; expected \"str\"  [arg-type]",
+          1
+        ],
+        [
+          "src/geointel/connectors/newsapi.py",
+          "Call to untyped function \"normalize\" of \"NewsAPIConnector\" in typed context  [no-untyped-call]",
+          1
+        ],
+        [
+          "src/geointel/connectors/newsapi.py",
+          "Function is missing a type annotation  [no-untyped-def]",
+          1
+        ],
+        [
+          "src/geointel/connectors/newsapi.py",
+          "Function is missing a type annotation for one or more parameters  [no-untyped-def]",
+          1
+        ],
+        [
+          "src/geointel/connectors/newsapi.py",
+          "Need type annotation for \"output\" (hint: \"output: list[<type>] = ...\")  [var-annotated]",
+          1
+        ],
+        [
+          "src/geointel/connectors/ucdp.py",
+          "Function is missing a type annotation for one or more parameters  [no-untyped-def]",
+          1
+        ],
+        [
+          "src/geointel/connectors/ucdp.py",
+          "Item \"None\" of \"str | None\" has no attribute \"lstrip\"  [union-attr]",
+          1
+        ],
+        [
+          "src/geointel/connectors/ucdp.py",
+          "Missing type arguments for generic type \"dict\"  [type-arg]",
+          2
+        ],
+        [
+          "src/geointel/connectors/ucdp.py",
+          "Returning Any from function declared to return \"list[dict[Any, Any]]\"  [no-any-return]",
+          1
+        ],
+        [
+          "src/geointel/connectors/views.py",
+          "Item \"None\" of \"str | None\" has no attribute \"lstrip\"  [union-attr]",
+          1
+        ],
+        [
+          "src/geointel/connectors/views.py",
+          "Missing type arguments for generic type \"dict\"  [type-arg]",
+          2
+        ],
+        [
+          "src/geointel/coverage.py",
+          "Argument \"geography\" to \"RecordDecision\" has incompatible type \"str\"; expected \"Literal['pass', 'fail', 'unknown', 'not_applicable']\"  [arg-type]",
+          1
+        ],
+        [
+          "src/geointel/coverage.py",
+          "Argument \"publication_freshness\" to \"RecordDecision\" has incompatible type \"str\"; expected \"Literal['pass', 'fail', 'unknown', 'not_applicable']\"  [arg-type]",
+          1
+        ],
+        [
+          "src/geointel/coverage.py",
+          "Call to untyped function \"_country\" in typed context  [no-untyped-call]",
+          5
+        ],
+        [
+          "src/geointel/coverage.py",
+          "Call to untyped function \"_utc\" in typed context  [no-untyped-call]",
+          6
+        ],
+        [
+          "src/geointel/coverage.py",
+          "Function is missing a return type annotation  [no-untyped-def]",
+          1
+        ],
+        [
+          "src/geointel/coverage.py",
+          "Function is missing a type annotation  [no-untyped-def]",
+          2
+        ],
+        [
+          "src/geointel/coverage.py",
+          "Missing type arguments for generic type \"dict\"  [type-arg]",
+          2
+        ],
+        [
+          "src/geointel/coverage.py",
+          "Missing type arguments for generic type \"list\"  [type-arg]",
+          2
+        ],
+        [
+          "src/geointel/coverage.py",
+          "Need type annotation for \"decisions\" (hint: \"decisions: dict[<type>, <type>] = ...\")  [var-annotated]",
+          1
+        ],
+        [
+          "src/geointel/domain/models.py",
+          "Function is missing a type annotation  [no-untyped-def]",
+          2
+        ],
+        [
+          "src/geointel/domain/models.py",
+          "Missing type arguments for generic type \"dict\"  [type-arg]",
+          30
+        ],
+        [
+          "src/geointel/domain/models.py",
+          "Missing type arguments for generic type \"list\"  [type-arg]",
+          27
+        ],
+        [
+          "src/geointel/domain/schemas.py",
+          "Function is missing a return type annotation  [no-untyped-def]",
+          3
+        ],
+        [
+          "src/geointel/domain/schemas.py",
+          "Missing type arguments for generic type \"dict\"  [type-arg]",
+          18
+        ],
+        [
+          "src/geointel/domain/schemas.py",
+          "Unsupported operand types for > (\"float\" and \"None\")  [operator]",
+          1
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "\"SectionInput\" has no attribute \"actors\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "\"SectionInput\" has no attribute \"attributed_author\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "\"SectionInput\" has no attribute \"case_ids\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "\"SectionInput\" has no attribute \"claim_type\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "\"SectionInput\" has no attribute \"concept_slugs\"  [attr-defined]",
+          2
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "\"SectionInput\" has no attribute \"counterexamples\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "\"SectionInput\" has no attribute \"description\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "\"SectionInput\" has no attribute \"end_date\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "\"SectionInput\" has no attribute \"extraction_confidence\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "\"SectionInput\" has no attribute \"factual_summary\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "\"SectionInput\" has no attribute \"geography\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "\"SectionInput\" has no attribute \"ingestion_metadata\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "\"SectionInput\" has no attribute \"interpretation_notes\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "\"SectionInput\" has no attribute \"limitations\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "\"SectionInput\" has no attribute \"name\"  [attr-defined]",
+          3
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "\"SectionInput\" has no attribute \"outcome\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "\"SectionInput\" has no attribute \"section_id\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "\"SectionInput\" has no attribute \"slug\"  [attr-defined]",
+          4
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "\"SectionInput\" has no attribute \"source_provenance\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "\"SectionInput\" has no attribute \"start_date\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "\"SectionInput\" has no attribute \"text\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "Argument 1 to \"scalar\" of \"Session\" has incompatible type \"Select[StrategicConcept]\"; expected \"TypedReturnsRows[Never]\"  [arg-type]",
+          1
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "Call to untyped function (unknown) in typed context  [no-untyped-call]",
+          1
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "Function is missing a return type annotation  [no-untyped-def]",
+          1
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "Function is missing a type annotation  [no-untyped-def]",
+          1
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "Incompatible types in assignment (expression has type \"CaseInput\", variable has type \"SectionInput\")  [assignment]",
+          1
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "Incompatible types in assignment (expression has type \"ClaimInput\", variable has type \"SectionInput\")  [assignment]",
+          1
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "Incompatible types in assignment (expression has type \"ConceptInput\", variable has type \"SectionInput\")  [assignment]",
+          1
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "Missing type arguments for generic type \"dict\"  [type-arg]",
+          13
+        ],
+        [
+          "src/geointel/knowledge/lenses.py",
+          "Function is missing a type annotation  [no-untyped-def]",
+          2
+        ],
+        [
+          "src/geointel/monitoring/__main__.py",
+          "\"Watchlist\" has no attribute \"next_due_at\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/monitoring/__main__.py",
+          "Call to untyped function \"present_run\" in typed context  [no-untyped-call]",
+          2
+        ],
+        [
+          "src/geointel/monitoring/__main__.py",
+          "Function is missing a type annotation  [no-untyped-def]",
+          1
+        ],
+        [
+          "src/geointel/monitoring/__main__.py",
+          "Incompatible types in assignment (expression has type \"MonitoringRun\", variable has type \"Watchlist\")  [assignment]",
+          1
+        ],
+        [
+          "src/geointel/monitoring/__main__.py",
+          "Incompatible types in assignment (expression has type \"WatchlistTarget\", variable has type \"Watchlist\")  [assignment]",
+          1
+        ],
+        [
+          "src/geointel/monitoring/__main__.py",
+          "Incompatible types in assignment (expression has type \"list[Any]\", variable has type \"dict[str, str]\")  [assignment]",
+          1
+        ],
+        [
+          "src/geointel/monitoring/__main__.py",
+          "Incompatible types in assignment (expression has type \"list[dict[str, list[Any] | str | None]]\", variable has type \"dict[str, str]\")  [assignment]",
+          1
+        ],
+        [
+          "src/geointel/monitoring/data_quality.py",
+          "Call to untyped function \"_collection_findings\" in typed context  [no-untyped-call]",
+          1
+        ],
+        [
+          "src/geointel/monitoring/data_quality.py",
+          "Call to untyped function \"_count\" in typed context  [no-untyped-call]",
+          4
+        ],
+        [
+          "src/geointel/monitoring/data_quality.py",
+          "Call to untyped function \"_geography\" in typed context  [no-untyped-call]",
+          5
+        ],
+        [
+          "src/geointel/monitoring/data_quality.py",
+          "Call to untyped function \"_inspect_record\" in typed context  [no-untyped-call]",
+          1
+        ],
+        [
+          "src/geointel/monitoring/data_quality.py",
+          "Call to untyped function \"_inspect_rows\" in typed context  [no-untyped-call]",
+          1
+        ],
+        [
+          "src/geointel/monitoring/data_quality.py",
+          "Call to untyped function \"_report\" in typed context  [no-untyped-call]",
+          3
+        ],
+        [
+          "src/geointel/monitoring/data_quality.py",
+          "Call to untyped function \"_signal_country\" in typed context  [no-untyped-call]",
+          1
+        ],
+        [
+          "src/geointel/monitoring/data_quality.py",
+          "Call to untyped function \"_thresholds\" in typed context  [no-untyped-call]",
+          1
+        ],
+        [
+          "src/geointel/monitoring/data_quality.py",
+          "Call to untyped function \"_timestamp\" in typed context  [no-untyped-call]",
+          8
+        ],
+        [
+          "src/geointel/monitoring/data_quality.py",
+          "Function is missing a type annotation  [no-untyped-def]",
+          9
+        ],
+        [
+          "src/geointel/monitoring/data_quality.py",
+          "Missing type arguments for generic type \"dict\"  [type-arg]",
+          1
+        ],
+        [
+          "src/geointel/monitoring/data_quality.py",
+          "Need type annotation for \"expired_timestamps\" (hint: \"expired_timestamps: list[<type>] = ...\")  [var-annotated]",
+          1
+        ],
+        [
+          "src/geointel/monitoring/data_quality.py",
+          "Need type annotation for \"findings\"  [var-annotated]",
+          1
+        ],
+        [
+          "src/geointel/monitoring/data_quality.py",
+          "Need type annotation for \"outcomes\" (hint: \"outcomes: dict[<type>, <type>] = ...\")  [var-annotated]",
+          1
+        ],
+        [
+          "src/geointel/monitoring/data_quality.py",
+          "Need type annotation for \"timestamps\" (hint: \"timestamps: list[<type>] = ...\")  [var-annotated]",
+          1
+        ],
+        [
+          "src/geointel/monitoring/service.py",
+          "\"object\" has no attribute \"run\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/monitoring/service.py",
+          "Argument 2 to \"historical_context\" has incompatible type \"str\"; expected \"ConflictType | None\"  [arg-type]",
+          1
+        ],
+        [
+          "src/geointel/monitoring/service.py",
+          "Call to untyped function \"_add\" of \"ChangeDetector\" in typed context  [no-untyped-call]",
+          3
+        ],
+        [
+          "src/geointel/monitoring/service.py",
+          "Call to untyped function \"_compare_map\" in typed context  [no-untyped-call]",
+          7
+        ],
+        [
+          "src/geointel/monitoring/service.py",
+          "Call to untyped function \"_previous_comparable\" in typed context  [no-untyped-call]",
+          1
+        ],
+        [
+          "src/geointel/monitoring/service.py",
+          "Function is missing a type annotation  [no-untyped-def]",
+          3
+        ],
+        [
+          "src/geointel/monitoring/service.py",
+          "Function is missing a type annotation for one or more parameters  [no-untyped-def]",
+          2
+        ],
+        [
+          "src/geointel/monitoring/service.py",
+          "Incompatible types in assignment (expression has type \"MonitoringRun | None\", variable has type \"MonitoringRun\")  [assignment]",
+          1
+        ],
+        [
+          "src/geointel/monitoring/service.py",
+          "Missing type arguments for generic type \"dict\"  [type-arg]",
+          9
+        ],
+        [
+          "src/geointel/monitoring/service.py",
+          "Returning Any from function declared to return \"str\"  [no-any-return]",
+          1
+        ],
+        [
+          "src/geointel/news/corroboration.py",
+          "Missing type arguments for generic type \"dict\"  [type-arg]",
+          2
+        ],
+        [
+          "src/geointel/news/relevance.py",
+          "Function is missing a return type annotation  [no-untyped-def]",
+          1
+        ],
+        [
+          "src/geointel/news/relevance.py",
+          "Function is missing a type annotation for one or more parameters  [no-untyped-def]",
+          1
+        ],
+        [
+          "src/geointel/news/relevance.py",
+          "Missing type arguments for generic type \"dict\"  [type-arg]",
+          4
+        ],
+        [
+          "src/geointel/pipeline/historical.py",
+          "Argument 1 to \"HistoricalFatalityStatistics\" has incompatible type \"**dict[str, int | None]\"; expected \"int\"  [arg-type]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/historical.py",
+          "Argument 1 to \"sum\" has incompatible type \"list[Any | None]\"; expected \"Iterable[bool]\"  [arg-type]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/historical.py",
+          "Call to untyped function \"features\" in typed context  [no-untyped-call]",
+          2
+        ],
+        [
+          "src/geointel/pipeline/historical.py",
+          "Function is missing a type annotation  [no-untyped-def]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/historical.py",
+          "Function is missing a type annotation for one or more parameters  [no-untyped-def]",
+          3
+        ],
+        [
+          "src/geointel/pipeline/historical.py",
+          "Missing type arguments for generic type \"tuple\"  [type-arg]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/historical.py",
+          "Need type annotation for \"counts\"  [var-annotated]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/historical.py",
+          "Need type annotation for \"windows\" (hint: \"windows: dict[<type>, <type>] = ...\")  [var-annotated]",
+          2
+        ],
+        [
+          "src/geointel/pipeline/historical.py",
+          "Returning Any from function declared to return \"str\"  [no-any-return]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/historical.py",
+          "Value of type variable \"SupportsRichComparisonT\" of \"max\" cannot be \"Any | None\"  [type-var]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/historical.py",
+          "Value of type variable \"_NumberT\" of \"median\" cannot be \"Any | None\"  [type-var]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/historical_review.py",
+          "Call to untyped function \"walk\" in typed context  [no-untyped-call]",
+          4
+        ],
+        [
+          "src/geointel/pipeline/historical_review.py",
+          "Function is missing a type annotation  [no-untyped-def]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/historical_review.py",
+          "Missing type arguments for generic type \"dict\"  [type-arg]",
+          2
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"EvidenceConnector\" has no attribute \"last_query_plan\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"alignment_notes\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"alignment_status\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"canonical_url\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"country\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"epistemic_status\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"event_type\"; maybe \"event_date\"?  [attr-defined]",
+          2
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"geographic_alignment_notes\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"geographic_alignment_status\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"geographic_unit\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"horizon_months\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"identity_metadata\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"issue_date\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"language\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"location\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"model_name\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"model_version\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"notes\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"prediction\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"provider\"  [attr-defined]",
+          4
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"provider_geography\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"publication_timestamp\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"publisher\"; maybe \"published_at\"?  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"requested_geography\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"retrieval_timestamp\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"scale\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"source_country\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"source_url\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"syndication_metadata\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"target_end\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"target_start\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"target_variable\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"temporal_alignment\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"temporal_classification\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"unit\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "Argument 1 to \"scalar\" of \"Session\" has incompatible type \"Select[Source]\"; expected \"TypedReturnsRows[Never]\"  [arg-type]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "Call to untyped function \"_deduplicate\" of \"AnalysisPipeline\" in typed context  [no-untyped-call]",
+          4
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "Call to untyped function \"_merge_news_duplicates\" of \"AnalysisPipeline\" in typed context  [no-untyped-call]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "Function is missing a type annotation  [no-untyped-def]",
+          3
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "Function is missing a type annotation for one or more parameters  [no-untyped-def]",
+          3
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "Incompatible types in assignment (expression has type \"NormalizedForecastSignal\", variable has type \"NormalizedEvidence\")  [assignment]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "Incompatible types in assignment (expression has type \"NormalizedNewsReport\", variable has type \"NormalizedEvidence\")  [assignment]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "Incompatible types in assignment (expression has type \"NormalizedOperationalEvent\", variable has type \"NormalizedEvidence\")  [assignment]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "Item \"None\" of \"Any | None\" has no attribute \"get\"  [union-attr]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "Missing type arguments for generic type \"dict\"  [type-arg]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "Need type annotation for \"received\" (hint: \"received: list[<type>] = ...\")  [var-annotated]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "Need type annotation for \"retrieved\" (hint: \"retrieved: list[<type>] = ...\")  [var-annotated]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "Need type annotation for \"unique\" (hint: \"unique: dict[<type>, <type>] = ...\")  [var-annotated]",
+          2
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "Need type annotation for \"unique\" (hint: \"unique: list[<type>] = ...\")  [var-annotated]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/taxonomy.py",
+          "Argument 1 to \"get\" of \"dict\" has incompatible type \"str | None\"; expected \"str\"  [arg-type]",
+          1
+        ],
+        [
+          "src/geointel/providers/__main__.py",
+          "Missing type arguments for generic type \"dict\"  [type-arg]",
+          1
+        ],
+        [
+          "src/geointel/providers/base.py",
+          "Missing type arguments for generic type \"dict\"  [type-arg]",
+          2
+        ],
+        [
+          "src/geointel/providers/offline.py",
+          "Incompatible types in assignment (expression has type \"ForecastOutput\", variable has type \"AnalystOutput\")  [assignment]",
+          1
+        ],
+        [
+          "src/geointel/providers/offline.py",
+          "Incompatible types in assignment (expression has type \"RedTeamOutput\", variable has type \"AnalystOutput\")  [assignment]",
+          1
+        ],
+        [
+          "src/geointel/providers/offline.py",
+          "Incompatible types in assignment (expression has type \"SynthesisOutput\", variable has type \"AnalystOutput\")  [assignment]",
+          1
+        ],
+        [
+          "src/geointel/providers/offline.py",
+          "Missing type arguments for generic type \"dict\"  [type-arg]",
+          1
+        ],
+        [
+          "src/geointel/providers/offline.py",
+          "Value of type \"Any | None\" is not indexable  [index]",
+          1
+        ],
+        [
+          "src/geointel/providers/registry.py",
+          "Value of type \"object\" is not indexable  [index]",
+          15
+        ],
+        [
+          "src/geointel/providers/runtime.py",
+          "Returning Any from function declared to return \"dict[str, Any]\"  [no-any-return]",
+          1
+        ],
+        [
+          "src/geointel/validation/domain.py",
+          "Function is missing a return type annotation  [no-untyped-def]",
+          1
+        ],
+        [
+          "src/geointel/validation/runner.py",
+          "\"Base\" has no attribute \"provenance\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/validation/runner.py",
+          "\"object\" has no attribute \"__iter__\"; maybe \"__dir__\" or \"__str__\"? (not iterable)  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/validation/runner.py",
+          "\"object\" has no attribute \"append\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/validation/runner.py",
+          "Call to untyped function \"_evaluate\" in typed context  [no-untyped-call]",
+          1
+        ],
+        [
+          "src/geointel/validation/runner.py",
+          "Call to untyped function \"_source_matrix\" of \"ValidationRunner\" in typed context  [no-untyped-call]",
+          1
+        ],
+        [
+          "src/geointel/validation/runner.py",
+          "Function is missing a type annotation  [no-untyped-def]",
+          2
+        ],
+        [
+          "src/geointel/validation/runner.py",
+          "Missing type arguments for generic type \"dict\"  [type-arg]",
+          2
+        ],
+        [
+          "src/geointel/validation/suite.py",
+          "Argument 1 to \"append\" of \"list\" has incompatible type \"FailedFixtureConnector\"; expected \"DisabledConnector\"  [arg-type]",
+          1
+        ],
+        [
+          "src/geointel/validation/suite.py",
+          "Argument 1 to \"append\" of \"list\" has incompatible type \"FixtureConnector\"; expected \"DisabledConnector\"  [arg-type]",
+          1
+        ],
+        [
+          "src/geointel/validation/suite.py",
+          "Function is missing a return type annotation  [no-untyped-def]",
+          3
+        ]
+      ]
+    },
+    "review-pr24": {
+      "sha": "d296ee720a45753ef4c1cf49fb23a77120a71303",
+      "count": 338,
+      "diagnostics": [
+        [
+          "src/geointel/api/app.py",
+          "Argument 1 to \"append\" of \"list\" has incompatible type \"ACLEDConnector | DisabledConnector\"; expected \"EvidenceConnector\"  [arg-type]",
+          1
+        ],
+        [
+          "src/geointel/api/app.py",
+          "Argument 1 to \"append\" of \"list\" has incompatible type \"CASTConnector | DisabledConnector\"; expected \"EvidenceConnector\"  [arg-type]",
+          1
+        ],
+        [
+          "src/geointel/api/app.py",
+          "Argument 1 to \"append\" of \"list\" has incompatible type \"GDELTConnector\"; expected \"EvidenceConnector\"  [arg-type]",
+          1
+        ],
+        [
+          "src/geointel/api/app.py",
+          "Argument 1 to \"append\" of \"list\" has incompatible type \"NewsAPIConnector\"; expected \"EvidenceConnector\"  [arg-type]",
+          1
+        ],
+        [
+          "src/geointel/api/app.py",
+          "Argument 1 to \"append\" of \"list\" has incompatible type \"UCDPConnector | DisabledConnector\"; expected \"EvidenceConnector\"  [arg-type]",
+          1
+        ],
+        [
+          "src/geointel/api/app.py",
+          "Argument 1 to \"append\" of \"list\" has incompatible type \"VIEWSConnector | DisabledConnector\"; expected \"EvidenceConnector\"  [arg-type]",
+          1
+        ],
+        [
+          "src/geointel/api/app.py",
+          "Missing type arguments for generic type \"dict\"  [type-arg]",
+          1
+        ],
+        [
+          "src/geointel/config.py",
+          "Function is missing a return type annotation  [no-untyped-def]",
+          1
+        ],
+        [
+          "src/geointel/connectors/acled.py",
+          "\"ACLEDError\" has no attribute \"category\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/connectors/acled.py",
+          "Function is missing a type annotation  [no-untyped-def]",
+          2
+        ],
+        [
+          "src/geointel/connectors/acled.py",
+          "Item \"None\" of \"ACLEDOAuthClient | None\" has no attribute \"access_token\"  [union-attr]",
+          1
+        ],
+        [
+          "src/geointel/connectors/acled.py",
+          "Item \"None\" of \"str | None\" has no attribute \"lstrip\"  [union-attr]",
+          1
+        ],
+        [
+          "src/geointel/connectors/acled.py",
+          "Missing type arguments for generic type \"dict\"  [type-arg]",
+          2
+        ],
+        [
+          "src/geointel/connectors/cast.py",
+          "\"CASTError\" has no attribute \"category\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/connectors/cast.py",
+          "Function is missing a type annotation  [no-untyped-def]",
+          1
+        ],
+        [
+          "src/geointel/connectors/cast.py",
+          "Function is missing a type annotation for one or more parameters  [no-untyped-def]",
+          1
+        ],
+        [
+          "src/geointel/connectors/cast.py",
+          "Item \"None\" of \"ACLEDOAuthClient | None\" has no attribute \"access_token\"  [union-attr]",
+          1
+        ],
+        [
+          "src/geointel/connectors/cast.py",
+          "Missing type arguments for generic type \"dict\"  [type-arg]",
+          2
+        ],
+        [
+          "src/geointel/connectors/gdelt.py",
+          "\"GDELTError\" has no attribute \"category\"  [attr-defined]",
+          2
+        ],
+        [
+          "src/geointel/connectors/gdelt.py",
+          "Call to untyped function \"normalize\" of \"GDELTConnector\" in typed context  [no-untyped-call]",
+          1
+        ],
+        [
+          "src/geointel/connectors/gdelt.py",
+          "Function is missing a type annotation  [no-untyped-def]",
+          2
+        ],
+        [
+          "src/geointel/connectors/gdelt.py",
+          "Function is missing a type annotation for one or more parameters  [no-untyped-def]",
+          1
+        ],
+        [
+          "src/geointel/connectors/gdelt.py",
+          "Returning Any from function declared to return \"list[Any]\"  [no-any-return]",
+          1
+        ],
+        [
+          "src/geointel/connectors/newsapi.py",
+          "\"NewsAPIError\" has no attribute \"category\"  [attr-defined]",
+          2
+        ],
+        [
+          "src/geointel/connectors/newsapi.py",
+          "Argument 1 to \"get\" of \"dict\" has incompatible type \"Any | None\"; expected \"str\"  [arg-type]",
+          1
+        ],
+        [
+          "src/geointel/connectors/newsapi.py",
+          "Call to untyped function \"normalize\" of \"NewsAPIConnector\" in typed context  [no-untyped-call]",
+          1
+        ],
+        [
+          "src/geointel/connectors/newsapi.py",
+          "Function is missing a type annotation  [no-untyped-def]",
+          1
+        ],
+        [
+          "src/geointel/connectors/newsapi.py",
+          "Function is missing a type annotation for one or more parameters  [no-untyped-def]",
+          1
+        ],
+        [
+          "src/geointel/connectors/newsapi.py",
+          "Need type annotation for \"output\" (hint: \"output: list[<type>] = ...\")  [var-annotated]",
+          1
+        ],
+        [
+          "src/geointel/connectors/ucdp.py",
+          "Function is missing a type annotation for one or more parameters  [no-untyped-def]",
+          1
+        ],
+        [
+          "src/geointel/connectors/ucdp.py",
+          "Item \"None\" of \"str | None\" has no attribute \"lstrip\"  [union-attr]",
+          1
+        ],
+        [
+          "src/geointel/connectors/ucdp.py",
+          "Missing type arguments for generic type \"dict\"  [type-arg]",
+          2
+        ],
+        [
+          "src/geointel/connectors/ucdp.py",
+          "Returning Any from function declared to return \"list[dict[Any, Any]]\"  [no-any-return]",
+          1
+        ],
+        [
+          "src/geointel/connectors/views.py",
+          "Item \"None\" of \"str | None\" has no attribute \"lstrip\"  [union-attr]",
+          1
+        ],
+        [
+          "src/geointel/connectors/views.py",
+          "Missing type arguments for generic type \"dict\"  [type-arg]",
+          2
+        ],
+        [
+          "src/geointel/domain/models.py",
+          "Function is missing a type annotation  [no-untyped-def]",
+          2
+        ],
+        [
+          "src/geointel/domain/models.py",
+          "Missing type arguments for generic type \"dict\"  [type-arg]",
+          30
+        ],
+        [
+          "src/geointel/domain/models.py",
+          "Missing type arguments for generic type \"list\"  [type-arg]",
+          27
+        ],
+        [
+          "src/geointel/domain/schemas.py",
+          "Function is missing a return type annotation  [no-untyped-def]",
+          3
+        ],
+        [
+          "src/geointel/domain/schemas.py",
+          "Missing type arguments for generic type \"dict\"  [type-arg]",
+          18
+        ],
+        [
+          "src/geointel/domain/schemas.py",
+          "Unsupported operand types for > (\"float\" and \"None\")  [operator]",
+          1
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "\"SectionInput\" has no attribute \"actors\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "\"SectionInput\" has no attribute \"attributed_author\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "\"SectionInput\" has no attribute \"case_ids\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "\"SectionInput\" has no attribute \"claim_type\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "\"SectionInput\" has no attribute \"concept_slugs\"  [attr-defined]",
+          2
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "\"SectionInput\" has no attribute \"counterexamples\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "\"SectionInput\" has no attribute \"description\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "\"SectionInput\" has no attribute \"end_date\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "\"SectionInput\" has no attribute \"extraction_confidence\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "\"SectionInput\" has no attribute \"factual_summary\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "\"SectionInput\" has no attribute \"geography\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "\"SectionInput\" has no attribute \"ingestion_metadata\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "\"SectionInput\" has no attribute \"interpretation_notes\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "\"SectionInput\" has no attribute \"limitations\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "\"SectionInput\" has no attribute \"name\"  [attr-defined]",
+          3
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "\"SectionInput\" has no attribute \"outcome\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "\"SectionInput\" has no attribute \"section_id\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "\"SectionInput\" has no attribute \"slug\"  [attr-defined]",
+          4
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "\"SectionInput\" has no attribute \"source_provenance\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "\"SectionInput\" has no attribute \"start_date\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "\"SectionInput\" has no attribute \"text\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "Argument 1 to \"scalar\" of \"Session\" has incompatible type \"Select[StrategicConcept]\"; expected \"TypedReturnsRows[Never]\"  [arg-type]",
+          1
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "Call to untyped function (unknown) in typed context  [no-untyped-call]",
+          1
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "Function is missing a return type annotation  [no-untyped-def]",
+          1
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "Function is missing a type annotation  [no-untyped-def]",
+          1
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "Incompatible types in assignment (expression has type \"CaseInput\", variable has type \"SectionInput\")  [assignment]",
+          1
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "Incompatible types in assignment (expression has type \"ClaimInput\", variable has type \"SectionInput\")  [assignment]",
+          1
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "Incompatible types in assignment (expression has type \"ConceptInput\", variable has type \"SectionInput\")  [assignment]",
+          1
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "Missing type arguments for generic type \"dict\"  [type-arg]",
+          13
+        ],
+        [
+          "src/geointel/knowledge/lenses.py",
+          "Function is missing a type annotation  [no-untyped-def]",
+          2
+        ],
+        [
+          "src/geointel/monitoring/__main__.py",
+          "\"Watchlist\" has no attribute \"next_due_at\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/monitoring/__main__.py",
+          "Call to untyped function \"present_run\" in typed context  [no-untyped-call]",
+          2
+        ],
+        [
+          "src/geointel/monitoring/__main__.py",
+          "Function is missing a type annotation  [no-untyped-def]",
+          1
+        ],
+        [
+          "src/geointel/monitoring/__main__.py",
+          "Incompatible types in assignment (expression has type \"MonitoringRun\", variable has type \"Watchlist\")  [assignment]",
+          1
+        ],
+        [
+          "src/geointel/monitoring/__main__.py",
+          "Incompatible types in assignment (expression has type \"WatchlistTarget\", variable has type \"Watchlist\")  [assignment]",
+          1
+        ],
+        [
+          "src/geointel/monitoring/__main__.py",
+          "Incompatible types in assignment (expression has type \"list[Any]\", variable has type \"dict[str, str]\")  [assignment]",
+          1
+        ],
+        [
+          "src/geointel/monitoring/__main__.py",
+          "Incompatible types in assignment (expression has type \"list[dict[str, list[Any] | str | None]]\", variable has type \"dict[str, str]\")  [assignment]",
+          1
+        ],
+        [
+          "src/geointel/monitoring/service.py",
+          "\"object\" has no attribute \"run\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/monitoring/service.py",
+          "Argument 2 to \"historical_context\" has incompatible type \"str\"; expected \"ConflictType | None\"  [arg-type]",
+          1
+        ],
+        [
+          "src/geointel/monitoring/service.py",
+          "Call to untyped function \"_add\" of \"ChangeDetector\" in typed context  [no-untyped-call]",
+          3
+        ],
+        [
+          "src/geointel/monitoring/service.py",
+          "Call to untyped function \"_compare_map\" in typed context  [no-untyped-call]",
+          7
+        ],
+        [
+          "src/geointel/monitoring/service.py",
+          "Call to untyped function \"_previous_comparable\" in typed context  [no-untyped-call]",
+          1
+        ],
+        [
+          "src/geointel/monitoring/service.py",
+          "Function is missing a type annotation  [no-untyped-def]",
+          3
+        ],
+        [
+          "src/geointel/monitoring/service.py",
+          "Function is missing a type annotation for one or more parameters  [no-untyped-def]",
+          1
+        ],
+        [
+          "src/geointel/monitoring/service.py",
+          "Incompatible types in assignment (expression has type \"MonitoringRun | None\", variable has type \"MonitoringRun\")  [assignment]",
+          1
+        ],
+        [
+          "src/geointel/monitoring/service.py",
+          "Missing type arguments for generic type \"dict\"  [type-arg]",
+          9
+        ],
+        [
+          "src/geointel/news/corroboration.py",
+          "Missing type arguments for generic type \"dict\"  [type-arg]",
+          2
+        ],
+        [
+          "src/geointel/news/relevance.py",
+          "Function is missing a return type annotation  [no-untyped-def]",
+          1
+        ],
+        [
+          "src/geointel/news/relevance.py",
+          "Function is missing a type annotation for one or more parameters  [no-untyped-def]",
+          1
+        ],
+        [
+          "src/geointel/news/relevance.py",
+          "Missing type arguments for generic type \"dict\"  [type-arg]",
+          4
+        ],
+        [
+          "src/geointel/pipeline/historical.py",
+          "Argument 1 to \"HistoricalFatalityStatistics\" has incompatible type \"**dict[str, int | None]\"; expected \"int\"  [arg-type]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/historical.py",
+          "Argument 1 to \"sum\" has incompatible type \"list[Any | None]\"; expected \"Iterable[bool]\"  [arg-type]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/historical.py",
+          "Call to untyped function \"features\" in typed context  [no-untyped-call]",
+          2
+        ],
+        [
+          "src/geointel/pipeline/historical.py",
+          "Function is missing a type annotation  [no-untyped-def]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/historical.py",
+          "Function is missing a type annotation for one or more parameters  [no-untyped-def]",
+          3
+        ],
+        [
+          "src/geointel/pipeline/historical.py",
+          "Missing type arguments for generic type \"tuple\"  [type-arg]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/historical.py",
+          "Need type annotation for \"counts\"  [var-annotated]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/historical.py",
+          "Need type annotation for \"windows\" (hint: \"windows: dict[<type>, <type>] = ...\")  [var-annotated]",
+          2
+        ],
+        [
+          "src/geointel/pipeline/historical.py",
+          "Returning Any from function declared to return \"str\"  [no-any-return]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/historical.py",
+          "Value of type variable \"SupportsRichComparisonT\" of \"max\" cannot be \"Any | None\"  [type-var]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/historical.py",
+          "Value of type variable \"_NumberT\" of \"median\" cannot be \"Any | None\"  [type-var]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/historical_review.py",
+          "Call to untyped function \"walk\" in typed context  [no-untyped-call]",
+          4
+        ],
+        [
+          "src/geointel/pipeline/historical_review.py",
+          "Function is missing a type annotation  [no-untyped-def]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/historical_review.py",
+          "Missing type arguments for generic type \"dict\"  [type-arg]",
+          2
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"EvidenceConnector\" has no attribute \"last_query_plan\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"alignment_notes\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"alignment_status\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"canonical_url\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"country\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"epistemic_status\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"event_type\"; maybe \"event_date\"?  [attr-defined]",
+          2
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"geographic_alignment_notes\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"geographic_alignment_status\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"geographic_unit\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"horizon_months\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"identity_metadata\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"issue_date\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"language\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"location\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"model_name\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"model_version\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"notes\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"prediction\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"provider\"  [attr-defined]",
+          4
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"provider_geography\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"publication_timestamp\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"publisher\"; maybe \"published_at\"?  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"requested_geography\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"retrieval_timestamp\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"scale\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"source_country\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"source_url\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"syndication_metadata\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"target_end\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"target_start\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"target_variable\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"temporal_alignment\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"temporal_classification\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"unit\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "Argument 1 to \"scalar\" of \"Session\" has incompatible type \"Select[Source]\"; expected \"TypedReturnsRows[Never]\"  [arg-type]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "Call to untyped function \"_deduplicate\" of \"AnalysisPipeline\" in typed context  [no-untyped-call]",
+          4
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "Call to untyped function \"_merge_news_duplicates\" of \"AnalysisPipeline\" in typed context  [no-untyped-call]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "Function is missing a type annotation  [no-untyped-def]",
+          3
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "Function is missing a type annotation for one or more parameters  [no-untyped-def]",
+          3
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "Incompatible types in assignment (expression has type \"NormalizedForecastSignal\", variable has type \"NormalizedEvidence\")  [assignment]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "Incompatible types in assignment (expression has type \"NormalizedNewsReport\", variable has type \"NormalizedEvidence\")  [assignment]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "Incompatible types in assignment (expression has type \"NormalizedOperationalEvent\", variable has type \"NormalizedEvidence\")  [assignment]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "Item \"None\" of \"Any | None\" has no attribute \"get\"  [union-attr]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "Missing type arguments for generic type \"dict\"  [type-arg]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "Need type annotation for \"retrieved\" (hint: \"retrieved: list[<type>] = ...\")  [var-annotated]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "Need type annotation for \"unique\" (hint: \"unique: dict[<type>, <type>] = ...\")  [var-annotated]",
+          2
+        ],
+        [
+          "src/geointel/pipeline/taxonomy.py",
+          "Argument 1 to \"get\" of \"dict\" has incompatible type \"str | None\"; expected \"str\"  [arg-type]",
+          1
+        ],
+        [
+          "src/geointel/providers/__main__.py",
+          "Missing type arguments for generic type \"dict\"  [type-arg]",
+          1
+        ],
+        [
+          "src/geointel/providers/base.py",
+          "Missing type arguments for generic type \"dict\"  [type-arg]",
+          2
+        ],
+        [
+          "src/geointel/providers/offline.py",
+          "Incompatible types in assignment (expression has type \"ForecastOutput\", variable has type \"AnalystOutput\")  [assignment]",
+          1
+        ],
+        [
+          "src/geointel/providers/offline.py",
+          "Incompatible types in assignment (expression has type \"RedTeamOutput\", variable has type \"AnalystOutput\")  [assignment]",
+          1
+        ],
+        [
+          "src/geointel/providers/offline.py",
+          "Incompatible types in assignment (expression has type \"SynthesisOutput\", variable has type \"AnalystOutput\")  [assignment]",
+          1
+        ],
+        [
+          "src/geointel/providers/offline.py",
+          "Missing type arguments for generic type \"dict\"  [type-arg]",
+          1
+        ],
+        [
+          "src/geointel/providers/offline.py",
+          "Value of type \"Any | None\" is not indexable  [index]",
+          1
+        ],
+        [
+          "src/geointel/providers/registry.py",
+          "Value of type \"object\" is not indexable  [index]",
+          15
+        ],
+        [
+          "src/geointel/providers/runtime.py",
+          "Need type annotation for \"output\" (hint: \"output: list[<type>] = ...\")  [var-annotated]",
+          1
+        ],
+        [
+          "src/geointel/providers/runtime.py",
+          "Returning Any from function declared to return \"dict[str, Any]\"  [no-any-return]",
+          1
+        ],
+        [
+          "src/geointel/validation/domain.py",
+          "Function is missing a return type annotation  [no-untyped-def]",
+          1
+        ],
+        [
+          "src/geointel/validation/runner.py",
+          "\"Base\" has no attribute \"provenance\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/validation/runner.py",
+          "\"object\" has no attribute \"__iter__\"; maybe \"__dir__\" or \"__str__\"? (not iterable)  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/validation/runner.py",
+          "\"object\" has no attribute \"append\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/validation/runner.py",
+          "Call to untyped function \"_evaluate\" in typed context  [no-untyped-call]",
+          1
+        ],
+        [
+          "src/geointel/validation/runner.py",
+          "Call to untyped function \"_source_matrix\" of \"ValidationRunner\" in typed context  [no-untyped-call]",
+          1
+        ],
+        [
+          "src/geointel/validation/runner.py",
+          "Function is missing a type annotation  [no-untyped-def]",
+          2
+        ],
+        [
+          "src/geointel/validation/runner.py",
+          "Missing type arguments for generic type \"dict\"  [type-arg]",
+          2
+        ],
+        [
+          "src/geointel/validation/suite.py",
+          "Argument 1 to \"append\" of \"list\" has incompatible type \"FailedFixtureConnector\"; expected \"DisabledConnector\"  [arg-type]",
+          1
+        ],
+        [
+          "src/geointel/validation/suite.py",
+          "Argument 1 to \"append\" of \"list\" has incompatible type \"FixtureConnector\"; expected \"DisabledConnector\"  [arg-type]",
+          1
+        ],
+        [
+          "src/geointel/validation/suite.py",
+          "Function is missing a return type annotation  [no-untyped-def]",
+          3
+        ]
+      ]
+    },
+    "review-pr33": {
+      "sha": "df34d1bdd4f0edf0e30012bd67f1c669b77989f8",
+      "count": 382,
+      "diagnostics": [
+        [
+          "src/geointel/api/app.py",
+          "Argument 1 to \"append\" of \"list\" has incompatible type \"ACLEDConnector | DisabledConnector\"; expected \"EvidenceConnector\"  [arg-type]",
+          1
+        ],
+        [
+          "src/geointel/api/app.py",
+          "Argument 1 to \"append\" of \"list\" has incompatible type \"CASTConnector | DisabledConnector\"; expected \"EvidenceConnector\"  [arg-type]",
+          1
+        ],
+        [
+          "src/geointel/api/app.py",
+          "Argument 1 to \"append\" of \"list\" has incompatible type \"GDELTConnector\"; expected \"EvidenceConnector\"  [arg-type]",
+          1
+        ],
+        [
+          "src/geointel/api/app.py",
+          "Argument 1 to \"append\" of \"list\" has incompatible type \"NewsAPIConnector\"; expected \"EvidenceConnector\"  [arg-type]",
+          1
+        ],
+        [
+          "src/geointel/api/app.py",
+          "Argument 1 to \"append\" of \"list\" has incompatible type \"UCDPConnector | DisabledConnector\"; expected \"EvidenceConnector\"  [arg-type]",
+          1
+        ],
+        [
+          "src/geointel/api/app.py",
+          "Argument 1 to \"append\" of \"list\" has incompatible type \"VIEWSConnector | DisabledConnector\"; expected \"EvidenceConnector\"  [arg-type]",
+          1
+        ],
+        [
+          "src/geointel/api/app.py",
+          "Missing type arguments for generic type \"dict\"  [type-arg]",
+          1
+        ],
+        [
+          "src/geointel/config.py",
+          "Function is missing a return type annotation  [no-untyped-def]",
+          1
+        ],
+        [
+          "src/geointel/connectors/acled.py",
+          "\"ACLEDError\" has no attribute \"category\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/connectors/acled.py",
+          "Function is missing a type annotation  [no-untyped-def]",
+          2
+        ],
+        [
+          "src/geointel/connectors/acled.py",
+          "Item \"None\" of \"ACLEDOAuthClient | None\" has no attribute \"access_token\"  [union-attr]",
+          1
+        ],
+        [
+          "src/geointel/connectors/acled.py",
+          "Item \"None\" of \"str | None\" has no attribute \"lstrip\"  [union-attr]",
+          1
+        ],
+        [
+          "src/geointel/connectors/acled.py",
+          "Missing type arguments for generic type \"dict\"  [type-arg]",
+          2
+        ],
+        [
+          "src/geointel/connectors/cast.py",
+          "\"CASTError\" has no attribute \"category\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/connectors/cast.py",
+          "Function is missing a type annotation  [no-untyped-def]",
+          1
+        ],
+        [
+          "src/geointel/connectors/cast.py",
+          "Function is missing a type annotation for one or more parameters  [no-untyped-def]",
+          1
+        ],
+        [
+          "src/geointel/connectors/cast.py",
+          "Item \"None\" of \"ACLEDOAuthClient | None\" has no attribute \"access_token\"  [union-attr]",
+          1
+        ],
+        [
+          "src/geointel/connectors/cast.py",
+          "Missing type arguments for generic type \"dict\"  [type-arg]",
+          2
+        ],
+        [
+          "src/geointel/connectors/gdelt.py",
+          "\"GDELTError\" has no attribute \"category\"  [attr-defined]",
+          2
+        ],
+        [
+          "src/geointel/connectors/gdelt.py",
+          "Call to untyped function \"normalize\" of \"GDELTConnector\" in typed context  [no-untyped-call]",
+          1
+        ],
+        [
+          "src/geointel/connectors/gdelt.py",
+          "Function is missing a type annotation  [no-untyped-def]",
+          2
+        ],
+        [
+          "src/geointel/connectors/gdelt.py",
+          "Function is missing a type annotation for one or more parameters  [no-untyped-def]",
+          1
+        ],
+        [
+          "src/geointel/connectors/gdelt.py",
+          "Returning Any from function declared to return \"list[Any]\"  [no-any-return]",
+          1
+        ],
+        [
+          "src/geointel/connectors/newsapi.py",
+          "\"NewsAPIError\" has no attribute \"category\"  [attr-defined]",
+          2
+        ],
+        [
+          "src/geointel/connectors/newsapi.py",
+          "Argument 1 to \"get\" of \"dict\" has incompatible type \"Any | None\"; expected \"str\"  [arg-type]",
+          1
+        ],
+        [
+          "src/geointel/connectors/newsapi.py",
+          "Call to untyped function \"normalize\" of \"NewsAPIConnector\" in typed context  [no-untyped-call]",
+          1
+        ],
+        [
+          "src/geointel/connectors/newsapi.py",
+          "Function is missing a type annotation  [no-untyped-def]",
+          1
+        ],
+        [
+          "src/geointel/connectors/newsapi.py",
+          "Function is missing a type annotation for one or more parameters  [no-untyped-def]",
+          1
+        ],
+        [
+          "src/geointel/connectors/newsapi.py",
+          "Need type annotation for \"output\" (hint: \"output: list[<type>] = ...\")  [var-annotated]",
+          1
+        ],
+        [
+          "src/geointel/connectors/ucdp.py",
+          "Function is missing a type annotation for one or more parameters  [no-untyped-def]",
+          1
+        ],
+        [
+          "src/geointel/connectors/ucdp.py",
+          "Item \"None\" of \"str | None\" has no attribute \"lstrip\"  [union-attr]",
+          1
+        ],
+        [
+          "src/geointel/connectors/ucdp.py",
+          "Missing type arguments for generic type \"dict\"  [type-arg]",
+          2
+        ],
+        [
+          "src/geointel/connectors/ucdp.py",
+          "Returning Any from function declared to return \"list[dict[Any, Any]]\"  [no-any-return]",
+          1
+        ],
+        [
+          "src/geointel/connectors/views.py",
+          "Item \"None\" of \"str | None\" has no attribute \"lstrip\"  [union-attr]",
+          1
+        ],
+        [
+          "src/geointel/connectors/views.py",
+          "Missing type arguments for generic type \"dict\"  [type-arg]",
+          2
+        ],
+        [
+          "src/geointel/coverage.py",
+          "Argument \"geography\" to \"RecordDecision\" has incompatible type \"str\"; expected \"Literal['pass', 'fail', 'unknown', 'not_applicable']\"  [arg-type]",
+          1
+        ],
+        [
+          "src/geointel/coverage.py",
+          "Argument \"publication_freshness\" to \"RecordDecision\" has incompatible type \"str\"; expected \"Literal['pass', 'fail', 'unknown', 'not_applicable']\"  [arg-type]",
+          1
+        ],
+        [
+          "src/geointel/coverage.py",
+          "Call to untyped function \"_country\" in typed context  [no-untyped-call]",
+          5
+        ],
+        [
+          "src/geointel/coverage.py",
+          "Call to untyped function \"_utc\" in typed context  [no-untyped-call]",
+          6
+        ],
+        [
+          "src/geointel/coverage.py",
+          "Function is missing a return type annotation  [no-untyped-def]",
+          1
+        ],
+        [
+          "src/geointel/coverage.py",
+          "Function is missing a type annotation  [no-untyped-def]",
+          2
+        ],
+        [
+          "src/geointel/coverage.py",
+          "Missing type arguments for generic type \"dict\"  [type-arg]",
+          2
+        ],
+        [
+          "src/geointel/coverage.py",
+          "Missing type arguments for generic type \"list\"  [type-arg]",
+          2
+        ],
+        [
+          "src/geointel/coverage.py",
+          "Need type annotation for \"decisions\" (hint: \"decisions: dict[<type>, <type>] = ...\")  [var-annotated]",
+          1
+        ],
+        [
+          "src/geointel/domain/models.py",
+          "Function is missing a type annotation  [no-untyped-def]",
+          2
+        ],
+        [
+          "src/geointel/domain/models.py",
+          "Missing type arguments for generic type \"dict\"  [type-arg]",
+          30
+        ],
+        [
+          "src/geointel/domain/models.py",
+          "Missing type arguments for generic type \"list\"  [type-arg]",
+          27
+        ],
+        [
+          "src/geointel/domain/schemas.py",
+          "Function is missing a return type annotation  [no-untyped-def]",
+          3
+        ],
+        [
+          "src/geointel/domain/schemas.py",
+          "Missing type arguments for generic type \"dict\"  [type-arg]",
+          17
+        ],
+        [
+          "src/geointel/domain/schemas.py",
+          "Unsupported operand types for > (\"float\" and \"None\")  [operator]",
+          1
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "\"SectionInput\" has no attribute \"actors\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "\"SectionInput\" has no attribute \"attributed_author\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "\"SectionInput\" has no attribute \"case_ids\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "\"SectionInput\" has no attribute \"claim_type\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "\"SectionInput\" has no attribute \"concept_slugs\"  [attr-defined]",
+          2
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "\"SectionInput\" has no attribute \"counterexamples\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "\"SectionInput\" has no attribute \"description\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "\"SectionInput\" has no attribute \"end_date\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "\"SectionInput\" has no attribute \"extraction_confidence\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "\"SectionInput\" has no attribute \"factual_summary\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "\"SectionInput\" has no attribute \"geography\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "\"SectionInput\" has no attribute \"ingestion_metadata\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "\"SectionInput\" has no attribute \"interpretation_notes\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "\"SectionInput\" has no attribute \"limitations\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "\"SectionInput\" has no attribute \"name\"  [attr-defined]",
+          3
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "\"SectionInput\" has no attribute \"outcome\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "\"SectionInput\" has no attribute \"section_id\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "\"SectionInput\" has no attribute \"slug\"  [attr-defined]",
+          4
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "\"SectionInput\" has no attribute \"source_provenance\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "\"SectionInput\" has no attribute \"start_date\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "\"SectionInput\" has no attribute \"text\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "Argument 1 to \"scalar\" of \"Session\" has incompatible type \"Select[StrategicConcept]\"; expected \"TypedReturnsRows[Never]\"  [arg-type]",
+          1
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "Call to untyped function (unknown) in typed context  [no-untyped-call]",
+          1
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "Function is missing a return type annotation  [no-untyped-def]",
+          1
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "Function is missing a type annotation  [no-untyped-def]",
+          1
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "Incompatible types in assignment (expression has type \"CaseInput\", variable has type \"SectionInput\")  [assignment]",
+          1
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "Incompatible types in assignment (expression has type \"ClaimInput\", variable has type \"SectionInput\")  [assignment]",
+          1
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "Incompatible types in assignment (expression has type \"ConceptInput\", variable has type \"SectionInput\")  [assignment]",
+          1
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "Missing type arguments for generic type \"dict\"  [type-arg]",
+          13
+        ],
+        [
+          "src/geointel/knowledge/lenses.py",
+          "Function is missing a type annotation  [no-untyped-def]",
+          2
+        ],
+        [
+          "src/geointel/monitoring/__main__.py",
+          "\"Watchlist\" has no attribute \"next_due_at\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/monitoring/__main__.py",
+          "Call to untyped function \"present_run\" in typed context  [no-untyped-call]",
+          2
+        ],
+        [
+          "src/geointel/monitoring/__main__.py",
+          "Function is missing a type annotation  [no-untyped-def]",
+          1
+        ],
+        [
+          "src/geointel/monitoring/__main__.py",
+          "Incompatible types in assignment (expression has type \"MonitoringRun\", variable has type \"Watchlist\")  [assignment]",
+          1
+        ],
+        [
+          "src/geointel/monitoring/__main__.py",
+          "Incompatible types in assignment (expression has type \"WatchlistTarget\", variable has type \"Watchlist\")  [assignment]",
+          1
+        ],
+        [
+          "src/geointel/monitoring/__main__.py",
+          "Incompatible types in assignment (expression has type \"list[Any]\", variable has type \"dict[str, str]\")  [assignment]",
+          1
+        ],
+        [
+          "src/geointel/monitoring/__main__.py",
+          "Incompatible types in assignment (expression has type \"list[dict[str, list[Any] | str | None]]\", variable has type \"dict[str, str]\")  [assignment]",
+          1
+        ],
+        [
+          "src/geointel/monitoring/data_quality.py",
+          "Call to untyped function \"_collection_findings\" in typed context  [no-untyped-call]",
+          1
+        ],
+        [
+          "src/geointel/monitoring/data_quality.py",
+          "Call to untyped function \"_count\" in typed context  [no-untyped-call]",
+          4
+        ],
+        [
+          "src/geointel/monitoring/data_quality.py",
+          "Call to untyped function \"_geography\" in typed context  [no-untyped-call]",
+          5
+        ],
+        [
+          "src/geointel/monitoring/data_quality.py",
+          "Call to untyped function \"_inspect_record\" in typed context  [no-untyped-call]",
+          1
+        ],
+        [
+          "src/geointel/monitoring/data_quality.py",
+          "Call to untyped function \"_inspect_rows\" in typed context  [no-untyped-call]",
+          1
+        ],
+        [
+          "src/geointel/monitoring/data_quality.py",
+          "Call to untyped function \"_report\" in typed context  [no-untyped-call]",
+          3
+        ],
+        [
+          "src/geointel/monitoring/data_quality.py",
+          "Call to untyped function \"_signal_country\" in typed context  [no-untyped-call]",
+          1
+        ],
+        [
+          "src/geointel/monitoring/data_quality.py",
+          "Call to untyped function \"_thresholds\" in typed context  [no-untyped-call]",
+          1
+        ],
+        [
+          "src/geointel/monitoring/data_quality.py",
+          "Call to untyped function \"_timestamp\" in typed context  [no-untyped-call]",
+          8
+        ],
+        [
+          "src/geointel/monitoring/data_quality.py",
+          "Function is missing a type annotation  [no-untyped-def]",
+          9
+        ],
+        [
+          "src/geointel/monitoring/data_quality.py",
+          "Missing type arguments for generic type \"dict\"  [type-arg]",
+          1
+        ],
+        [
+          "src/geointel/monitoring/data_quality.py",
+          "Need type annotation for \"expired_timestamps\" (hint: \"expired_timestamps: list[<type>] = ...\")  [var-annotated]",
+          1
+        ],
+        [
+          "src/geointel/monitoring/data_quality.py",
+          "Need type annotation for \"findings\"  [var-annotated]",
+          1
+        ],
+        [
+          "src/geointel/monitoring/data_quality.py",
+          "Need type annotation for \"outcomes\" (hint: \"outcomes: dict[<type>, <type>] = ...\")  [var-annotated]",
+          1
+        ],
+        [
+          "src/geointel/monitoring/data_quality.py",
+          "Need type annotation for \"timestamps\" (hint: \"timestamps: list[<type>] = ...\")  [var-annotated]",
+          1
+        ],
+        [
+          "src/geointel/monitoring/service.py",
+          "\"object\" has no attribute \"run\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/monitoring/service.py",
+          "Call to untyped function \"_add\" of \"ChangeDetector\" in typed context  [no-untyped-call]",
+          3
+        ],
+        [
+          "src/geointel/monitoring/service.py",
+          "Call to untyped function \"_compare_map\" in typed context  [no-untyped-call]",
+          7
+        ],
+        [
+          "src/geointel/monitoring/service.py",
+          "Call to untyped function \"_previous_comparable\" in typed context  [no-untyped-call]",
+          1
+        ],
+        [
+          "src/geointel/monitoring/service.py",
+          "Function is missing a type annotation  [no-untyped-def]",
+          3
+        ],
+        [
+          "src/geointel/monitoring/service.py",
+          "Function is missing a type annotation for one or more parameters  [no-untyped-def]",
+          2
+        ],
+        [
+          "src/geointel/monitoring/service.py",
+          "Incompatible types in assignment (expression has type \"MonitoringRun | None\", variable has type \"MonitoringRun\")  [assignment]",
+          1
+        ],
+        [
+          "src/geointel/monitoring/service.py",
+          "Missing type arguments for generic type \"dict\"  [type-arg]",
+          9
+        ],
+        [
+          "src/geointel/monitoring/service.py",
+          "Returning Any from function declared to return \"str\"  [no-any-return]",
+          1
+        ],
+        [
+          "src/geointel/news/corroboration.py",
+          "Missing type arguments for generic type \"dict\"  [type-arg]",
+          2
+        ],
+        [
+          "src/geointel/news/relevance.py",
+          "Function is missing a return type annotation  [no-untyped-def]",
+          1
+        ],
+        [
+          "src/geointel/news/relevance.py",
+          "Function is missing a type annotation for one or more parameters  [no-untyped-def]",
+          1
+        ],
+        [
+          "src/geointel/news/relevance.py",
+          "Missing type arguments for generic type \"dict\"  [type-arg]",
+          4
+        ],
+        [
+          "src/geointel/pipeline/historical.py",
+          "Argument 1 to \"HistoricalFatalityStatistics\" has incompatible type \"**dict[str, Any | None]\"; expected \"int\"  [arg-type]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/historical.py",
+          "Function is missing a type annotation for one or more parameters  [no-untyped-def]",
+          2
+        ],
+        [
+          "src/geointel/pipeline/historical.py",
+          "Need type annotation for \"counts\"  [var-annotated]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/historical.py",
+          "Need type annotation for \"windows\" (hint: \"windows: dict[<type>, <type>] = ...\")  [var-annotated]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/historical.py",
+          "Returning Any from function declared to return \"str\"  [no-any-return]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"EvidenceConnector\" has no attribute \"last_query_plan\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"alignment_notes\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"alignment_status\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"canonical_url\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"country\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"epistemic_status\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"event_type\"; maybe \"event_date\"?  [attr-defined]",
+          2
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"geographic_alignment_notes\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"geographic_alignment_status\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"geographic_unit\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"horizon_months\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"identity_metadata\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"issue_date\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"language\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"location\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"model_name\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"model_version\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"notes\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"prediction\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"provider\"  [attr-defined]",
+          4
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"provider_geography\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"publication_timestamp\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"publisher\"; maybe \"published_at\"?  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"requested_geography\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"retrieval_timestamp\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"scale\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"source_country\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"source_url\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"syndication_metadata\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"target_end\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"target_start\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"target_variable\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"temporal_alignment\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"temporal_classification\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"unit\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "Argument 1 to \"scalar\" of \"Session\" has incompatible type \"Select[Source]\"; expected \"TypedReturnsRows[Never]\"  [arg-type]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "Call to untyped function \"_deduplicate\" of \"AnalysisPipeline\" in typed context  [no-untyped-call]",
+          4
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "Call to untyped function \"_merge_news_duplicates\" of \"AnalysisPipeline\" in typed context  [no-untyped-call]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "Function is missing a type annotation  [no-untyped-def]",
+          3
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "Function is missing a type annotation for one or more parameters  [no-untyped-def]",
+          3
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "Incompatible types in assignment (expression has type \"NormalizedForecastSignal\", variable has type \"NormalizedEvidence\")  [assignment]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "Incompatible types in assignment (expression has type \"NormalizedNewsReport\", variable has type \"NormalizedEvidence\")  [assignment]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "Incompatible types in assignment (expression has type \"NormalizedOperationalEvent\", variable has type \"NormalizedEvidence\")  [assignment]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "Item \"None\" of \"Any | None\" has no attribute \"get\"  [union-attr]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "Missing type arguments for generic type \"dict\"  [type-arg]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "Need type annotation for \"received\" (hint: \"received: list[<type>] = ...\")  [var-annotated]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "Need type annotation for \"retrieved\" (hint: \"retrieved: list[<type>] = ...\")  [var-annotated]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "Need type annotation for \"unique\" (hint: \"unique: dict[<type>, <type>] = ...\")  [var-annotated]",
+          2
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "Need type annotation for \"unique\" (hint: \"unique: list[<type>] = ...\")  [var-annotated]",
+          1
+        ],
+        [
+          "src/geointel/providers/__main__.py",
+          "Missing type arguments for generic type \"dict\"  [type-arg]",
+          1
+        ],
+        [
+          "src/geointel/providers/base.py",
+          "Missing type arguments for generic type \"dict\"  [type-arg]",
+          2
+        ],
+        [
+          "src/geointel/providers/offline.py",
+          "Incompatible types in assignment (expression has type \"ForecastOutput\", variable has type \"AnalystOutput\")  [assignment]",
+          1
+        ],
+        [
+          "src/geointel/providers/offline.py",
+          "Incompatible types in assignment (expression has type \"RedTeamOutput\", variable has type \"AnalystOutput\")  [assignment]",
+          1
+        ],
+        [
+          "src/geointel/providers/offline.py",
+          "Incompatible types in assignment (expression has type \"SynthesisOutput\", variable has type \"AnalystOutput\")  [assignment]",
+          1
+        ],
+        [
+          "src/geointel/providers/offline.py",
+          "Missing type arguments for generic type \"dict\"  [type-arg]",
+          1
+        ],
+        [
+          "src/geointel/providers/offline.py",
+          "Value of type \"Any | None\" is not indexable  [index]",
+          1
+        ],
+        [
+          "src/geointel/providers/registry.py",
+          "Value of type \"object\" is not indexable  [index]",
+          15
+        ],
+        [
+          "src/geointel/providers/runtime.py",
+          "Returning Any from function declared to return \"dict[str, Any]\"  [no-any-return]",
+          1
+        ],
+        [
+          "src/geointel/validation/domain.py",
+          "Function is missing a return type annotation  [no-untyped-def]",
+          1
+        ],
+        [
+          "src/geointel/validation/runner.py",
+          "\"Base\" has no attribute \"provenance\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/validation/runner.py",
+          "\"object\" has no attribute \"__iter__\"; maybe \"__dir__\" or \"__str__\"? (not iterable)  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/validation/runner.py",
+          "\"object\" has no attribute \"append\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/validation/runner.py",
+          "Call to untyped function \"_evaluate\" in typed context  [no-untyped-call]",
+          1
+        ],
+        [
+          "src/geointel/validation/runner.py",
+          "Call to untyped function \"_source_matrix\" of \"ValidationRunner\" in typed context  [no-untyped-call]",
+          1
+        ],
+        [
+          "src/geointel/validation/runner.py",
+          "Function is missing a type annotation  [no-untyped-def]",
+          2
+        ],
+        [
+          "src/geointel/validation/runner.py",
+          "Missing type arguments for generic type \"dict\"  [type-arg]",
+          2
+        ],
+        [
+          "src/geointel/validation/suite.py",
+          "Argument 1 to \"append\" of \"list\" has incompatible type \"FailedFixtureConnector\"; expected \"DisabledConnector\"  [arg-type]",
+          1
+        ],
+        [
+          "src/geointel/validation/suite.py",
+          "Argument 1 to \"append\" of \"list\" has incompatible type \"FixtureConnector\"; expected \"DisabledConnector\"  [arg-type]",
+          1
+        ],
+        [
+          "src/geointel/validation/suite.py",
+          "Function is missing a return type annotation  [no-untyped-def]",
+          3
+        ]
+      ]
+    },
+    "review-pr30": {
+      "sha": "f3f0da952cb60b06198ad50967067adf531cd8b5",
+      "count": 319,
+      "diagnostics": [
+        [
+          "src/geointel/api/app.py",
+          "Argument 1 to \"append\" of \"list\" has incompatible type \"ACLEDConnector | DisabledConnector\"; expected \"EvidenceConnector\"  [arg-type]",
+          1
+        ],
+        [
+          "src/geointel/api/app.py",
+          "Argument 1 to \"append\" of \"list\" has incompatible type \"CASTConnector | DisabledConnector\"; expected \"EvidenceConnector\"  [arg-type]",
+          1
+        ],
+        [
+          "src/geointel/api/app.py",
+          "Argument 1 to \"append\" of \"list\" has incompatible type \"GDELTConnector\"; expected \"EvidenceConnector\"  [arg-type]",
+          1
+        ],
+        [
+          "src/geointel/api/app.py",
+          "Argument 1 to \"append\" of \"list\" has incompatible type \"NewsAPIConnector\"; expected \"EvidenceConnector\"  [arg-type]",
+          1
+        ],
+        [
+          "src/geointel/api/app.py",
+          "Argument 1 to \"append\" of \"list\" has incompatible type \"UCDPConnector | DisabledConnector\"; expected \"EvidenceConnector\"  [arg-type]",
+          1
+        ],
+        [
+          "src/geointel/api/app.py",
+          "Argument 1 to \"append\" of \"list\" has incompatible type \"VIEWSConnector | DisabledConnector\"; expected \"EvidenceConnector\"  [arg-type]",
+          1
+        ],
+        [
+          "src/geointel/api/app.py",
+          "Missing type arguments for generic type \"dict\"  [type-arg]",
+          1
+        ],
+        [
+          "src/geointel/config.py",
+          "Function is missing a return type annotation  [no-untyped-def]",
+          1
+        ],
+        [
+          "src/geointel/connectors/acled.py",
+          "\"ACLEDError\" has no attribute \"category\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/connectors/acled.py",
+          "Function is missing a type annotation  [no-untyped-def]",
+          2
+        ],
+        [
+          "src/geointel/connectors/acled.py",
+          "Item \"None\" of \"ACLEDOAuthClient | None\" has no attribute \"access_token\"  [union-attr]",
+          1
+        ],
+        [
+          "src/geointel/connectors/acled.py",
+          "Item \"None\" of \"str | None\" has no attribute \"lstrip\"  [union-attr]",
+          1
+        ],
+        [
+          "src/geointel/connectors/acled.py",
+          "Missing type arguments for generic type \"dict\"  [type-arg]",
+          2
+        ],
+        [
+          "src/geointel/connectors/cast.py",
+          "\"CASTError\" has no attribute \"category\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/connectors/cast.py",
+          "Function is missing a type annotation  [no-untyped-def]",
+          1
+        ],
+        [
+          "src/geointel/connectors/cast.py",
+          "Function is missing a type annotation for one or more parameters  [no-untyped-def]",
+          1
+        ],
+        [
+          "src/geointel/connectors/cast.py",
+          "Item \"None\" of \"ACLEDOAuthClient | None\" has no attribute \"access_token\"  [union-attr]",
+          1
+        ],
+        [
+          "src/geointel/connectors/cast.py",
+          "Missing type arguments for generic type \"dict\"  [type-arg]",
+          2
+        ],
+        [
+          "src/geointel/connectors/gdelt.py",
+          "\"GDELTError\" has no attribute \"category\"  [attr-defined]",
+          2
+        ],
+        [
+          "src/geointel/connectors/gdelt.py",
+          "Call to untyped function \"normalize\" of \"GDELTConnector\" in typed context  [no-untyped-call]",
+          1
+        ],
+        [
+          "src/geointel/connectors/gdelt.py",
+          "Function is missing a type annotation  [no-untyped-def]",
+          2
+        ],
+        [
+          "src/geointel/connectors/gdelt.py",
+          "Function is missing a type annotation for one or more parameters  [no-untyped-def]",
+          1
+        ],
+        [
+          "src/geointel/connectors/gdelt.py",
+          "Returning Any from function declared to return \"list[Any]\"  [no-any-return]",
+          1
+        ],
+        [
+          "src/geointel/connectors/newsapi.py",
+          "\"NewsAPIError\" has no attribute \"category\"  [attr-defined]",
+          2
+        ],
+        [
+          "src/geointel/connectors/newsapi.py",
+          "Argument 1 to \"get\" of \"dict\" has incompatible type \"Any | None\"; expected \"str\"  [arg-type]",
+          1
+        ],
+        [
+          "src/geointel/connectors/newsapi.py",
+          "Call to untyped function \"normalize\" of \"NewsAPIConnector\" in typed context  [no-untyped-call]",
+          1
+        ],
+        [
+          "src/geointel/connectors/newsapi.py",
+          "Function is missing a type annotation  [no-untyped-def]",
+          1
+        ],
+        [
+          "src/geointel/connectors/newsapi.py",
+          "Function is missing a type annotation for one or more parameters  [no-untyped-def]",
+          1
+        ],
+        [
+          "src/geointel/connectors/newsapi.py",
+          "Need type annotation for \"output\" (hint: \"output: list[<type>] = ...\")  [var-annotated]",
+          1
+        ],
+        [
+          "src/geointel/connectors/ucdp.py",
+          "Function is missing a type annotation for one or more parameters  [no-untyped-def]",
+          1
+        ],
+        [
+          "src/geointel/connectors/ucdp.py",
+          "Item \"None\" of \"str | None\" has no attribute \"lstrip\"  [union-attr]",
+          1
+        ],
+        [
+          "src/geointel/connectors/ucdp.py",
+          "Missing type arguments for generic type \"dict\"  [type-arg]",
+          2
+        ],
+        [
+          "src/geointel/connectors/ucdp.py",
+          "Returning Any from function declared to return \"list[dict[Any, Any]]\"  [no-any-return]",
+          1
+        ],
+        [
+          "src/geointel/connectors/views.py",
+          "Item \"None\" of \"str | None\" has no attribute \"lstrip\"  [union-attr]",
+          1
+        ],
+        [
+          "src/geointel/connectors/views.py",
+          "Missing type arguments for generic type \"dict\"  [type-arg]",
+          2
+        ],
+        [
+          "src/geointel/domain/models.py",
+          "Function is missing a type annotation  [no-untyped-def]",
+          2
+        ],
+        [
+          "src/geointel/domain/models.py",
+          "Missing type arguments for generic type \"dict\"  [type-arg]",
+          30
+        ],
+        [
+          "src/geointel/domain/models.py",
+          "Missing type arguments for generic type \"list\"  [type-arg]",
+          27
+        ],
+        [
+          "src/geointel/domain/schemas.py",
+          "Function is missing a return type annotation  [no-untyped-def]",
+          3
+        ],
+        [
+          "src/geointel/domain/schemas.py",
+          "Missing type arguments for generic type \"dict\"  [type-arg]",
+          17
+        ],
+        [
+          "src/geointel/domain/schemas.py",
+          "Unsupported operand types for > (\"float\" and \"None\")  [operator]",
+          1
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "\"SectionInput\" has no attribute \"actors\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "\"SectionInput\" has no attribute \"attributed_author\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "\"SectionInput\" has no attribute \"case_ids\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "\"SectionInput\" has no attribute \"claim_type\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "\"SectionInput\" has no attribute \"concept_slugs\"  [attr-defined]",
+          2
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "\"SectionInput\" has no attribute \"counterexamples\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "\"SectionInput\" has no attribute \"description\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "\"SectionInput\" has no attribute \"end_date\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "\"SectionInput\" has no attribute \"extraction_confidence\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "\"SectionInput\" has no attribute \"factual_summary\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "\"SectionInput\" has no attribute \"geography\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "\"SectionInput\" has no attribute \"ingestion_metadata\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "\"SectionInput\" has no attribute \"interpretation_notes\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "\"SectionInput\" has no attribute \"limitations\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "\"SectionInput\" has no attribute \"name\"  [attr-defined]",
+          3
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "\"SectionInput\" has no attribute \"outcome\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "\"SectionInput\" has no attribute \"section_id\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "\"SectionInput\" has no attribute \"slug\"  [attr-defined]",
+          4
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "\"SectionInput\" has no attribute \"source_provenance\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "\"SectionInput\" has no attribute \"start_date\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "\"SectionInput\" has no attribute \"text\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "Argument 1 to \"scalar\" of \"Session\" has incompatible type \"Select[StrategicConcept]\"; expected \"TypedReturnsRows[Never]\"  [arg-type]",
+          1
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "Call to untyped function (unknown) in typed context  [no-untyped-call]",
+          1
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "Function is missing a return type annotation  [no-untyped-def]",
+          1
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "Function is missing a type annotation  [no-untyped-def]",
+          1
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "Incompatible types in assignment (expression has type \"CaseInput\", variable has type \"SectionInput\")  [assignment]",
+          1
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "Incompatible types in assignment (expression has type \"ClaimInput\", variable has type \"SectionInput\")  [assignment]",
+          1
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "Incompatible types in assignment (expression has type \"ConceptInput\", variable has type \"SectionInput\")  [assignment]",
+          1
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "Missing type arguments for generic type \"dict\"  [type-arg]",
+          13
+        ],
+        [
+          "src/geointel/knowledge/lenses.py",
+          "Function is missing a type annotation  [no-untyped-def]",
+          2
+        ],
+        [
+          "src/geointel/monitoring/__main__.py",
+          "\"Watchlist\" has no attribute \"next_due_at\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/monitoring/__main__.py",
+          "Call to untyped function \"present_run\" in typed context  [no-untyped-call]",
+          2
+        ],
+        [
+          "src/geointel/monitoring/__main__.py",
+          "Function is missing a type annotation  [no-untyped-def]",
+          1
+        ],
+        [
+          "src/geointel/monitoring/__main__.py",
+          "Incompatible types in assignment (expression has type \"MonitoringRun\", variable has type \"Watchlist\")  [assignment]",
+          1
+        ],
+        [
+          "src/geointel/monitoring/__main__.py",
+          "Incompatible types in assignment (expression has type \"WatchlistTarget\", variable has type \"Watchlist\")  [assignment]",
+          1
+        ],
+        [
+          "src/geointel/monitoring/__main__.py",
+          "Incompatible types in assignment (expression has type \"list[Any]\", variable has type \"dict[str, str]\")  [assignment]",
+          1
+        ],
+        [
+          "src/geointel/monitoring/__main__.py",
+          "Incompatible types in assignment (expression has type \"list[dict[str, list[Any] | str | None]]\", variable has type \"dict[str, str]\")  [assignment]",
+          1
+        ],
+        [
+          "src/geointel/monitoring/service.py",
+          "\"object\" has no attribute \"run\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/monitoring/service.py",
+          "Call to untyped function \"_add\" of \"ChangeDetector\" in typed context  [no-untyped-call]",
+          3
+        ],
+        [
+          "src/geointel/monitoring/service.py",
+          "Call to untyped function \"_compare_map\" in typed context  [no-untyped-call]",
+          7
+        ],
+        [
+          "src/geointel/monitoring/service.py",
+          "Call to untyped function \"_previous_comparable\" in typed context  [no-untyped-call]",
+          1
+        ],
+        [
+          "src/geointel/monitoring/service.py",
+          "Function is missing a type annotation  [no-untyped-def]",
+          3
+        ],
+        [
+          "src/geointel/monitoring/service.py",
+          "Function is missing a type annotation for one or more parameters  [no-untyped-def]",
+          1
+        ],
+        [
+          "src/geointel/monitoring/service.py",
+          "Incompatible types in assignment (expression has type \"MonitoringRun | None\", variable has type \"MonitoringRun\")  [assignment]",
+          1
+        ],
+        [
+          "src/geointel/monitoring/service.py",
+          "Missing type arguments for generic type \"dict\"  [type-arg]",
+          9
+        ],
+        [
+          "src/geointel/news/corroboration.py",
+          "Missing type arguments for generic type \"dict\"  [type-arg]",
+          2
+        ],
+        [
+          "src/geointel/news/relevance.py",
+          "Function is missing a return type annotation  [no-untyped-def]",
+          1
+        ],
+        [
+          "src/geointel/news/relevance.py",
+          "Function is missing a type annotation for one or more parameters  [no-untyped-def]",
+          1
+        ],
+        [
+          "src/geointel/news/relevance.py",
+          "Missing type arguments for generic type \"dict\"  [type-arg]",
+          4
+        ],
+        [
+          "src/geointel/pipeline/historical.py",
+          "Argument 1 to \"HistoricalFatalityStatistics\" has incompatible type \"**dict[str, Any | None]\"; expected \"int\"  [arg-type]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/historical.py",
+          "Function is missing a type annotation for one or more parameters  [no-untyped-def]",
+          2
+        ],
+        [
+          "src/geointel/pipeline/historical.py",
+          "Need type annotation for \"counts\"  [var-annotated]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/historical.py",
+          "Need type annotation for \"windows\" (hint: \"windows: dict[<type>, <type>] = ...\")  [var-annotated]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/historical.py",
+          "Returning Any from function declared to return \"str\"  [no-any-return]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"EvidenceConnector\" has no attribute \"last_query_plan\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"alignment_notes\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"alignment_status\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"canonical_url\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"country\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"epistemic_status\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"event_type\"; maybe \"event_date\"?  [attr-defined]",
+          2
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"geographic_alignment_notes\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"geographic_alignment_status\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"geographic_unit\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"horizon_months\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"identity_metadata\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"issue_date\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"language\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"location\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"model_name\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"model_version\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"notes\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"prediction\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"provider\"  [attr-defined]",
+          4
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"provider_geography\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"publication_timestamp\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"publisher\"; maybe \"published_at\"?  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"requested_geography\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"retrieval_timestamp\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"scale\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"source_country\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"source_url\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"syndication_metadata\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"target_end\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"target_start\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"target_variable\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"temporal_alignment\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"temporal_classification\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"unit\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "Argument 1 to \"scalar\" of \"Session\" has incompatible type \"Select[Source]\"; expected \"TypedReturnsRows[Never]\"  [arg-type]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "Call to untyped function \"_deduplicate\" of \"AnalysisPipeline\" in typed context  [no-untyped-call]",
+          4
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "Call to untyped function \"_merge_news_duplicates\" of \"AnalysisPipeline\" in typed context  [no-untyped-call]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "Function is missing a type annotation  [no-untyped-def]",
+          3
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "Function is missing a type annotation for one or more parameters  [no-untyped-def]",
+          3
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "Incompatible types in assignment (expression has type \"NormalizedForecastSignal\", variable has type \"NormalizedEvidence\")  [assignment]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "Incompatible types in assignment (expression has type \"NormalizedNewsReport\", variable has type \"NormalizedEvidence\")  [assignment]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "Incompatible types in assignment (expression has type \"NormalizedOperationalEvent\", variable has type \"NormalizedEvidence\")  [assignment]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "Item \"None\" of \"Any | None\" has no attribute \"get\"  [union-attr]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "Missing type arguments for generic type \"dict\"  [type-arg]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "Need type annotation for \"retrieved\" (hint: \"retrieved: list[<type>] = ...\")  [var-annotated]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "Need type annotation for \"unique\" (hint: \"unique: dict[<type>, <type>] = ...\")  [var-annotated]",
+          2
+        ],
+        [
+          "src/geointel/providers/__main__.py",
+          "Missing type arguments for generic type \"dict\"  [type-arg]",
+          1
+        ],
+        [
+          "src/geointel/providers/base.py",
+          "Missing type arguments for generic type \"dict\"  [type-arg]",
+          2
+        ],
+        [
+          "src/geointel/providers/offline.py",
+          "Incompatible types in assignment (expression has type \"ForecastOutput\", variable has type \"AnalystOutput\")  [assignment]",
+          1
+        ],
+        [
+          "src/geointel/providers/offline.py",
+          "Incompatible types in assignment (expression has type \"RedTeamOutput\", variable has type \"AnalystOutput\")  [assignment]",
+          1
+        ],
+        [
+          "src/geointel/providers/offline.py",
+          "Incompatible types in assignment (expression has type \"SynthesisOutput\", variable has type \"AnalystOutput\")  [assignment]",
+          1
+        ],
+        [
+          "src/geointel/providers/offline.py",
+          "Missing type arguments for generic type \"dict\"  [type-arg]",
+          1
+        ],
+        [
+          "src/geointel/providers/offline.py",
+          "Value of type \"Any | None\" is not indexable  [index]",
+          1
+        ],
+        [
+          "src/geointel/providers/registry.py",
+          "Value of type \"object\" is not indexable  [index]",
+          15
+        ],
+        [
+          "src/geointel/providers/runtime.py",
+          "Need type annotation for \"output\" (hint: \"output: list[<type>] = ...\")  [var-annotated]",
+          1
+        ],
+        [
+          "src/geointel/providers/runtime.py",
+          "Returning Any from function declared to return \"dict[str, Any]\"  [no-any-return]",
+          1
+        ],
+        [
+          "src/geointel/validation/domain.py",
+          "Function is missing a return type annotation  [no-untyped-def]",
+          1
+        ],
+        [
+          "src/geointel/validation/runner.py",
+          "\"Base\" has no attribute \"provenance\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/validation/runner.py",
+          "\"object\" has no attribute \"__iter__\"; maybe \"__dir__\" or \"__str__\"? (not iterable)  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/validation/runner.py",
+          "\"object\" has no attribute \"append\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/validation/runner.py",
+          "Call to untyped function \"_evaluate\" in typed context  [no-untyped-call]",
+          1
+        ],
+        [
+          "src/geointel/validation/runner.py",
+          "Call to untyped function \"_source_matrix\" of \"ValidationRunner\" in typed context  [no-untyped-call]",
+          1
+        ],
+        [
+          "src/geointel/validation/runner.py",
+          "Function is missing a type annotation  [no-untyped-def]",
+          2
+        ],
+        [
+          "src/geointel/validation/runner.py",
+          "Missing type arguments for generic type \"dict\"  [type-arg]",
+          2
+        ],
+        [
+          "src/geointel/validation/suite.py",
+          "Argument 1 to \"append\" of \"list\" has incompatible type \"FailedFixtureConnector\"; expected \"DisabledConnector\"  [arg-type]",
+          1
+        ],
+        [
+          "src/geointel/validation/suite.py",
+          "Argument 1 to \"append\" of \"list\" has incompatible type \"FixtureConnector\"; expected \"DisabledConnector\"  [arg-type]",
+          1
+        ],
+        [
+          "src/geointel/validation/suite.py",
+          "Function is missing a return type annotation  [no-untyped-def]",
+          3
+        ]
+      ]
+    },
+    "review-main": {
+      "sha": "aaf887030e39a0960323096a7075be783aa97bdf",
+      "count": 319,
+      "diagnostics": [
+        [
+          "src/geointel/api/app.py",
+          "Argument 1 to \"append\" of \"list\" has incompatible type \"ACLEDConnector | DisabledConnector\"; expected \"EvidenceConnector\"  [arg-type]",
+          1
+        ],
+        [
+          "src/geointel/api/app.py",
+          "Argument 1 to \"append\" of \"list\" has incompatible type \"CASTConnector | DisabledConnector\"; expected \"EvidenceConnector\"  [arg-type]",
+          1
+        ],
+        [
+          "src/geointel/api/app.py",
+          "Argument 1 to \"append\" of \"list\" has incompatible type \"GDELTConnector\"; expected \"EvidenceConnector\"  [arg-type]",
+          1
+        ],
+        [
+          "src/geointel/api/app.py",
+          "Argument 1 to \"append\" of \"list\" has incompatible type \"NewsAPIConnector\"; expected \"EvidenceConnector\"  [arg-type]",
+          1
+        ],
+        [
+          "src/geointel/api/app.py",
+          "Argument 1 to \"append\" of \"list\" has incompatible type \"UCDPConnector | DisabledConnector\"; expected \"EvidenceConnector\"  [arg-type]",
+          1
+        ],
+        [
+          "src/geointel/api/app.py",
+          "Argument 1 to \"append\" of \"list\" has incompatible type \"VIEWSConnector | DisabledConnector\"; expected \"EvidenceConnector\"  [arg-type]",
+          1
+        ],
+        [
+          "src/geointel/api/app.py",
+          "Missing type arguments for generic type \"dict\"  [type-arg]",
+          1
+        ],
+        [
+          "src/geointel/config.py",
+          "Function is missing a return type annotation  [no-untyped-def]",
+          1
+        ],
+        [
+          "src/geointel/connectors/acled.py",
+          "\"ACLEDError\" has no attribute \"category\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/connectors/acled.py",
+          "Function is missing a type annotation  [no-untyped-def]",
+          2
+        ],
+        [
+          "src/geointel/connectors/acled.py",
+          "Item \"None\" of \"ACLEDOAuthClient | None\" has no attribute \"access_token\"  [union-attr]",
+          1
+        ],
+        [
+          "src/geointel/connectors/acled.py",
+          "Item \"None\" of \"str | None\" has no attribute \"lstrip\"  [union-attr]",
+          1
+        ],
+        [
+          "src/geointel/connectors/acled.py",
+          "Missing type arguments for generic type \"dict\"  [type-arg]",
+          2
+        ],
+        [
+          "src/geointel/connectors/cast.py",
+          "\"CASTError\" has no attribute \"category\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/connectors/cast.py",
+          "Function is missing a type annotation  [no-untyped-def]",
+          1
+        ],
+        [
+          "src/geointel/connectors/cast.py",
+          "Function is missing a type annotation for one or more parameters  [no-untyped-def]",
+          1
+        ],
+        [
+          "src/geointel/connectors/cast.py",
+          "Item \"None\" of \"ACLEDOAuthClient | None\" has no attribute \"access_token\"  [union-attr]",
+          1
+        ],
+        [
+          "src/geointel/connectors/cast.py",
+          "Missing type arguments for generic type \"dict\"  [type-arg]",
+          2
+        ],
+        [
+          "src/geointel/connectors/gdelt.py",
+          "\"GDELTError\" has no attribute \"category\"  [attr-defined]",
+          2
+        ],
+        [
+          "src/geointel/connectors/gdelt.py",
+          "Call to untyped function \"normalize\" of \"GDELTConnector\" in typed context  [no-untyped-call]",
+          1
+        ],
+        [
+          "src/geointel/connectors/gdelt.py",
+          "Function is missing a type annotation  [no-untyped-def]",
+          2
+        ],
+        [
+          "src/geointel/connectors/gdelt.py",
+          "Function is missing a type annotation for one or more parameters  [no-untyped-def]",
+          1
+        ],
+        [
+          "src/geointel/connectors/gdelt.py",
+          "Returning Any from function declared to return \"list[Any]\"  [no-any-return]",
+          1
+        ],
+        [
+          "src/geointel/connectors/newsapi.py",
+          "\"NewsAPIError\" has no attribute \"category\"  [attr-defined]",
+          2
+        ],
+        [
+          "src/geointel/connectors/newsapi.py",
+          "Argument 1 to \"get\" of \"dict\" has incompatible type \"Any | None\"; expected \"str\"  [arg-type]",
+          1
+        ],
+        [
+          "src/geointel/connectors/newsapi.py",
+          "Call to untyped function \"normalize\" of \"NewsAPIConnector\" in typed context  [no-untyped-call]",
+          1
+        ],
+        [
+          "src/geointel/connectors/newsapi.py",
+          "Function is missing a type annotation  [no-untyped-def]",
+          1
+        ],
+        [
+          "src/geointel/connectors/newsapi.py",
+          "Function is missing a type annotation for one or more parameters  [no-untyped-def]",
+          1
+        ],
+        [
+          "src/geointel/connectors/newsapi.py",
+          "Need type annotation for \"output\" (hint: \"output: list[<type>] = ...\")  [var-annotated]",
+          1
+        ],
+        [
+          "src/geointel/connectors/ucdp.py",
+          "Function is missing a type annotation for one or more parameters  [no-untyped-def]",
+          1
+        ],
+        [
+          "src/geointel/connectors/ucdp.py",
+          "Item \"None\" of \"str | None\" has no attribute \"lstrip\"  [union-attr]",
+          1
+        ],
+        [
+          "src/geointel/connectors/ucdp.py",
+          "Missing type arguments for generic type \"dict\"  [type-arg]",
+          2
+        ],
+        [
+          "src/geointel/connectors/ucdp.py",
+          "Returning Any from function declared to return \"list[dict[Any, Any]]\"  [no-any-return]",
+          1
+        ],
+        [
+          "src/geointel/connectors/views.py",
+          "Item \"None\" of \"str | None\" has no attribute \"lstrip\"  [union-attr]",
+          1
+        ],
+        [
+          "src/geointel/connectors/views.py",
+          "Missing type arguments for generic type \"dict\"  [type-arg]",
+          2
+        ],
+        [
+          "src/geointel/domain/models.py",
+          "Function is missing a type annotation  [no-untyped-def]",
+          2
+        ],
+        [
+          "src/geointel/domain/models.py",
+          "Missing type arguments for generic type \"dict\"  [type-arg]",
+          30
+        ],
+        [
+          "src/geointel/domain/models.py",
+          "Missing type arguments for generic type \"list\"  [type-arg]",
+          27
+        ],
+        [
+          "src/geointel/domain/schemas.py",
+          "Function is missing a return type annotation  [no-untyped-def]",
+          3
+        ],
+        [
+          "src/geointel/domain/schemas.py",
+          "Missing type arguments for generic type \"dict\"  [type-arg]",
+          17
+        ],
+        [
+          "src/geointel/domain/schemas.py",
+          "Unsupported operand types for > (\"float\" and \"None\")  [operator]",
+          1
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "\"SectionInput\" has no attribute \"actors\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "\"SectionInput\" has no attribute \"attributed_author\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "\"SectionInput\" has no attribute \"case_ids\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "\"SectionInput\" has no attribute \"claim_type\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "\"SectionInput\" has no attribute \"concept_slugs\"  [attr-defined]",
+          2
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "\"SectionInput\" has no attribute \"counterexamples\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "\"SectionInput\" has no attribute \"description\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "\"SectionInput\" has no attribute \"end_date\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "\"SectionInput\" has no attribute \"extraction_confidence\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "\"SectionInput\" has no attribute \"factual_summary\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "\"SectionInput\" has no attribute \"geography\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "\"SectionInput\" has no attribute \"ingestion_metadata\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "\"SectionInput\" has no attribute \"interpretation_notes\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "\"SectionInput\" has no attribute \"limitations\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "\"SectionInput\" has no attribute \"name\"  [attr-defined]",
+          3
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "\"SectionInput\" has no attribute \"outcome\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "\"SectionInput\" has no attribute \"section_id\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "\"SectionInput\" has no attribute \"slug\"  [attr-defined]",
+          4
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "\"SectionInput\" has no attribute \"source_provenance\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "\"SectionInput\" has no attribute \"start_date\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "\"SectionInput\" has no attribute \"text\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "Argument 1 to \"scalar\" of \"Session\" has incompatible type \"Select[StrategicConcept]\"; expected \"TypedReturnsRows[Never]\"  [arg-type]",
+          1
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "Call to untyped function (unknown) in typed context  [no-untyped-call]",
+          1
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "Function is missing a return type annotation  [no-untyped-def]",
+          1
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "Function is missing a type annotation  [no-untyped-def]",
+          1
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "Incompatible types in assignment (expression has type \"CaseInput\", variable has type \"SectionInput\")  [assignment]",
+          1
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "Incompatible types in assignment (expression has type \"ClaimInput\", variable has type \"SectionInput\")  [assignment]",
+          1
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "Incompatible types in assignment (expression has type \"ConceptInput\", variable has type \"SectionInput\")  [assignment]",
+          1
+        ],
+        [
+          "src/geointel/knowledge/ingestion.py",
+          "Missing type arguments for generic type \"dict\"  [type-arg]",
+          13
+        ],
+        [
+          "src/geointel/knowledge/lenses.py",
+          "Function is missing a type annotation  [no-untyped-def]",
+          2
+        ],
+        [
+          "src/geointel/monitoring/__main__.py",
+          "\"Watchlist\" has no attribute \"next_due_at\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/monitoring/__main__.py",
+          "Call to untyped function \"present_run\" in typed context  [no-untyped-call]",
+          2
+        ],
+        [
+          "src/geointel/monitoring/__main__.py",
+          "Function is missing a type annotation  [no-untyped-def]",
+          1
+        ],
+        [
+          "src/geointel/monitoring/__main__.py",
+          "Incompatible types in assignment (expression has type \"MonitoringRun\", variable has type \"Watchlist\")  [assignment]",
+          1
+        ],
+        [
+          "src/geointel/monitoring/__main__.py",
+          "Incompatible types in assignment (expression has type \"WatchlistTarget\", variable has type \"Watchlist\")  [assignment]",
+          1
+        ],
+        [
+          "src/geointel/monitoring/__main__.py",
+          "Incompatible types in assignment (expression has type \"list[Any]\", variable has type \"dict[str, str]\")  [assignment]",
+          1
+        ],
+        [
+          "src/geointel/monitoring/__main__.py",
+          "Incompatible types in assignment (expression has type \"list[dict[str, list[Any] | str | None]]\", variable has type \"dict[str, str]\")  [assignment]",
+          1
+        ],
+        [
+          "src/geointel/monitoring/service.py",
+          "\"object\" has no attribute \"run\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/monitoring/service.py",
+          "Call to untyped function \"_add\" of \"ChangeDetector\" in typed context  [no-untyped-call]",
+          3
+        ],
+        [
+          "src/geointel/monitoring/service.py",
+          "Call to untyped function \"_compare_map\" in typed context  [no-untyped-call]",
+          7
+        ],
+        [
+          "src/geointel/monitoring/service.py",
+          "Call to untyped function \"_previous_comparable\" in typed context  [no-untyped-call]",
+          1
+        ],
+        [
+          "src/geointel/monitoring/service.py",
+          "Function is missing a type annotation  [no-untyped-def]",
+          3
+        ],
+        [
+          "src/geointel/monitoring/service.py",
+          "Function is missing a type annotation for one or more parameters  [no-untyped-def]",
+          1
+        ],
+        [
+          "src/geointel/monitoring/service.py",
+          "Incompatible types in assignment (expression has type \"MonitoringRun | None\", variable has type \"MonitoringRun\")  [assignment]",
+          1
+        ],
+        [
+          "src/geointel/monitoring/service.py",
+          "Missing type arguments for generic type \"dict\"  [type-arg]",
+          9
+        ],
+        [
+          "src/geointel/news/corroboration.py",
+          "Missing type arguments for generic type \"dict\"  [type-arg]",
+          2
+        ],
+        [
+          "src/geointel/news/relevance.py",
+          "Function is missing a return type annotation  [no-untyped-def]",
+          1
+        ],
+        [
+          "src/geointel/news/relevance.py",
+          "Function is missing a type annotation for one or more parameters  [no-untyped-def]",
+          1
+        ],
+        [
+          "src/geointel/news/relevance.py",
+          "Missing type arguments for generic type \"dict\"  [type-arg]",
+          4
+        ],
+        [
+          "src/geointel/pipeline/historical.py",
+          "Argument 1 to \"HistoricalFatalityStatistics\" has incompatible type \"**dict[str, Any | None]\"; expected \"int\"  [arg-type]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/historical.py",
+          "Function is missing a type annotation for one or more parameters  [no-untyped-def]",
+          2
+        ],
+        [
+          "src/geointel/pipeline/historical.py",
+          "Need type annotation for \"counts\"  [var-annotated]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/historical.py",
+          "Need type annotation for \"windows\" (hint: \"windows: dict[<type>, <type>] = ...\")  [var-annotated]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/historical.py",
+          "Returning Any from function declared to return \"str\"  [no-any-return]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"EvidenceConnector\" has no attribute \"last_query_plan\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"alignment_notes\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"alignment_status\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"canonical_url\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"country\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"epistemic_status\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"event_type\"; maybe \"event_date\"?  [attr-defined]",
+          2
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"geographic_alignment_notes\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"geographic_alignment_status\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"geographic_unit\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"horizon_months\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"identity_metadata\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"issue_date\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"language\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"location\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"model_name\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"model_version\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"notes\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"prediction\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"provider\"  [attr-defined]",
+          4
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"provider_geography\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"publication_timestamp\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"publisher\"; maybe \"published_at\"?  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"requested_geography\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"retrieval_timestamp\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"scale\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"source_country\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"source_url\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"syndication_metadata\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"target_end\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"target_start\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"target_variable\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"temporal_alignment\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"temporal_classification\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "\"NormalizedEvidence\" has no attribute \"unit\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "Argument 1 to \"scalar\" of \"Session\" has incompatible type \"Select[Source]\"; expected \"TypedReturnsRows[Never]\"  [arg-type]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "Call to untyped function \"_deduplicate\" of \"AnalysisPipeline\" in typed context  [no-untyped-call]",
+          4
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "Call to untyped function \"_merge_news_duplicates\" of \"AnalysisPipeline\" in typed context  [no-untyped-call]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "Function is missing a type annotation  [no-untyped-def]",
+          3
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "Function is missing a type annotation for one or more parameters  [no-untyped-def]",
+          3
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "Incompatible types in assignment (expression has type \"NormalizedForecastSignal\", variable has type \"NormalizedEvidence\")  [assignment]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "Incompatible types in assignment (expression has type \"NormalizedNewsReport\", variable has type \"NormalizedEvidence\")  [assignment]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "Incompatible types in assignment (expression has type \"NormalizedOperationalEvent\", variable has type \"NormalizedEvidence\")  [assignment]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "Item \"None\" of \"Any | None\" has no attribute \"get\"  [union-attr]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "Missing type arguments for generic type \"dict\"  [type-arg]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "Need type annotation for \"retrieved\" (hint: \"retrieved: list[<type>] = ...\")  [var-annotated]",
+          1
+        ],
+        [
+          "src/geointel/pipeline/service.py",
+          "Need type annotation for \"unique\" (hint: \"unique: dict[<type>, <type>] = ...\")  [var-annotated]",
+          2
+        ],
+        [
+          "src/geointel/providers/__main__.py",
+          "Missing type arguments for generic type \"dict\"  [type-arg]",
+          1
+        ],
+        [
+          "src/geointel/providers/base.py",
+          "Missing type arguments for generic type \"dict\"  [type-arg]",
+          2
+        ],
+        [
+          "src/geointel/providers/offline.py",
+          "Incompatible types in assignment (expression has type \"ForecastOutput\", variable has type \"AnalystOutput\")  [assignment]",
+          1
+        ],
+        [
+          "src/geointel/providers/offline.py",
+          "Incompatible types in assignment (expression has type \"RedTeamOutput\", variable has type \"AnalystOutput\")  [assignment]",
+          1
+        ],
+        [
+          "src/geointel/providers/offline.py",
+          "Incompatible types in assignment (expression has type \"SynthesisOutput\", variable has type \"AnalystOutput\")  [assignment]",
+          1
+        ],
+        [
+          "src/geointel/providers/offline.py",
+          "Missing type arguments for generic type \"dict\"  [type-arg]",
+          1
+        ],
+        [
+          "src/geointel/providers/offline.py",
+          "Value of type \"Any | None\" is not indexable  [index]",
+          1
+        ],
+        [
+          "src/geointel/providers/registry.py",
+          "Value of type \"object\" is not indexable  [index]",
+          15
+        ],
+        [
+          "src/geointel/providers/runtime.py",
+          "Need type annotation for \"output\" (hint: \"output: list[<type>] = ...\")  [var-annotated]",
+          1
+        ],
+        [
+          "src/geointel/providers/runtime.py",
+          "Returning Any from function declared to return \"dict[str, Any]\"  [no-any-return]",
+          1
+        ],
+        [
+          "src/geointel/validation/domain.py",
+          "Function is missing a return type annotation  [no-untyped-def]",
+          1
+        ],
+        [
+          "src/geointel/validation/runner.py",
+          "\"Base\" has no attribute \"provenance\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/validation/runner.py",
+          "\"object\" has no attribute \"__iter__\"; maybe \"__dir__\" or \"__str__\"? (not iterable)  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/validation/runner.py",
+          "\"object\" has no attribute \"append\"  [attr-defined]",
+          1
+        ],
+        [
+          "src/geointel/validation/runner.py",
+          "Call to untyped function \"_evaluate\" in typed context  [no-untyped-call]",
+          1
+        ],
+        [
+          "src/geointel/validation/runner.py",
+          "Call to untyped function \"_source_matrix\" of \"ValidationRunner\" in typed context  [no-untyped-call]",
+          1
+        ],
+        [
+          "src/geointel/validation/runner.py",
+          "Function is missing a type annotation  [no-untyped-def]",
+          2
+        ],
+        [
+          "src/geointel/validation/runner.py",
+          "Missing type arguments for generic type \"dict\"  [type-arg]",
+          2
+        ],
+        [
+          "src/geointel/validation/suite.py",
+          "Argument 1 to \"append\" of \"list\" has incompatible type \"FailedFixtureConnector\"; expected \"DisabledConnector\"  [arg-type]",
+          1
+        ],
+        [
+          "src/geointel/validation/suite.py",
+          "Argument 1 to \"append\" of \"list\" has incompatible type \"FixtureConnector\"; expected \"DisabledConnector\"  [arg-type]",
+          1
+        ],
+        [
+          "src/geointel/validation/suite.py",
+          "Function is missing a return type annotation  [no-untyped-def]",
+          3
+        ]
+      ]
+    }
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "validation-final": {
+    "error": 0,
+    "fail": 0,
+    "not_applicable": 0,
+    "pass": 20
+  },
+  "validation-smoke": {
+    "error": 0,
+    "fail": 0,
+    "not_applicable": 0,
+    "pass": 20
+  }
+}

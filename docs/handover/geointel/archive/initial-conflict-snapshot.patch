@@ -1,0 +1,1175 @@
+diff --git a/README.md b/README.md
+index 6490bfa..2bcf1c8 100644
+--- a/README.md
++++ b/README.md
+@@ -1 +1 @@
+-# GEOINTEL v0.1.7
++# GEOINTEL v0.1.8
+@@ -196,0 +197,19 @@ for future calibrated forecasting models, not probabilities or model authority.
++
++
++## Normalized historical conflict profiles (v0.1.8)
++
++`collection_metadata.historical_conflict_profile` and Analyst output now expose a typed,
++auditable provider-neutral taxonomy, per-type and overall observation/year/fatality statistics,
++retrieved-observation shares, and dataset-reference trailing windows. Every mapping retains its
++provider category/value, source ID, dataset/version, geography, temporal role and method version.
++Verified GED `type_of_violence=3` maps to `ONE_SIDED_VIOLENCE`; `1` (state-based) and `2`
++(non-state) remain `OTHER_OR_UNRESOLVED` because the supplied field cannot establish the finer
++GEOINTEL categories. Unknown providers/values remain unresolved rather than being discarded.
++
++Observation rows are neither conflict nor episode counts; fatalities are not frequency. Unknown
++coverage remains unknown, absent years are not zeros, and annualized rates remain unavailable.
++Analyst/synthesis present compact normalized historical background. Deterministic Red Team checks
++challenge taxonomy, temporal, unit and denominator misuse. Historical features cannot create
++current coverage, current observed evidence, escalation indicators or numeric forecast
++probabilities. The four forecast categories and news/provider behavior remain intact.
++See [the complete profile and mapping contract](docs/HISTORICAL_BASE_RATES.md).
+diff --git a/docs/FORECASTING.md b/docs/FORECASTING.md
+index ceb6526..c526880 100644
+--- a/docs/FORECASTING.md
++++ b/docs/FORECASTING.md
+@@ -109,0 +110,29 @@ News relevance does not verify an event and article volume is never a probabilit
++
++
++## v0.1.8 descriptive historical context
++
++The provider-neutral historical taxonomy is separate from the unchanged four-category forecast
++contract. Analyst retains the typed `HistoricalConflictProfile` and summarizes safely mapped
++types and unresolved observation counts without repeating rows. Per-category forecast/synthesis
++unknowns describe matching historical observation counts; these do not reduce uncertainty or
++assert recurrence. Internationalized internal conflict is a separate historical category and
++is not silently collapsed into a forecast category.
++
++Historical presence, shares of retrieved observations, years since latest observation,
++observation counts, distinct observed years and fatalities are descriptive inputs only. They
++are neither risk scores nor LOW/MEDIUM/HIGH current-risk labels. There is no calibrated GEOINTEL
++probability mechanism in this release: synthesis clears uncalibrated numeric bounds and the
++pipeline refuses to persist numeric synthesis probabilities from any routed model. Existing
++low confidence remains a statement of uncertainty, not a historical risk classification.
++
++The mandatory deterministic historical review also runs at the pipeline boundary, independently
++of the routed Red Team model. It checks mapping audit completeness and reviewed mapping rules,
++unresolved loss, historical count/episode/fatality confusion, probability/current/escalation
++claims, reference/coverage confusion and unvalidated annualized rates. Findings remain persisted
++and synthesis must incorporate them. Narrative checks use explicit positive patterns and do not
++claim exhaustive natural-language understanding.
++
++Future calibrated models may consume these features only with an explicit target definition,
++validated exposure and retrieval completeness, dataset-specific missingness handling, dependence
++controls, held-out backtesting and calibration assessment. A retrieved-observation share is not
++an annual or recurrence probability. See [historical profiles](HISTORICAL_BASE_RATES.md).
+diff --git a/docs/HISTORICAL_BASE_RATES.md b/docs/HISTORICAL_BASE_RATES.md
+index d318180..bd4d12d 100644
+--- a/docs/HISTORICAL_BASE_RATES.md
++++ b/docs/HISTORICAL_BASE_RATES.md
+@@ -19 +19 @@ Schema (nullable values remain null when unavailable):
+-  latest_observed_date, coverage_end, reference_date, reference_basis, historical,
++  latest_observed_date, coverage_start, coverage_end, reference_date, reference_basis, historical,
+@@ -29 +29 @@ Schema (nullable values remain null when unavailable):
+-- `category_statistics`: explicitly present normalized category field to value
++- `category_statistics`: explicitly present provider category field to value
+@@ -50,0 +51,103 @@ using these features to estimate probabilities.
++
++
++## Normalized conflict taxonomy and reviewed GED mappings (v0.1.8)
++
++The separate typed `NormalizedConflictType` enum contains exactly:
++
++- `INTERSTATE_ARMED_CONFLICT`
++- `INTERNAL_ARMED_CONFLICT`
++- `INTERNATIONALIZED_INTERNAL_ARMED_CONFLICT`
++- `ONE_SIDED_VIOLENCE`
++- `MAJOR_POLITICAL_VIOLENCE`
++- `OTHER_OR_UNRESOLVED`
++
++The repository previously retained numeric GED categories but contained no authoritative
++value definitions. These were verified against the official
++[UCDP GED 26.1 codebook](https://ucdp.uu.se/downloads/ged/ged261.pdf), section 3.1 (page 6)
++and section 5.2 (page 16), on 2026-10-06. The explicit deterministic mapping policy is
++`provider-conflict-taxonomy-v1`:
++
++| Provider/dataset/field | Original value and meaning | Normalized type | Mapping confidence |
++| --- | --- | --- | --- |
++| UCDP / GED / type_of_violence | 1: state-based conflict | OTHER_OR_UNRESOLVED | unresolved |
++| UCDP / GED / type_of_violence | 2: non-state conflict | OTHER_OR_UNRESOLVED | unresolved |
++| UCDP / GED / type_of_violence | 3: one-sided violence | ONE_SIDED_VIOLENCE | verified_direct |
++| Missing/unknown value, unreviewed dataset/provider | original value retained | OTHER_OR_UNRESOLVED | unresolved |
++
++State-based violence does not distinguish interstate/internal/internationalized internal
++conflict. GED's non-state conflict category does not establish GEOINTEL internal armed conflict
++or the scope/threshold of major political violence. No extra conflict metadata, episode counts,
++political motive or country identity is inferred to bridge those gaps. Mapping confidence
++expresses taxonomy review status, not event truth, current activity or forecast confidence.
++The direct one-sided mapping retains UCDP's own inclusion criteria. Candidate remains separate,
++delayed/non-real-time and excluded from historical profiles. Other providers await reviewed maps.
++
++## HistoricalConflictProfile schema
++
++Persisted in existing AnalysisRun JSON metadata and typed Analyst output; no new relational
++migration is needed. API serialization exposes the same auditable structure. Raw Evidence
++provenance is preserved. Method: `historical-conflict-profile-v1`.
++
++- `status`, `geography`, `analysis_date`, `method_version`, `normalization_method_version`.
++- `coverage[]`: the existing coverage structure plus explicit nullable `coverage_start`.
++  Boundaries are accepted only from explicit provider provenance. Resolved geography falls back
++  to the provider country ID when the reviewed resolution ID is unavailable.
++- `overall`, `conflict_types[NormalizedConflictType]`: `HistoricalConflictFeatures`, with
++  `observation_statistics` and `fatality_statistics` as documented above, `historical_presence`,
++  `share_of_retrieved_historical_observations`, and `trailing_window_counts` keyed by the
++  **overall profile's coverage index**. Every taxonomy member is present, including unresolved.
++- `unresolved_observation_count`: included in overall and unresolved-group counts, not added
++  twice. All per-type observation counts sum to the overall count.
++- `normalization_audit[]`: provider, provider_dataset, provider_original_category,
++  provider_original_value, provider_original_categories (all retained category fields),
++  provider_category_meaning, normalized_conflict_type, mapping_confidence,
++  mapping_method_version, mapping_notes, mapping_source, source_record_id, dataset_version,
++  resource, requested_geography, observation_geography, resolved_provider_geography_id,
++  temporal_role, coverage_index. Audits sort deterministically independent of input order.
++- `annualized_rate_status`: `UNAVAILABLE_UNKNOWN_COVERAGE` when either boundary is missing;
++  otherwise `UNAVAILABLE_UNVALIDATED_DENOMINATOR`. `annualized_observation_rate` is always null
++  in this release and the typed schema rejects numeric values.
++- `caveats`: explicit temporal, denominator, unit, completeness, unresolved and overlap limits.
++
++Per-type windows share the same dataset references as overall windows, rather than silently
++moving the reference to the most recent observation of each type. Window cutoffs are exclusive,
++references inclusive; missing dates do not count. Multiple datasets retain independent reference
++entries and may overlap: summed rows do not imply unique independently observed events.
++
++`historical_presence` means at least one retrieved historical row in the group. A false value
++means no retrieved rows, not proven historical absence. Shares divide by all retrieved historical
++rows including unresolved mappings; empty denominators yield null. Fatality totals and median/max
++use available nonnegative integer values only, accompanied by field-availability counts. Missing
++fatalities are not imputed as zero. Years-since-latest is a calendar-year difference from the
++explicit analysis date. Distinct observed years are not coverage duration. No trend, fatality
++risk scale, episode count, per-year conflict frequency, percent of conflict years or probability
++is produced. Optional future descriptors require separately reviewed definitions.
++
++## Denominator and provenance safeguards
++
++The codebook documents GED 26.1's global date range, but this does not establish the completeness
++of a bounded/paginated retrieval or its geographic denominator. Accordingly version numbers do
++not auto-fill coverage boundaries. Latest observations never become coverage ends; missing years
++never become zero-conflict years. Even supplied start/end boundaries alone do not validate an
++annualized denominator. Complete retrieval, exclusions, revisions and dataset dependence must be
++reviewed before any future annualized feature is enabled.
++
++Rows, years, episodes and fatalities are separate units: `observation_count != conflict_count`,
++`distinct_observed_year_count != episode_count`, `fatality_total != event_frequency`. No episode
++count is inferred from GED rows or IDs. Each feature group can be traced through its type and
++coverage index to mapping audits and original provider/version/record provenance in Evidence.
++No provider secrets or arbitrary provenance fields are copied into mapping audits.
++
++Analyst/synthesis use compact normalized context; raw categories remain audit data. Mandatory
++Red Team detects explicit positive misuse assertions with deterministic patterns and checks
++structured audit completeness, forged mappings, unresolved loss, and unvalidated rates. Checks
++are bounded and conservative, not a general-purpose semantic proof; arbitrary paraphrases may
++require human review. Existing temporal leakage checks and numeric calibration safeguards remain.
++Historical features never enter current coverage/evidence, operational events, escalation
++indicators, or calibrated numeric probabilities. Future models must satisfy the forecasting
++contract before treating these descriptive features as model inputs.
++
++Monitoring retains historical context in persisted forecasts but excludes the exact audited
++per-category descriptive context from material forecast-state comparisons. A change in historical
++row counts alone cannot create an escalation alert; other unknowns, confidence, probabilities
++and evidence remain compared normally.
+diff --git a/src/geointel/__init__.py b/src/geointel/__init__.py
+index 0e4e007..795dd1a 100644
+--- a/src/geointel/__init__.py
++++ b/src/geointel/__init__.py
+@@ -3 +3 @@
+-__version__ = "0.1.7"
++__version__ = "0.1.8"
+diff --git a/src/geointel/connectors/ucdp.py b/src/geointel/connectors/ucdp.py
+index e77d44b..4a4409c 100644
+--- a/src/geointel/connectors/ucdp.py
++++ b/src/geointel/connectors/ucdp.py
+@@ -34,0 +35 @@ class UCDPRawRecord(BaseModel):
++    coverage_start: date | None = None
+@@ -313,0 +315,3 @@ class UCDPConnector:
++                "coverage_start": (
++                    record.coverage_start.isoformat() if record.coverage_start else None
++                ),
+diff --git a/src/geointel/domain/schemas.py b/src/geointel/domain/schemas.py
+index 334166d..2ac74e4 100644
+--- a/src/geointel/domain/schemas.py
++++ b/src/geointel/domain/schemas.py
+@@ -2,0 +3 @@ from enum import StrEnum
++from typing import Literal
+@@ -167,0 +169 @@ class HistoricalDatasetCoverage(BaseModel):
++    coverage_start: date | None = None
+@@ -211,0 +214,57 @@ class HistoricalBaseRateSummary(BaseModel):
++class NormalizedConflictType(StrEnum):
++    INTERSTATE_ARMED_CONFLICT = "INTERSTATE_ARMED_CONFLICT"
++    INTERNAL_ARMED_CONFLICT = "INTERNAL_ARMED_CONFLICT"
++    INTERNATIONALIZED_INTERNAL_ARMED_CONFLICT = "INTERNATIONALIZED_INTERNAL_ARMED_CONFLICT"
++    ONE_SIDED_VIOLENCE = "ONE_SIDED_VIOLENCE"
++    MAJOR_POLITICAL_VIOLENCE = "MAJOR_POLITICAL_VIOLENCE"
++    OTHER_OR_UNRESOLVED = "OTHER_OR_UNRESOLVED"
++
++
++class HistoricalTaxonomyMapping(BaseModel):
++    provider: str
++    provider_dataset: str | None = None
++    provider_original_category: str | None = None
++    provider_original_value: int | str | None = None
++    provider_original_categories: dict = Field(default_factory=dict)
++    provider_category_meaning: str | None = None
++    normalized_conflict_type: NormalizedConflictType
++    mapping_confidence: Literal["verified_direct", "unresolved"]
++    mapping_method_version: str
++    mapping_notes: list[str]
++    mapping_source: str | None = None
++    source_record_id: str | None = None
++    dataset_version: str | None = None
++    resource: str | None = None
++    requested_geography: str
++    observation_geography: str
++    resolved_provider_geography_id: int | str | None = None
++    temporal_role: str
++    coverage_index: str | None = None
++
++
++class HistoricalConflictFeatures(BaseModel):
++    observation_statistics: HistoricalObservationStatistics
++    fatality_statistics: HistoricalFatalityStatistics
++    historical_presence: bool
++    share_of_retrieved_historical_observations: float | None = Field(default=None, ge=0, le=1)
++    trailing_window_counts: dict[str, dict[str, int]] = Field(default_factory=dict)
++
++
++class HistoricalConflictProfile(BaseModel):
++    status: str
++    geography: str
++    analysis_date: date
++    method_version: str = "historical-conflict-profile-v1"
++    normalization_method_version: str = "provider-conflict-taxonomy-v1"
++    coverage: list[HistoricalDatasetCoverage] = Field(default_factory=list)
++    overall: HistoricalConflictFeatures
++    conflict_types: dict[NormalizedConflictType, HistoricalConflictFeatures]
++    unresolved_observation_count: int
++    normalization_audit: list[HistoricalTaxonomyMapping] = Field(default_factory=list)
++    annualized_rate_status: Literal[
++        "UNAVAILABLE_UNKNOWN_COVERAGE", "UNAVAILABLE_UNVALIDATED_DENOMINATOR"
++    ]
++    annualized_observation_rate: None = None
++    caveats: list[str]
++
++
+@@ -212,0 +272 @@ class AnalystOutput(BaseModel):
++    historical_conflict_profile: HistoricalConflictProfile | None = None
+@@ -238,0 +299,2 @@ class RedTeamOutput(BaseModel):
++    taxonomy_normalization_concerns: list[str] = Field(default_factory=list)
++    historical_semantic_concerns: list[str] = Field(default_factory=list)
+diff --git a/src/geointel/monitoring/service.py b/src/geointel/monitoring/service.py
+index 1b6ea48..366dd42 100644
+--- a/src/geointel/monitoring/service.py
++++ b/src/geointel/monitoring/service.py
+@@ -23,0 +24 @@ from geointel.domain.schemas import AnalysisRequest
++from geointel.pipeline.historical_review import historical_context
+@@ -424,0 +426,6 @@ class MonitoringService:
++        profile = (run.collection_metadata or {}).get("historical_conflict_profile")
++        descriptive_context = (
++            {historical_context(profile, f.conflict_type) for f in run.forecasts}
++            if profile
++            else set()
++        )
+@@ -432 +439,2 @@ class MonitoringService:
+-                "unknowns": sorted(f.unknowns),
++                # Audited descriptive history remains visible, but is not a forecast change.
++                "unknowns": sorted(x for x in f.unknowns if x not in descriptive_context),
+diff --git a/src/geointel/pipeline/historical.py b/src/geointel/pipeline/historical.py
+index 1e89b11..e0b8986 100644
+--- a/src/geointel/pipeline/historical.py
++++ b/src/geointel/pipeline/historical.py
+@@ -8,0 +9,2 @@ from geointel.domain.schemas import (
++    HistoricalConflictFeatures,
++    HistoricalConflictProfile,
+@@ -11,0 +14 @@ from geointel.domain.schemas import (
++    NormalizedConflictType,
+@@ -13,0 +17 @@ from geointel.domain.schemas import (
++from geointel.pipeline.taxonomy import normalize_historical_type
+@@ -43,11 +47 @@ def summarize_history(records, geography: str, analysis_date: date) -> Historica
+-        p = item.provenance
+-        key = (
+-            item.source_name,
+-            p.get("dataset"),
+-            p.get("endpoint"),
+-            p.get("dataset_version"),
+-            evidence_role(item),
+-            p.get("resolved_ucdp_country_id", p.get("country_id")),
+-            p.get("coverage_end"),
+-            p.get("reference_date"),
+-        )
++        key = _coverage_key(item)
+@@ -57 +51 @@ def summarize_history(records, geography: str, analysis_date: date) -> Historica
+-        provider, dataset, resource, version, role, geo_id, end, reference = key
++        provider, dataset, resource, version, role, geo_id, start, end, reference = key
+@@ -71,0 +66 @@ def summarize_history(records, geography: str, analysis_date: date) -> Historica
++                coverage_start=_date(start),
+@@ -96 +91 @@ def summarize_history(records, geography: str, analysis_date: date) -> Historica
+-        values[field] = [item.provenance.get("fatalities", {}).get(field) for item in records]
++        values[field] = [(item.provenance.get("fatalities") or {}).get(field) for item in records]
+@@ -143,0 +139,97 @@ def summarize_history(records, geography: str, analysis_date: date) -> Historica
++
++
++def _coverage_key(item: NormalizedEvidence) -> tuple:
++    p = item.provenance
++    return (
++        item.source_name,
++        p.get("dataset"),
++        p.get("endpoint"),
++        p.get("dataset_version"),
++        evidence_role(item),
++        p.get("resolved_ucdp_country_id") or p.get("country_id"),
++        p.get("coverage_start"),
++        p.get("coverage_end"),
++        p.get("reference_date"),
++    )
++
++
++def build_conflict_profile(
++    records, geography: str, analysis_date: date
++) -> HistoricalConflictProfile:
++    records = [item for item in records if is_historical(item)]
++    summary = summarize_history(records, geography, analysis_date)
++    keys = sorted({_coverage_key(item) for item in records}, key=str)
++    audit = [normalize_historical_type(item, geography) for item in records]
++    for item, mapping in zip(records, audit, strict=True):
++        mapping.coverage_index = str(keys.index(_coverage_key(item)))
++
++    def features(items, mappings):
++        stats = summarize_history(items, geography, analysis_date)
++        windows = {}
++        # Every type uses the same dataset reference, including types with no retrieved rows.
++        for index, coverage in enumerate(summary.coverage):
++            ref = coverage.reference_date
++            if ref is None:
++                continue
++            dates = [
++                item.event_date.date()
++                for item, mapping in zip(items, mappings, strict=True)
++                if item.event_date and mapping.coverage_index == str(index)
++            ]
++            windows[str(index)] = {}
++            for span in (5, 10, 20):
++                cutoff = (
++                    ref.replace(year=ref.year - span, day=28)
++                    if (ref.month == 2 and ref.day == 29)
++                    else ref.replace(year=ref.year - span)
++                )
++                windows[str(index)][f"{span}y"] = sum(cutoff < d <= ref for d in dates)
++        return HistoricalConflictFeatures(
++            observation_statistics=stats.observation_statistics,
++            fatality_statistics=stats.fatality_statistics,
++            historical_presence=bool(items),
++            share_of_retrieved_historical_observations=len(items) / len(records)
++            if records
++            else None,
++            trailing_window_counts=windows,
++        )
++
++    per_type = {}
++    for kind in NormalizedConflictType:
++        selected = [
++            (item, mapping)
++            for item, mapping in zip(records, audit, strict=True)
++            if mapping.normalized_conflict_type == kind
++        ]
++        per_type[kind] = features([x[0] for x in selected], [x[1] for x in selected])
++    unknown_coverage = not summary.coverage or any(
++        c.coverage_start is None or c.coverage_end is None for c in summary.coverage
++    )
++    return HistoricalConflictProfile(
++        status=summary.status,
++        geography=geography,
++        analysis_date=analysis_date,
++        coverage=summary.coverage,
++        overall=features(records, audit),
++        conflict_types=per_type,
++        unresolved_observation_count=per_type[
++            NormalizedConflictType.OTHER_OR_UNRESOLVED
++        ].observation_statistics.observation_count,
++        normalization_audit=sorted(audit, key=lambda x: x.model_dump_json()),
++        annualized_rate_status="UNAVAILABLE_UNKNOWN_COVERAGE"
++        if unknown_coverage
++        else "UNAVAILABLE_UNVALIDATED_DENOMINATOR",
++        caveats=summary.caveats
++        + [
++            "Observation rows, distinct observed years, episodes and "
++            "fatalities are different units.",
++            "No episode counts are inferred; zero retrieved observations do not establish absence.",
++            "Shares use retrieved historical observations, not a population "
++            "or temporal denominator.",
++            "Coverage boundaries alone do not validate complete retrieval or zero-conflict years.",
++            "Unresolved mappings are retained; historical presence is not "
++            "current activity or escalation.",
++            "Per-type windows use the overall dataset reference, not per-type latest observations.",
++            "Multiple datasets may overlap; totals count retrieved rows, not independent events.",
++        ],
++    )
+diff --git a/src/geointel/pipeline/historical_review.py b/src/geointel/pipeline/historical_review.py
+new file mode 100644
+index 0000000..a277ccb
+--- /dev/null
++++ b/src/geointel/pipeline/historical_review.py
+@@ -0,0 +1,157 @@
++"""Deterministic historical misuse checks on structured claims and bounded narrative."""
++
++import re
++
++from geointel.domain.schemas import ConflictType, NormalizedConflictType
++from geointel.pipeline.taxonomy import MAPPING_VERSION
++
++FORECAST_HISTORY_TYPES = {
++    ConflictType.INTERSTATE: NormalizedConflictType.INTERSTATE_ARMED_CONFLICT,
++    ConflictType.INTERNAL: NormalizedConflictType.INTERNAL_ARMED_CONFLICT,
++    ConflictType.ONE_SIDED: NormalizedConflictType.ONE_SIDED_VIOLENCE,
++    ConflictType.POLITICAL: NormalizedConflictType.MAJOR_POLITICAL_VIOLENCE,
++}
++
++
++def historical_context(profile: dict, kind: ConflictType | None = None) -> str:
++    if kind is not None:
++        target = FORECAST_HISTORY_TYPES[kind].value
++        count = profile["conflict_types"][target]["observation_statistics"]["observation_count"]
++        return (
++            f"Historical observations mapped to {target}: {count} retrieved observations. "
++            "This is descriptive background, not current activity or a forecast probability; "
++            "zero retrieved observations do not establish historical absence."
++        )
++    supported = [
++        key
++        for key, value in profile["conflict_types"].items()
++        if value["historical_presence"] and key != "OTHER_OR_UNRESOLVED"
++    ]
++    return (
++        "Historical base-rate context available: normalized types "
++        + (", ".join(sorted(supported)) or "none safely mapped")
++        + f"; {profile['unresolved_observation_count']} unresolved observations retained. "
++        "Descriptive historical features are not current evidence, escalation evidence or "
++        "forecast probabilities."
++    )
++
++
++def review_historical_claims(payload: dict) -> dict[str, list[str]]:
++    profile = payload.get("historical_conflict_profile")
++    if not profile or profile.get("status") != "available":
++        return {}
++    taxonomy, semantics, coverage = [], [], []
++    audit = profile.get("normalization_audit", [])
++    total = profile.get("overall", {}).get("observation_statistics", {}).get("observation_count", 0)
++    if len(audit) != total or any(not x.get("mapping_method_version") for x in audit):
++        taxonomy.append(
++            "Historical taxonomy lacks an explicit versioned mapping for every observation."
++        )
++    for mapping in audit:
++        direct = (
++            mapping.get("provider") == "UCDP"
++            and mapping.get("provider_dataset") == "GED"
++            and mapping.get("provider_original_category") == "type_of_violence"
++            and type(mapping.get("provider_original_value")) is int
++            and mapping["provider_original_value"] == 3
++        )
++        expected_type = "ONE_SIDED_VIOLENCE" if direct else "OTHER_OR_UNRESOLVED"
++        if (
++            mapping.get("normalized_conflict_type") != expected_type
++            or mapping.get("mapping_method_version") != MAPPING_VERSION
++        ):
++            taxonomy.append(
++                "Provider category was normalized without the reviewed deterministic mapping."
++            )
++    unresolved = sum(x.get("normalized_conflict_type") == "OTHER_OR_UNRESOLVED" for x in audit)
++    expected = profile.get("unresolved_observation_count", 0)
++    grouped = sum(
++        x.get("observation_statistics", {}).get("observation_count", 0)
++        for x in profile.get("conflict_types", {}).values()
++    )
++    if unresolved != expected or grouped != total:
++        taxonomy.append("Unresolved taxonomy mappings were hidden, discarded or miscounted.")
++    analysis = payload.get("analysis", {})
++    output_profile = analysis.get("historical_conflict_profile")
++    if output_profile is not None and output_profile != profile:
++        taxonomy.append("Analyst historical profile differs from the supplied auditable profile.")
++    texts = []
++
++    def walk(value):
++        if isinstance(value, str):
++            texts.append(value.lower())
++        elif isinstance(value, dict):
++            # Audit structures are data, not analytical assertions.
++            for key, child in value.items():
++                if key not in {"historical_conflict_profile", "historical_base_rate_summary"}:
++                    walk(child)
++        elif isinstance(value, list):
++            for child in value:
++                walk(child)
++
++    walk(analysis)
++    walk(payload.get("forecast", {}))
++    # Match positive misuse assertions; disclaimers containing 'not'/'never'/'cannot' are excluded.
++    patterns = [
++        (
++            r"\b\d+\s+(?:historical\s+)?(?:conflicts|episodes)\b|"
++            r"observation(?:s|_count)? (?:are|is|equals|means) (?:the )?(?:conflict|episode)",
++            "Historical observation counts were described as conflict or episode counts.",
++        ),
++        (
++            r"fatalit(?:y|ies).*?(?:are|is|equals|means|measure) (?:the "
++            r")?(?:event|observation) (?:count|frequency)",
++            "Historical fatality totals were described as event frequency.",
++        ),
++        (
++            r"historical "
++            r"(?:frequency|presence|share).*?(?:implies|means|yields|is|increases).*?(?:probability|risk|likely|escalation|current|active)",
++            "Historical frequency or presence was promoted to probability, "
++            "current activity or escalation.",
++        ),
++    ]
++    for text in texts:
++        for clause in re.split(r"[.;\n]", text):
++            if re.search(r"\b(?:not|never|cannot|without|no)\b", clause):
++                continue
++            for pattern, finding in patterns:
++                if re.search(pattern, clause):
++                    semantics.append(finding)
++            if re.search(
++                r"latest (?:historical "
++                r")?observation.*?(?:is|equals|defines|establishes).*?coverage end",
++                clause,
++            ):
++                coverage.append("Latest observation was treated as dataset coverage end.")
++            if re.search(r"missing years.*?(?:are|mean|as|equals).*?(?:zero|no.conflict)", clause):
++                coverage.append(
++                    "Missing years were treated as zero-conflict years without validated coverage."
++                )
++            if re.search(
++                r"(?:type_of_violence|provider "
++                r"(?:code|category)).*?(?:means|is|equals).*?(?:internal|interstate|political)",
++                clause,
++            ):
++                taxonomy.append(
++                    "Provider category was treated as a normalized category without a "
++                    "reviewed mapping."
++                )
++    for c in profile.get("coverage", []):
++        if (
++            c.get("reference_basis") == "latest_observation_not_dataset_coverage"
++            and c.get("coverage_end") is not None
++        ):
++            coverage.append("Observation reference was silently promoted to dataset coverage end.")
++    if profile.get("annualized_observation_rate") is not None:
++        coverage.append("Annualized historical rate lacks a validated retrieval denominator.")
++    if (
++        payload.get("escalation_indicators")
++        and not payload.get("recent_events")
++        and not payload.get("observed_evidence")
++    ):
++        semantics.append("Historical-only inputs were used as escalation indicators.")
++    return {
++        "taxonomy_normalization_concerns": sorted(set(taxonomy)),
++        "historical_semantic_concerns": sorted(set(semantics)),
++        "base_rate_concerns": sorted(set(coverage)),
++    }
+diff --git a/src/geointel/pipeline/service.py b/src/geointel/pipeline/service.py
+index 9e50895..81969c3 100644
+--- a/src/geointel/pipeline/service.py
++++ b/src/geointel/pipeline/service.py
+@@ -42 +42,7 @@ from geointel.news.relevance import (
+-from geointel.pipeline.historical import is_current, is_historical, summarize_history
++from geointel.pipeline.historical import (
++    build_conflict_profile,
++    is_current,
++    is_historical,
++    summarize_history,
++)
++from geointel.pipeline.historical_review import review_historical_claims
+@@ -228 +234,3 @@ class AnalysisPipeline:
+-        base_rate = summarize_history(historical, request.location, datetime.now(UTC).date())
++        analysis_date = datetime.now(UTC).date()
++        base_rate = summarize_history(historical, request.location, analysis_date)
++        profile = build_conflict_profile(historical, request.location, analysis_date)
+@@ -452,0 +461 @@ class AnalysisPipeline:
++            "historical_conflict_profile": profile.model_dump(mode="json"),
+@@ -477,0 +487 @@ class AnalysisPipeline:
++<<<<<<< HEAD
+@@ -478,0 +489,4 @@ class AnalysisPipeline:
++=======
++            "historical_conflict_profile": profile.model_dump(mode="json"),
++            "recent_events": [x.model_dump(mode="json") for x in events],
++>>>>>>> d296ee7 (Release v0.1.8 auditable historical conflict profiles and taxonomy safety)
+@@ -519,0 +534,8 @@ class AnalysisPipeline:
++        # These audit checks also run when a different structured model is routed.
++        review_payload = {
++            **payload,
++            "analysis": analyst.model_dump(mode="json"),
++            "forecast": forecast.model_dump(mode="json"),
++        }
++        for field, findings in review_historical_claims(review_payload).items():
++            setattr(red, field, sorted(set(getattr(red, field) + findings)))
+@@ -530,0 +553 @@ class AnalysisPipeline:
++<<<<<<< HEAD
+@@ -553,0 +577,8 @@ class AnalysisPipeline:
++=======
++        if any(
++            x.probability_low is not None or x.probability_high is not None
++            for x in synthesis.assessments
++        ):
++            raise ValueError("v0.1.8 has no calibrated probability mechanism")
++        run.analyst_output = analyst.model_dump(mode="json")
++>>>>>>> d296ee7 (Release v0.1.8 auditable historical conflict profiles and taxonomy safety)
+diff --git a/src/geointel/pipeline/taxonomy.py b/src/geointel/pipeline/taxonomy.py
+new file mode 100644
+index 0000000..5164be5
+--- /dev/null
++++ b/src/geointel/pipeline/taxonomy.py
+@@ -0,0 +1,65 @@
++"""Reviewed deterministic mappings; provider labels never establish current activity."""
++
++from geointel.domain.schemas import (
++    HistoricalTaxonomyMapping,
++    NormalizedConflictType,
++    NormalizedEvidence,
++)
++
++MAPPING_VERSION = "provider-conflict-taxonomy-v1"
++UCDP_MAPPING_SOURCE = "https://ucdp.uu.se/downloads/ged/ged261.pdf"
++UCDP_MEANINGS = {1: "state-based conflict", 2: "non-state conflict", 3: "one-sided violence"}
++
++
++def normalize_historical_type(
++    item: NormalizedEvidence, geography: str
++) -> HistoricalTaxonomyMapping:
++    p = item.provenance
++    categories = {
++        key: p[key] for key in ("type_of_violence", "conflict_type", "category") if key in p
++    }
++    category = next(iter(categories), None)
++    value = categories.get(category)
++    kind = NormalizedConflictType.OTHER_OR_UNRESOLVED
++    meaning, source = None, None
++    notes = ["No reviewed mapping exists for this provider/dataset/category/value."]
++    if item.source_name == "UCDP" and p.get("dataset") == "GED":
++        category, value = "type_of_violence", p.get("type_of_violence")
++        source = UCDP_MAPPING_SOURCE
++        # Booleans, strings and floats must not impersonate a reviewed integer code.
++        meaning = UCDP_MEANINGS.get(value) if type(value) is int else None
++        if type(value) is int and value == 3:
++            kind = NormalizedConflictType.ONE_SIDED_VIOLENCE
++            notes = ["Direct category mapping; UCDP inclusion criteria still apply."]
++        elif meaning:
++            notes = [
++                "State-based conflict does not distinguish interstate, internal or "
++                "internationalized internal armed conflict."
++                if value == 1
++                else "Non-state conflict is not automatically internal armed conflict or major "
++                "political violence; a reviewed target definition and additional data are needed."
++            ]
++        else:
++            notes = ["Missing or unknown UCDP type_of_violence; retained unresolved."]
++    return HistoricalTaxonomyMapping(
++        provider=item.source_name,
++        provider_dataset=p.get("dataset"),
++        provider_original_category=category,
++        provider_original_value=value if type(value) in (str, int) else None,
++        provider_original_categories=categories,
++        provider_category_meaning=meaning,
++        normalized_conflict_type=kind,
++        mapping_confidence="verified_direct"
++        if kind != NormalizedConflictType.OTHER_OR_UNRESOLVED
++        else "unresolved",
++        mapping_method_version=MAPPING_VERSION,
++        mapping_notes=notes,
++        mapping_source=source,
++        source_record_id=item.source_record_id,
++        dataset_version=p.get("dataset_version"),
++        resource=p.get("endpoint"),
++        requested_geography=geography,
++        observation_geography=item.geographic_scope,
++        resolved_provider_geography_id=p.get("resolved_ucdp_country_id") or p.get("country_id"),
++        temporal_role=p.get("temporal_role", "unclassified"),
++    )
+diff --git a/src/geointel/providers/offline.py b/src/geointel/providers/offline.py
+index 8622126..3d49dfb 100644
+--- a/src/geointel/providers/offline.py
++++ b/src/geointel/providers/offline.py
+@@ -10,0 +11 @@ from geointel.domain.schemas import (
++    HistoricalConflictProfile,
+@@ -14,0 +16 @@ from geointel.domain.schemas import (
++from geointel.pipeline.historical_review import historical_context, review_historical_claims
+@@ -35,0 +38,8 @@ class OfflineModel:
++        profile = payload.get("historical_conflict_profile")
++        if profile:
++            history_available = profile["status"] == "available"
++            history_note = (
++                historical_context(profile)
++                if history_available
++                else "No validated historical base-rate observations are available."
++            )
+@@ -55 +65,4 @@ class OfflineModel:
+-                historical_evidence=[history_note] if historical else [],
++                historical_evidence=[history_note] if historical or history_available else [],
++                historical_conflict_profile=(
++                    HistoricalConflictProfile.model_validate(profile) if profile else None
++                ),
+@@ -123 +136 @@ class OfflineModel:
+-                            history_note,
++                            historical_context(profile, kind) if profile else history_note,
+@@ -273,0 +287,2 @@ class OfflineModel:
++            for field, findings in review_historical_claims(payload).items():
++                setattr(result, field, sorted(set(getattr(result, field) + findings)))
+@@ -289 +304,4 @@ class OfflineModel:
+-                    RiskAssessment.model_validate(x) for x in payload["forecast"]["assessments"]
++                    RiskAssessment.model_validate(
++                        {**x, "probability_low": None, "probability_high": None}
++                    )
++                    for x in payload["forecast"]["assessments"]
+diff --git a/tests/test_historical_conflict_profile.py b/tests/test_historical_conflict_profile.py
+new file mode 100644
+index 0000000..2dec081
+--- /dev/null
++++ b/tests/test_historical_conflict_profile.py
+@@ -0,0 +1,400 @@
++from datetime import UTC, date, datetime
++
++import pytest
++from sqlalchemy import select
++from test_historical_base_rates import observation
++
++from geointel.connectors.ucdp import UCDPConnector
++from geointel.domain.models import AnalysisRun, Event, Forecast
++from geointel.domain.schemas import (
++    AnalysisRequest,
++    AnalystOutput,
++    ConflictType,
++    ForecastOutput,
++    NormalizedConflictType,
++    RedTeamOutput,
++    SynthesisOutput,
++)
++from geointel.pipeline.historical import build_conflict_profile
++from geointel.pipeline.service import AnalysisPipeline
++from geointel.pipeline.taxonomy import MAPPING_VERSION, normalize_historical_type
++from geointel.providers.base import ModelRouter
++from geointel.providers.offline import OfflineModel
++
++REFERENCE = date(2026, 1, 1)
++
++
++@pytest.mark.parametrize(
++    "value,meaning,target",
++    [
++        (1, "state-based conflict", "OTHER_OR_UNRESOLVED"),
++        (2, "non-state conflict", "OTHER_OR_UNRESOLVED"),
++        (3, "one-sided violence", "ONE_SIDED_VIOLENCE"),
++        (99, None, "OTHER_OR_UNRESOLVED"),
++        (None, None, "OTHER_OR_UNRESOLVED"),
++        ("3", None, "OTHER_OR_UNRESOLVED"),
++        (True, None, "OTHER_OR_UNRESOLVED"),
++    ],
++)
++def test_verified_mapping_is_explicit_and_preserves_original(value, meaning, target):
++    item = observation("mapping", 2020, type_of_violence=value)
++    mapping = normalize_historical_type(item, "Spain")
++    assert mapping.normalized_conflict_type.value == target
++    assert mapping.provider_category_meaning == meaning
++    assert mapping.provider_original_categories["type_of_violence"] == value
++    assert mapping.mapping_method_version == MAPPING_VERSION
++    assert mapping.mapping_notes
++    assert mapping.provider == "UCDP"
++    assert mapping.provider_dataset == "GED"
++    assert mapping.dataset_version == "26.1"
++    assert mapping.requested_geography == "Spain"
++    assert mapping.resolved_provider_geography_id == 230
++    assert mapping.source_record_id == "mapping"
++    assert mapping.temporal_role == "annual_historical"
++
++
++def test_no_mapping_by_code_alone_or_target_label():
++    item = observation(1, 2020, type_of_violence=3, conflict_type="INTERNAL_ARMED_CONFLICT")
++    item.source_name = "Unknown"
++    assert (
++        normalize_historical_type(item, "Spain").normalized_conflict_type.value
++        == "OTHER_OR_UNRESOLVED"
++    )
++    item.source_name = "UCDP"
++    item.provenance["dataset"] = "GED Candidate"
++    item.provenance["temporal_role"] = "candidate_recent"
++    assert build_conflict_profile([item], "Spain", REFERENCE).status == "unavailable"
++
++
++def test_grouping_fatalities_temporal_windows_and_reversal():
++    items = [
++        observation(1, 2010, 2, 1, 3, type_of_violence=1),
++        observation(2, 2020, 4, 3, 5, type_of_violence=3),
++        observation(3, 2020, 6, type_of_violence=3),
++        observation(4, 2025, 0, 0, 0, type_of_violence=2),
++    ]
++    profile = build_conflict_profile(items, "Spain", REFERENCE)
++    assert profile == build_conflict_profile(list(reversed(items)), "Spain", REFERENCE)
++    assert set(profile.conflict_types) == set(NormalizedConflictType)
++    assert profile.overall.observation_statistics.observation_count == 4
++    assert (
++        sum(x.observation_statistics.observation_count for x in profile.conflict_types.values())
++        == 4
++    )
++    assert profile.unresolved_observation_count == 2
++    one = profile.conflict_types[NormalizedConflictType.ONE_SIDED_VIOLENCE]
++    assert one.observation_statistics.dated_observation_count == 2
++    assert one.observation_statistics.distinct_observed_year_count == 1
++    assert one.observation_statistics.observed_year_span == 1
++    assert one.observation_statistics.years_since_latest_observation == 6
++    assert one.observation_statistics.earliest_observation_date == date(2020, 1, 1)
++    assert one.observation_statistics.latest_observation_date == date(2020, 1, 1)
++    assert one.fatality_statistics.best_total == 10
++    assert one.fatality_statistics.low_total == 3
++    assert one.fatality_statistics.high_total == 5
++    assert one.fatality_statistics.best_available_count == 2
++    assert one.fatality_statistics.low_available_count == 1
++    assert one.fatality_statistics.median_best_per_observation == 5
++    assert one.fatality_statistics.maximum_best_per_observation == 6
++    assert one.share_of_retrieved_historical_observations == 0.5
++    assert one.trailing_window_counts == {"0": {"5y": 0, "10y": 2, "20y": 2}}
++    assert profile.overall.fatality_statistics.best_total == 12
++    assert profile.overall.observation_statistics.distinct_observed_year_count == 3
++    assert profile.overall.observation_statistics.observed_year_span == 16
++    assert not profile.conflict_types[
++        NormalizedConflictType.INTERSTATE_ARMED_CONFLICT
++    ].historical_presence
++    assert (
++        profile.conflict_types[
++            NormalizedConflictType.INTERSTATE_ARMED_CONFLICT
++        ].fatality_statistics.best_total
++        is None
++    )
++    fields = type(profile.overall.observation_statistics).model_fields
++    assert "episode_count" not in fields and "conflict_count" not in fields
++    assert any("episodes" in c for c in profile.caveats)
++
++
++@pytest.mark.parametrize(
++    "start,end,status",
++    [
++        (None, None, "UNAVAILABLE_UNKNOWN_COVERAGE"),
++        ("1989-01-01", None, "UNAVAILABLE_UNKNOWN_COVERAGE"),
++        (None, "2025-12-31", "UNAVAILABLE_UNKNOWN_COVERAGE"),
++        ("1989-01-01", "2025-12-31", "UNAVAILABLE_UNVALIDATED_DENOMINATOR"),
++    ],
++)
++def test_denominators_never_inferred(start, end, status):
++    item = observation(1, 2020, type_of_violence=3, coverage_start=start, coverage_end=end)
++    profile = build_conflict_profile([item], "Spain", REFERENCE)
++    assert profile.coverage[0].coverage_start == (date.fromisoformat(start) if start else None)
++    assert profile.coverage[0].coverage_end == (date.fromisoformat(end) if end else None)
++    assert profile.annualized_rate_status == status
++    assert profile.annualized_observation_rate is None
++    assert profile.overall.observation_statistics.distinct_observed_year_count == 1
++    assert any("zero-conflict" in c for c in profile.caveats)
++
++
++def test_empty_missing_dates_fatalities_and_multi_dataset_references():
++    empty = build_conflict_profile([], "Spain", REFERENCE)
++    assert empty.status == "unavailable"
++    assert empty.overall.share_of_retrieved_historical_observations is None
++    assert empty.overall.trailing_window_counts == {}
++    missing = observation(1, 2020, coverage_end=None)
++    missing.event_date = None
++    missing.provenance["fatalities"] = None
++    profile = build_conflict_profile([missing], "Spain", REFERENCE)
++    assert profile.overall.observation_statistics.dated_observation_count == 0
++    assert profile.overall.observation_statistics.years_since_latest_observation is None
++    assert profile.coverage[0].reference_date is None
++    assert profile.overall.fatality_statistics.best_total is None
++    assert profile.unresolved_observation_count == 1
++    a = observation(2, 2020, type_of_violence=3, reference_date="2020-02-29")
++    b = observation(3, 2015, type_of_violence=3, dataset_version="25.1", coverage_end=None)
++    profile = build_conflict_profile([a, b], "Spain", REFERENCE)
++    assert len(profile.coverage) == 2
++    assert len(profile.overall.trailing_window_counts) == 2
++    assert all(m.coverage_index in {"0", "1"} for m in profile.normalization_audit)
++
++
++def test_exact_trailing_window_boundaries_and_leap_reference():
++    items = [
++        observation(1, 2015, type_of_violence=3, reference_date="2020-02-29"),
++        observation(2, 2015, type_of_violence=3, reference_date="2020-02-29"),
++        observation(3, 2020, type_of_violence=3, reference_date="2020-02-29"),
++    ]
++    items[0].event_date = datetime(2015, 2, 28, tzinfo=UTC)
++    items[1].event_date = datetime(2015, 3, 1, tzinfo=UTC)
++    items[2].event_date = datetime(2020, 3, 1, tzinfo=UTC)
++    profile = build_conflict_profile(items, "Spain", REFERENCE)
++    assert profile.overall.trailing_window_counts["0"]["5y"] == 1
++
++
++def test_connector_preserves_explicit_boundaries_and_original_code():
++    item = UCDPConnector("https://example.invalid", "26.1").normalize(
++        {
++            "id": 1,
++            "country": "Spain",
++            "country_id": 230,
++            "type_of_violence": 3,
++            "coverage_start": "1989-01-01",
++            "date_start": "2020-01-01",
++        },
++        "Spain",
++    )
++    profile = build_conflict_profile([item], "Spain", REFERENCE)
++    assert profile.coverage[0].coverage_start == date(1989, 1, 1)
++    assert profile.coverage[0].coverage_end is None
++    assert profile.normalization_audit[0].provider_original_value == 3
++    assert profile.normalization_audit[0].resolved_provider_geography_id == 230
++
++
++def profile_payload():
++    items = [observation(i, 2020, 2, type_of_violence=3 if i % 2 else 1) for i in range(48)]
++    from geointel.pipeline.historical import summarize_history
++
++    return {
++        "historical_conflict_profile": build_conflict_profile(items, "Spain", REFERENCE).model_dump(
++            mode="json"
++        ),
++        "historical_base_rate_summary": summarize_history(items, "Spain", REFERENCE).model_dump(
++            mode="json"
++        ),
++        "historical_evidence": [x.model_dump(mode="json") for x in items],
++        "observed_evidence": [],
++        "collection_metadata": {"current_operational_coverage_available": False},
++    }
++
++
++def test_compact_analyst_forecast_and_synthesis_context():
++    model, payload = OfflineModel(), profile_payload()
++    analyst = model.generate("analyst", payload, AnalystOutput)
++    assert analyst.observed_evidence == []
++    assert len(analyst.historical_evidence) == 1
++    assert "ONE_SIDED_VIOLENCE" in analyst.historical_evidence[0]
++    assert "24 unresolved" in analyst.historical_evidence[0]
++    assert not any("Historical observation 1" in x for x in analyst.historical_evidence)
++    forecast = model.generate("forecaster", payload, ForecastOutput)
++    red = model.generate(
++        "red_team",
++        {
++            **payload,
++            "analysis": analyst.model_dump(mode="json"),
++            "forecast": forecast.model_dump(mode="json"),
++        },
++        RedTeamOutput,
++    )
++    assert not red.historical_semantic_concerns
++    assert not red.taxonomy_normalization_concerns
++    synthesis = model.generate(
++        "synthesis",
++        {**payload, "red_team": red.model_dump(), "forecast": forecast.model_dump()},
++        SynthesisOutput,
++    )
++    synthesis.validate_red_team_incorporation(red)
++    for assessment in synthesis.assessments:
++        assert assessment.probability_low is assessment.probability_high is None
++        assert assessment.confidence.value == "low"
++        assert any("Historical observations mapped" in note for note in assessment.unknowns)
++    one = next(x for x in synthesis.assessments if x.conflict_type == ConflictType.ONE_SIDED)
++    assert any("24 retrieved observations" in note for note in one.unknowns)
++
++
++@pytest.mark.parametrize(
++    "claim,field",
++    [
++        ("48 historical conflicts occurred.", "historical_semantic_concerns"),
++        ("48 episodes occurred.", "historical_semantic_concerns"),
++        ("Fatality totals are event frequency.", "historical_semantic_concerns"),
++        ("Historical frequency implies probability.", "historical_semantic_concerns"),
++        ("Historical presence means current activity.", "historical_semantic_concerns"),
++        ("Historical presence increases escalation.", "historical_semantic_concerns"),
++        ("Latest observation is dataset coverage end.", "base_rate_concerns"),
++        ("Missing years are zero-conflict years.", "base_rate_concerns"),
++        ("Provider code 1 means internal conflict.", "taxonomy_normalization_concerns"),
++    ],
++)
++def test_red_team_detects_claim_misuse(claim, field):
++    red = OfflineModel().generate(
++        "red_team",
++        {**profile_payload(), "analysis": {"historical_base_rate_notes": [claim]}},
++        RedTeamOutput,
++    )
++    assert getattr(red, field)
++
++
++def test_red_team_detects_structured_mapping_loss_and_escalation():
++    payload = profile_payload()
++    profile = payload["historical_conflict_profile"]
++    profile["normalization_audit"].pop()
++    profile["unresolved_observation_count"] = 0
++    profile["annualized_observation_rate"] = 0.5
++    payload["escalation_indicators"] = ["history"]
++    payload["forecast"] = {"assessments": [{"probability_low": 0.5}]}
++    red = OfflineModel().generate("red_team", payload, RedTeamOutput)
++    assert len(red.taxonomy_normalization_concerns) == 2
++    assert red.historical_semantic_concerns
++    assert any("denominator" in x for x in red.base_rate_concerns)
++    assert any("Historical features" in x for x in red.unjustified_precision)
++
++
++def test_profile_persistence_history_alone_has_no_current_outputs(session):
++    class History:
++        def collect(self, location, horizon_months):
++            return [observation(1, 2020, 2, type_of_violence=3)]
++
++    model = OfflineModel()
++    run = AnalysisPipeline(session, ModelRouter(model, model, model), [History()]).run(
++        AnalysisRequest(
++            location="Spain",
++            question="Assess organized violence over twelve months.",
++            horizon_months=12,
++        )
++    )
++    session.expire_all()
++    saved = session.get(AnalysisRun, run.id)
++    profile = saved.collection_metadata["historical_conflict_profile"]
++    assert profile == saved.analyst_output["historical_conflict_profile"]
++    assert profile["normalization_audit"][0]["provider_original_value"] == 3
++    assert saved.analyst_output["observed_evidence"] == []
++    assert not saved.collection_metadata["current_operational_coverage_available"]
++    assert saved.collection_metadata["current_evidence_count"] == 0
++    assert not list(session.scalars(select(Event)))
++    assert all(
++        f.probability_low is f.probability_high is None for f in session.scalars(select(Forecast))
++    )
++
++
++def test_historical_profile_changes_do_not_create_monitoring_escalation(session):
++    from geointel.domain.models import Alert
++    from geointel.monitoring import MonitoringService
++
++    class History:
++        count = 1
++
++        def collect(self, location, horizon_months):
++            return [observation(i, 2020, type_of_violence=3) for i in range(self.count)]
++
++    history, model = History(), OfflineModel()
++    svc = MonitoringService(
++        session, lambda: AnalysisPipeline(session, ModelRouter(model, model, model), [history])
++    )
++    target = svc.add_target(svc.create_watchlist("Synthetic historical only"), "SYN", "Spain")
++    svc.run_target(target)
++    history.count = 48
++    svc.run_target(target)
++    assert session.scalars(select(Alert)).all() == []
++
++
++def test_synthesis_removes_uncalibrated_history_probabilities():
++    payload, model = profile_payload(), OfflineModel()
++    forecast = model.generate("forecaster", payload, ForecastOutput).model_dump(mode="json")
++    forecast["assessments"][0].update(probability_low=0.1, probability_high=0.5)
++    red = model.generate("red_team", {**payload, "forecast": forecast}, RedTeamOutput)
++    result = model.generate(
++        "synthesis",
++        {**payload, "forecast": forecast, "red_team": red.model_dump()},
++        SynthesisOutput,
++    )
++    result.validate_red_team_incorporation(red)
++    assert all(x.probability_low is x.probability_high is None for x in result.assessments)
++
++
++def test_red_team_catches_forged_normalized_code():
++    payload = profile_payload()
++    mapping = payload["historical_conflict_profile"]["normalization_audit"][0]
++    mapping["normalized_conflict_type"] = "INTERNAL_ARMED_CONFLICT"
++    red = OfflineModel().generate("red_team", payload, RedTeamOutput)
++    assert any("deterministic mapping" in x for x in red.taxonomy_normalization_concerns)
++
++
++def test_profile_schema_rejects_numeric_annualized_rate():
++    from pydantic import ValidationError
++
++    from geointel.domain.schemas import HistoricalConflictProfile
++
++    profile = profile_payload()["historical_conflict_profile"]
++    profile["annualized_observation_rate"] = 0.5
++    with pytest.raises(ValidationError):
++        HistoricalConflictProfile.model_validate(profile)
++
++
++def test_pipeline_refuses_numeric_synthesis_from_other_routed_model(session):
++    class UncalibratedModel(OfflineModel):
++        def generate(self, role, payload, output_type):
++            result = super().generate(role, payload, output_type)
++            if output_type is SynthesisOutput:
++                result.assessments[0].probability_low = 0.1
++                result.assessments[0].probability_high = 0.5
++            return result
++
++    model = UncalibratedModel()
++    with pytest.raises(ValueError, match="no calibrated probability mechanism"):
++        AnalysisPipeline(session, ModelRouter(model, model, model)).run(
++            AnalysisRequest(
++                location="Spain",
++                question="Assess organized violence over twelve months.",
++                horizon_months=12,
++            )
++        )
++    assert session.scalars(select(Forecast)).all() == []
++
++
++def test_invalid_missing_fatality_values_are_not_zero_imputed():
++    item = observation(1, 2020, -1, True, "4", type_of_violence=3)
++    profile = build_conflict_profile([item], "Spain", REFERENCE)
++    stats = profile.overall.fatality_statistics
++    assert stats.best_total is stats.low_total is stats.high_total is None
++    assert (
++        stats.best_available_count == stats.low_available_count == stats.high_available_count == 0
++    )
++
++
++def test_profile_is_sufficient_for_normalized_analyst_context_without_raw_rows():
++    payload = {"historical_conflict_profile": profile_payload()["historical_conflict_profile"]}
++    analyst = OfflineModel().generate("analyst", payload, AnalystOutput)
++    assert analyst.historical_evidence and "ONE_SIDED_VIOLENCE" in analyst.historical_evidence[0]
++    assert analyst.observed_evidence == []
++    assert analyst.historical_base_rate_summary is None
++    red = OfflineModel().generate("red_team", payload, RedTeamOutput)
++    assert not any("No validated historical" in x for x in red.missing_evidence)
+diff --git a/tests/test_postgres_integration.py b/tests/test_postgres_integration.py
+index 332121a..9efcb5b 100644
+--- a/tests/test_postgres_integration.py
++++ b/tests/test_postgres_integration.py
+@@ -288,0 +289 @@ def test_postgres_historical_summary_and_raw_provenance(session):
++<<<<<<< HEAD
+@@ -294,0 +296,29 @@ def test_postgres_historical_summary_and_raw_provenance(session):
++=======
++    engine = create_engine(os.environ["POSTGRES_TEST_URL"])
++    with Session(engine, expire_on_commit=False) as session:
++        model = OfflineModel()
++        run = AnalysisPipeline(session, ModelRouter(model, model, model), [History()]).run(
++            AnalysisRequest(
++                location="Spain",
++                question="Assess organized violence over twelve months.",
++                horizon_months=12,
++            )
++        )
++        session.expire_all()
++        saved = session.get(AnalysisRun, run.id)
++        summary = saved.collection_metadata["historical_base_rate_summary"]
++        profile = saved.collection_metadata["historical_conflict_profile"]
++        assert profile == saved.analyst_output["historical_conflict_profile"]
++        assert profile["overall"]["fatality_statistics"]["best_total"] == 2
++        assert profile["normalization_audit"][0]["source_record_id"] == "postgres-history"
++        assert profile["annualized_observation_rate"] is None
++        assert summary["fatality_statistics"]["best_total"] == 2
++        assert summary["coverage"][0]["coverage_end"] == "2025-12-31"
++        assert not saved.collection_metadata["current_operational_coverage_available"]
++        assert saved.analyst_output["observed_evidence"] == []
++        assert (
++            session.scalar(select(Evidence).where(Evidence.analysis_run_id == run.id)).provenance[
++                "temporal_role"
++            ]
++            == "annual_historical"
++>>>>>>> d296ee7 (Release v0.1.8 auditable historical conflict profiles and taxonomy safety)
+diff --git a/tests/test_story_clustering.py b/tests/test_story_clustering.py
+index b9df03d..aaf6b9a 100644
+--- a/tests/test_story_clustering.py
++++ b/tests/test_story_clustering.py
+@@ -195 +195 @@ def test_prompt_injection_is_inert_text_and_version_has_one_runtime_source():
+-    assert __version__ == PIPELINE_VERSION == "0.1.7"
++    assert __version__ == PIPELINE_VERSION == "0.1.8"
