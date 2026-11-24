@@ -1,0 +1,27 @@
+{
+  "ucdp_acd": {
+    "status": "ok",
+    "url": "https://ucdp.uu.se/downloads/ucdpprio/ucdp-prio-acd-261-csv.zip",
+    "version": "26.1",
+    "bytes": 45955,
+    "file": "ucdp_acd.bin",
+    "retrieved_at": "2026-11-24T05:07:57.872308+00:00",
+    "errors": []
+  },
+  "coups": {
+    "status": "failed",
+    "errors": [
+      "https://www.uky.edu/~clthyn2/coup_data/powell_thyne_coups_final.txt: HTTPStatusError: Client error '404 Not Found' for url 'https://www.uky.edu/~clthyn2/coup_data/powell_thyne_coups_final.txt'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/404",
+      "http://www.uky.edu/~clthyn2/coup_data/powell_thyne_coups_final.txt: HTTPStatusError: Client error '404 Not Found' for url 'https://www.uky.edu/~clthyn2/coup_data/powell_thyne_coups_final.txt'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/404"
+    ]
+  },
+  "usgs": {
+    "status": "ok",
+    "url": "https://earthquake.usgs.gov/fdsnws/event/1/query?format=csv&starttime=1990-01-01&minmagnitude=6.5&eventtype=earthquake&orderby=time-asc&limit=20000",
+    "version": "live",
+    "bytes": 294613,
+    "file": "usgs.csv",
+    "retrieved_at": "2026-11-24T05:07:58.757991+00:00",
+    "errors": []
+  }
+}
