@@ -41,6 +41,7 @@ def build_snapshot(
     sources: list[dict],
     generated_at: datetime | None = None,
     previous: dict | None = None,
+    extras: dict | None = None,
 ) -> dict:
     generated_at = generated_at or datetime.now(UTC)
     countries = universe()
@@ -101,6 +102,8 @@ def build_snapshot(
                 "numeric": c.numeric,
                 "name": c.name,
                 "risks": risks[c.iso3],
+                "advisory": (extras or {}).get("advisories", {}).get(c.iso3),
+                "profile": (extras or {}).get("profiles", {}).get(c.iso3),
             }
             for c in countries
         ],

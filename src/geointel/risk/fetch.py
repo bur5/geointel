@@ -13,7 +13,7 @@ from pathlib import Path
 
 import httpx
 
-from geointel.risk.sources import fts, gdacs, ncei_tsunami, usgs, worldbank
+from geointel.risk.sources import advisories, exposure, fts, gdacs, ncei_tsunami, usgs, worldbank
 
 UCDP_ACD_VERSIONS = ("26.1", "25.1", "24.1")
 COUPS_URLS = (
@@ -128,6 +128,19 @@ def _fts(client: httpx.Client, reference_year: int) -> tuple[bytes, str, str]:
     return json.dumps(payload).encode(), "https://api.hpc.tools/v1/public/plan/year", "FTS"
 
 
+def _advisories(client: httpx.Client, _year: int) -> tuple[bytes, str, str]:
+    data = _get(client, advisories.URL).json()
+    return json.dumps(data).encode(), advisories.URL, f"{len(data)} advisories"
+
+
+def _exposure(client: httpx.Client, reference_year: int) -> tuple[bytes, str, str]:
+    payload = {
+        code: _get(client, exposure.url(code, reference_year)).json()
+        for code in exposure.INDICATORS.values()
+    }
+    return json.dumps(payload).encode(), "https://api.worldbank.org/v2", "WDI structure"
+
+
 def fetch_all(raw_dir: Path, reference_year: int | None = None) -> dict:
     raw_dir.mkdir(parents=True, exist_ok=True)
     year = reference_year or datetime.now(UTC).year
@@ -140,6 +153,8 @@ def fetch_all(raw_dir: Path, reference_year: int | None = None) -> dict:
         "tsunami": ("tsunami.json", lambda c: _ncei(c, year)),
         "worldbank": ("worldbank.json", lambda c: _worldbank(c, year)),
         "fts": ("fts.json", lambda c: _fts(c, year)),
+        "advisories": ("advisories.json", lambda c: _advisories(c, year)),
+        "exposure": ("exposure.json", lambda c: _exposure(c, year)),
     }
     only = {k for k in os.environ.get("GEOINTEL_SOURCES", "").split(",") if k}
     manifest: dict[str, dict] = {}
