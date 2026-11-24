@@ -23,6 +23,7 @@ def load_histories(
         coups,
         elections,
         exposure,
+        fcdo,
         fts,
         gdacs,
         ncei_tsunami,
@@ -96,6 +97,19 @@ def load_histories(
     def votes(path: Path) -> None:
         extras["elections"] = elections.parse(json.loads(path.read_text()))
 
+    def uk_travel(path: Path) -> None:
+        parsed = {}
+        for page in json.loads(path.read_text()):
+            code, entry = fcdo.parse_country(page)
+            if code and entry:
+                parsed[code] = entry
+        extras["fcdo"] = parsed
+
+    def admin_regions(path: Path) -> None:
+        from geointel.risk.regions import RegionIndex, annotate
+
+        annotate(hazard_events, RegionIndex.from_bytes(path.read_bytes()))
+
     loaders: list[tuple[str, str, Callable[[Path], None]]] = [
         ("ucdp_acd", ucdp_acd.SOURCE, ucdp),
         ("coups", coups.SOURCE, coup),
@@ -110,6 +124,8 @@ def load_histories(
         ("vdem", outlook.VDEM_SOURCE, democracy),
         ("gpr", outlook.GPR_SOURCE, gpr),
         ("elections", elections.SOURCE, votes),
+        ("fcdo", fcdo.SOURCE, uk_travel),
+        ("regions", "Natural Earth admin-1 regions", admin_regions),  # must stay last
     ]
     for key, name, loader in loaders:
         info = manifest.get(key, {})

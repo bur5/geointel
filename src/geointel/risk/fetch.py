@@ -13,10 +13,12 @@ from pathlib import Path
 
 import httpx
 
+from geointel.risk import regions
 from geointel.risk.sources import (
     advisories,
     elections,
     exposure,
+    fcdo,
     fts,
     gdacs,
     ncei_tsunami,
@@ -177,6 +179,22 @@ def _elections(client: httpx.Client, _year: int) -> tuple[bytes, str, str]:
     return response.content, elections.ENDPOINT, "SPARQL"
 
 
+def _fcdo(client: httpx.Client, _year: int) -> tuple[bytes, str, str]:
+    pages = []
+    for url in fcdo.child_urls(_get(client, fcdo.INDEX_URL).json()):
+        try:
+            pages.append(_get(client, url, retries=1).json())
+        except Exception:  # noqa: BLE001 - a missing country page is not fatal
+            continue
+    if not pages:
+        raise RuntimeError("no FCDO country pages")
+    return json.dumps(pages).encode(), fcdo.INDEX_URL, f"{len(pages)} countries"
+
+
+def _regions(client: httpx.Client, _year: int) -> tuple[bytes, str, str]:
+    return _get(client, regions.URL).content, regions.URL, "ne_10m_admin_1"
+
+
 def fetch_all(raw_dir: Path, reference_year: int | None = None) -> dict:
     raw_dir.mkdir(parents=True, exist_ok=True)
     year = reference_year or datetime.now(UTC).year
@@ -195,6 +213,8 @@ def fetch_all(raw_dir: Path, reference_year: int | None = None) -> dict:
         "vdem": ("vdem.csv", lambda c: _vdem(c, year)),
         "gpr": ("gpr.xls", lambda c: _gpr(c, year)),
         "elections": ("elections.json", lambda c: _elections(c, year)),
+        "fcdo": ("fcdo.json", lambda c: _fcdo(c, year)),
+        "regions": ("regions.geojson", lambda c: _regions(c, year)),
     }
     only = {k for k in os.environ.get("GEOINTEL_SOURCES", "").split(",") if k}
     manifest: dict[str, dict] = {}

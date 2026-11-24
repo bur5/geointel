@@ -241,3 +241,64 @@ def test_elections_filter_national_only():
     assert set(parsed) == {"FRA", "BRA", "ITA"}
     assert parsed["FRA"][0]["kind"] == "presidential"
     assert parsed["ITA"][0]["precision"] == "year" and parsed["ITA"][0]["kind"] == "referendum"
+
+
+def test_fcdo_levels_and_restrictions():
+    from geointel.risk.sources import fcdo
+
+    page = {
+        "title": "Ethiopia travel advice",
+        "web_url": "https://www.gov.uk/foreign-travel-advice/ethiopia",
+        "details": {
+            "alert_status": [
+                "avoid_all_travel_to_parts",
+                "avoid_all_but_essential_travel_to_parts",
+            ],
+            "parts": [
+                {
+                    "slug": "warnings-and-insurance",
+                    "body": (
+                        "<p>FCDO advises against all travel to:</p>"
+                        "<ul><li>Amhara region</li></ul><p>Long text</p>"
+                    ),
+                }
+            ],
+        },
+    }
+    code, entry = fcdo.parse_country(page)
+    assert code == "ETH" and entry["level"] == 2 and entry["partial"]
+    assert entry["restrictions"][:2] == ["FCDO advises against all travel to:", "• Amhara region"]
+    code, entry = fcdo.parse_country(
+        {"title": "USA travel advice", "details": {"alert_status": []}}
+    )
+    assert code == "USA" and entry["level"] == 1
+
+
+def test_region_index_point_in_polygon_and_nearest():
+    from geointel.risk.regions import RegionIndex, annotate
+
+    square = {"type": "Polygon", "coordinates": [[[0, 0], [10, 0], [10, 10], [0, 10], [0, 0]]]}
+    other = {"type": "Polygon", "coordinates": [[[10, 0], [20, 0], [20, 10], [10, 10], [10, 0]]]}
+    index = RegionIndex(
+        {
+            "features": [
+                {
+                    "properties": {"iso_a2": "JP", "name_en": "West", "name_ru": "Запад"},
+                    "geometry": square,
+                },
+                {
+                    "properties": {"iso_a2": "JP", "name_en": "East", "name_ru": "Восток"},
+                    "geometry": other,
+                },
+            ]
+        }
+    )
+    assert index.locate("JPN", 5, 15) == ("East", "Восток")
+    assert index.locate("JPN", 5, -1) == ("West", "Запад")  # offshore, nearest region
+    assert index.locate("JPN", 50, 50) is None
+    events = [
+        {"countries": ["JPN"], "lat": 5, "lon": 5},
+        {"countries": ["JPN", "KOR"], "lat": 5, "lon": 5},
+    ]
+    annotate(events, index)
+    assert events[0]["region_ru"] == "Запад" and "region_en" not in events[1]
