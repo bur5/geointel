@@ -6,6 +6,8 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine, select
+
+from sqlalchemy import create_engine, select, text
 from sqlalchemy.exc import ArgumentError, OperationalError
 from sqlalchemy.orm import Session
 
@@ -31,6 +33,7 @@ from geointel.knowledge.ingestion import KnowledgeIngestor
 from geointel.pipeline.service import AnalysisPipeline
 from geointel.providers.base import ModelRouter
 from geointel.providers.offline import OfflineModel
+from geointel.search import IntelligenceSearch, RecordType, SearchQuery
 
 
 @pytest.fixture(scope="module")
@@ -527,3 +530,16 @@ def test_postgres_concurrent_target_and_failed_finalization(postgres_engine):
         (record,) = response.json()["items"]
         assert record["temporal_role"] == "annual_historical"
         assert record["provenance"]["source_record_id"] == "postgres-history"
+
+def test_postgres_search_missing_relation_preserves_transaction(session):
+    # Simulate an unmigrated relation within the rollback-isolated test transaction.
+    session.execute(text("ALTER TABLE events RENAME TO events_unavailable"))
+    page = IntelligenceSearch(session).search(
+        SearchQuery(record_types=(RecordType.EVENT, RecordType.SIGNAL))
+    )
+    assert not page.complete
+    assert [(source.record_type, source.status) for source in page.sources] == [
+        (RecordType.EVENT, "unavailable"),
+        (RecordType.SIGNAL, "available"),
+    ]
+    assert session.scalar(select(Forecast.id).limit(1)) is None
