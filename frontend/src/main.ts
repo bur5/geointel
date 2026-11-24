@@ -573,6 +573,12 @@ function render() {
   }
 }
 
+// Initial map view per scenario: [longitude, latitude, zoom].
+const SCENARIO_FOCUS: Record<string, [number, number, number]> = {
+  russia_nato: [22, 56, 3], ukraine_ceasefire: [25, 50, 2.6], china_taiwan: [122, 26, 2.6],
+  iran_strikes: [48, 28, 2.6], india_pakistan: [74, 28, 3], korea: [128, 37, 3.2],
+};
+
 function drawExtraMaps() {
   if (!snapshot) return;
   const shapes = shapeToIso();
@@ -586,7 +592,8 @@ function drawExtraMaps() {
         const role = roles.get(iso);
         return `${iso ? nameOf(iso) : fallback}${role ? ': ' + vt(lang).role[role].toLowerCase() : ''}`;
       },
-      (key) => { const iso = shapes.get(key); if (iso) { selectCountry(iso); location.hash = '#country'; } });
+      (key) => { const iso = shapes.get(key); if (iso) { selectCountry(iso); location.hash = '#country'; } },
+      SCENARIO_FOCUS[scenario.key]);
   }
   const migrationMap = root.querySelector<HTMLElement>('#migration-map');
   if (migrationMap && linksData) {

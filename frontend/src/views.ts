@@ -51,6 +51,7 @@ const ru = {
   linkKind: { border: 'граница', bloc: 'союз', market: 'рынок сбыта', supplier: 'поставщик', diaspora: 'беженцы', route: 'маршрут' } as Record<LinkKind, string>,
   ifEvent: (event: string, country: string) => `Если в стране ${country}: ${event.toLowerCase()}`,
   consequences: 'Что произойдёт',
+  blocRest: (n: number, e: string) => `Ещё ${n} — связь только через общий союз: ${e}.`,
   noLinks: 'Данных о связях для этой страны пока нет.',
   tradeNote: (year: string) => `Торговля: UN Comtrade${year ? ', ' + year : ''}; импорт — по зеркальным данным экспорта партнёров.`,
   migrationTitle: 'Миграция и беженцы',
@@ -130,6 +131,7 @@ const en: Dict = {
   linkKind: { border: 'border', bloc: 'alliance', market: 'export market', supplier: 'supplier', diaspora: 'refugees', route: 'route' },
   ifEvent: (event: string, country: string) => `If ${country} has a ${event.toLowerCase()}`,
   consequences: 'What happens',
+  blocRest: (n: number, e: string) => `${n} more linked only through a shared alliance: ${e}.`,
   noLinks: 'No link data for this country yet.',
   tradeNote: (year: string) => `Trade: UN Comtrade${year ? ', ' + year : ''}; imports from partners' reported exports (mirror data).`,
   migrationTitle: 'Migration and refugees',
@@ -198,10 +200,10 @@ export function scenarioDetail(ctx: ViewContext, s: Scenario, horizonLabels: Rec
   const { esc, lang } = ctx;
   const horizons = (Object.keys(horizonLabels) as HorizonKey[]).map((h) =>
     `<div><span class="h-label">${esc(horizonLabels[h])}</span>${probability(ctx, s, s.horizons[h], 'lg')}</div>`).join('');
-  const rows = s.components.map((c) => `<tr><th scope="row">${esc(d.kind[c.kind])}</th>
-      <td class="numcell">${ctx.pct(c.annual)}</td><td class="numcell">${ctx.pct(c.low)} – ${ctx.pct(c.high)}</td><td class="numcell">${num(c.weight, lang)}</td>
-      <td class="detail">${esc(lang === 'ru' ? c.detail_ru : c.detail_en)}${c.url ? ` <a href="${esc(c.url)}" rel="noreferrer">↗</a>` : ''}</td></tr>`).join('');
-  const marketRow = s.market_status === 'matched' ? '' : `<tr class="muted-row"><th scope="row">${esc(d.kind.market)}</th><td colspan="4">${s.market_status === 'unavailable' ? d.marketOff : d.marketNone}</td></tr>`;
+  const rows = s.components.map((c) => `<tr class="main-row"><th scope="row">${esc(d.kind[c.kind])}</th>
+      <td class="numcell">${ctx.pct(c.annual)}</td><td class="numcell">${ctx.pct(c.low)} – ${ctx.pct(c.high)}</td><td class="numcell">${num(c.weight, lang)}</td></tr>
+      <tr class="detail-row"><td colspan="4" class="detail">${esc(lang === 'ru' ? c.detail_ru : c.detail_en)}${c.url ? ` <a href="${esc(c.url)}" rel="noreferrer">${lang === 'ru' ? 'источник' : 'source'}</a>` : ''}</td></tr>`).join('');
+  const marketRow = s.market_status === 'matched' ? '' : `<tr class="main-row muted-row"><th scope="row">${esc(d.kind.market)}</th><td colspan="3">${s.market_status === 'unavailable' ? d.marketOff : d.marketNone}</td></tr>`;
   const indicators = s.indicators.map((i) => `<li class="ind dir-${i.direction > 0 ? 'up' : i.direction < 0 ? 'down' : 'flat'}">
       <span class="ind-arrow" aria-label="${esc(d.dir[i.direction])}">${arrow(i.direction)}</span>
       <span class="ind-label">${esc(lang === 'ru' ? i.label_ru : i.label_en)}</span>
@@ -228,9 +230,9 @@ export function scenarioDetail(ctx: ViewContext, s: Scenario, horizonLabels: Rec
     <div class="horizon-grid">${horizons}</div>
     <div class="scenario-cols">
       <section class="sub-section"><h3>${d.componentsTitle}</h3><p class="muted-text">${d.componentsLead}</p>
-        <div class="table-wrap"><table class="table comp"><thead><tr><th>${d.colSource}</th><th>${d.colAnnual}</th><th>${d.colRange}</th><th>${d.colWeight}</th><th></th></tr></thead>
-        <tbody>${rows}${marketRow}<tr class="pooled"><th scope="row">${d.pooled}</th><td class="numcell">${ctx.pct(s.annual.p)}</td><td class="numcell">${ctx.pct(s.annual.low)} – ${ctx.pct(s.annual.high)}</td><td></td>
-        <td class="detail">${esc(d.factor(num(s.indicator_factor, lang, 2)))}</td></tr></tbody></table></div>${candidates}</section>
+        <div class="table-wrap"><table class="table comp"><thead><tr><th>${d.colSource}</th><th>${d.colAnnual}</th><th>${d.colRange}</th><th>${d.colWeight}</th></tr></thead>
+        <tbody>${rows}${marketRow}<tr class="main-row pooled"><th scope="row">${d.pooled}</th><td class="numcell">${ctx.pct(s.annual.p)}</td><td class="numcell">${ctx.pct(s.annual.low)} – ${ctx.pct(s.annual.high)}</td><td></td></tr>
+        <tr class="detail-row"><td colspan="4" class="detail">${esc(d.factor(num(s.indicator_factor, lang, 2)))}</td></tr></tbody></table></div>${candidates}</section>
       <section class="sub-section"><h3>${d.indicatorsTitle}</h3><p class="muted-text">${d.indicatorsLead}</p><ul class="indicators">${indicators}</ul>
         ${warnings ? `<h3>${d.warningsTitle}</h3><ul class="warnings">${warnings}</ul>` : ''}</section>
     </div>
@@ -279,8 +281,14 @@ export function linksSection(
   const switcher = `<div class="segmented wrap" role="group" aria-label="${esc(d.linksTitle)}">${CHAIN_EVENTS.map((e) =>
     `<button type="button" data-chain="${e}" aria-pressed="${e === event}">${esc(d.chainEvent[e])}</button>`).join('')}</div>`;
   const head = `<div class="section-head"><h2>${d.linksTitle}</h2><p>${d.linksLead}</p></div>${switcher}`;
-  const links = linksOf(iso3, event, neighbours, data, ctx.name).slice(0, 14);
-  if (!links.length) return head + `<p class="muted-text">${d.noLinks}</p>`;
+  const all = linksOf(iso3, event, neighbours, data, ctx.name);
+  if (!all.length) return head + `<p class="muted-text">${d.noLinks}</p>`;
+  // Alliance-only ties are many and alike: show direct ties first and summarise the rest.
+  const direct = all.filter((l) => l.reasons.some((r) => r.kind !== 'bloc'));
+  const blocOnly = all.filter((l) => l.reasons.every((r) => r.kind === 'bloc'));
+  const links = [...direct, ...blocOnly.slice(0, Math.max(0, 6 - direct.length))].slice(0, 14);
+  const rest = blocOnly.slice(Math.max(0, 6 - direct.length));
+  const restLine = rest.length ? `<p class="muted-text small">${esc(d.blocRest(rest.length, effect(event, 'bloc', lang)))}</p>` : '';
   const list = links.map((link) => {
     const kinds = [...new Set(link.reasons.map((r) => r.kind))];
     return `<li><button type="button" class="link" data-select="${link.iso3}">${esc(ctx.name(link.iso3))}</button>
@@ -289,7 +297,7 @@ export function linksSection(
   }).join('');
   const year = data?.countries[iso3]?.trade?.year ?? Object.values(data?.countries ?? {}).find((c) => c.trade?.year)?.trade?.year;
   return head + `<div class="links-layout">${graph(ctx, iso3, links)}
-    <div><h3 class="sub">${esc(d.ifEvent(d.chainEvent[event], ctx.name(iso3)))}</h3><ul class="link-list">${list}</ul>
+    <div><h3 class="sub">${esc(d.ifEvent(d.chainEvent[event], ctx.name(iso3)))}</h3><ul class="link-list">${list}</ul>${restLine}
     <p class="muted-text small">${esc(d.tradeNote(year ? String(year) : ''))}</p></div></div>
     <div class="legend">${KIND_ORDER.map((k) => `<span class="legend-key"><i class="k-${k}"></i>${esc(d.linkKind[k])}</span>`).join('')}</div>`;
 }
@@ -394,7 +402,7 @@ export function migrationPage(ctx: ViewContext, data: LinksFile | undefined, mod
       <div class="legend"><div class="legend-scale"><span class="legend-title">${d.migLegend}</span>
         <div class="ramp">${steps.map(([cls, label]) => `<span class="${cls}"><i></i><small>${label}</small></span>`).join('')}</div></div>
         <span class="legend-key"><i class="swatch-none"></i>${d.migNoData}</span></div></section>
-    <aside class="brief"><h2>${d.topHosts}</h2><ul class="mig-list">${top('hosted')}</ul><h2>${d.topOrigins}</h2><ul class="mig-list">${top('abroad')}</ul></aside></div>
+    <aside class="brief"><h3 class="aside-title">${d.topHosts}</h3><ul class="mig-list">${top('hosted')}</ul><h3 class="aside-title">${d.topOrigins}</h3><ul class="mig-list">${top('abroad')}</ul></aside></div>
     ${euRows ? `<section class="section"><div class="section-head"><h2>${d.euTableTitle}</h2><p>${d.euTableLead}</p></div>
       <div class="table-wrap"><table class="table"><thead><tr><th>${d.colCountry}</th><th>${d.colLast12}</th><th>${d.colChange}</th><th>${d.colTrend}</th></tr></thead><tbody>${euRows}</tbody></table></div></section>` : ''}
     <section class="section"><div class="section-head"><h2>${d.routesTitle}</h2><p>${d.routesLead}</p></div><ul class="routes">${routes}</ul></section>`;

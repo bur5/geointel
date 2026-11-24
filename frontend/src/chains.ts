@@ -90,9 +90,15 @@ export function linksOf(
   };
   const self = name(iso3);
   for (const code of neighbours) add(code, { kind: 'border', strength: 3, ru: 'общая граница', en: 'shared border' });
+  // One alliance reason per country, naming every shared bloc.
+  const shared = new Map<string, typeof BLOCS>();
   for (const bloc of BLOCS.filter((b) => b.members.includes(iso3))) {
-    const strength = bloc.key === 'nato' || bloc.key === 'eu' ? 2 : 1;
-    for (const code of bloc.members) add(code, { kind: 'bloc', strength, ru: bloc.ru, en: bloc.en });
+    for (const code of bloc.members) shared.set(code, [...(shared.get(code) ?? []), bloc]);
+  }
+  for (const [code, blocs] of shared) {
+    const core = blocs.filter((b) => b.key === 'nato' || b.key === 'eu').length;
+    add(code, { kind: 'bloc', strength: core === 2 ? 2.5 : core === 1 ? 2 : 1,
+      ru: blocs.map((b) => b.ru).join(', '), en: blocs.map((b) => b.en).join(', ') });
   }
   const countries = data?.countries ?? {};
   for (const [code, entry] of Object.entries(countries)) {

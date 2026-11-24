@@ -26,6 +26,7 @@ export function drawMap(
   classOf: (key: string) => string,
   labelOf: (key: string, name: string) => string,
   select: (key: string) => void,
+  focus?: [number, number, number],
 ) {
   const svg = container.querySelector<SVGSVGElement>('svg')!;
   const layer = svg.querySelector<SVGGElement>('g')!;
@@ -74,6 +75,15 @@ export function drawMap(
     zoom = next;
     transform();
   };
+  if (focus) {
+    const point = project([focus[0], focus[1]]);
+    if (point) {
+      zoom = focus[2];
+      x = 450 - point[0] * zoom;
+      y = 220 - point[1] * zoom;
+      transform();
+    }
+  }
   container.querySelector('[data-map="in"]')!.addEventListener('click', () => changeZoom(zoom * 1.4));
   container.querySelector('[data-map="out"]')!.addEventListener('click', () => changeZoom(zoom / 1.4));
   container.querySelector('[data-map="reset"]')!.addEventListener('click', () => changeZoom(1));
