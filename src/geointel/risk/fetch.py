@@ -13,7 +13,17 @@ from pathlib import Path
 
 import httpx
 
-from geointel.risk.sources import advisories, exposure, fts, gdacs, ncei_tsunami, usgs, worldbank
+from geointel.risk.sources import (
+    advisories,
+    elections,
+    exposure,
+    fts,
+    gdacs,
+    ncei_tsunami,
+    outlook,
+    usgs,
+    worldbank,
+)
 
 UCDP_ACD_VERSIONS = ("26.1", "25.1", "24.1")
 COUPS_URLS = (
@@ -141,6 +151,32 @@ def _exposure(client: httpx.Client, reference_year: int) -> tuple[bytes, str, st
     return json.dumps(payload).encode(), "https://api.worldbank.org/v2", "WDI structure"
 
 
+def _imf(client: httpx.Client, _year: int) -> tuple[bytes, str, str]:
+    payload = {
+        code: _get(client, outlook.imf_url(code)).json() for code in outlook.IMF_INDICATORS.values()
+    }
+    return json.dumps(payload).encode(), "https://www.imf.org/external/datamapper/api/v1", "WEO"
+
+
+def _vdem(client: httpx.Client, _year: int) -> tuple[bytes, str, str]:
+    return _download_first(client, [(outlook.owid_url(slug), slug) for slug in outlook.VDEM_SLUGS])
+
+
+def _gpr(client: httpx.Client, _year: int) -> tuple[bytes, str, str]:
+    return _get(client, outlook.GPR_URL).content, outlook.GPR_URL, "monthly"
+
+
+def _elections(client: httpx.Client, _year: int) -> tuple[bytes, str, str]:
+    response = client.get(
+        elections.ENDPOINT,
+        params={"query": elections.QUERY, "format": "json"},
+        headers={"Accept": "application/sparql-results+json"},
+        timeout=180,
+    )
+    response.raise_for_status()
+    return response.content, elections.ENDPOINT, "SPARQL"
+
+
 def fetch_all(raw_dir: Path, reference_year: int | None = None) -> dict:
     raw_dir.mkdir(parents=True, exist_ok=True)
     year = reference_year or datetime.now(UTC).year
@@ -155,6 +191,10 @@ def fetch_all(raw_dir: Path, reference_year: int | None = None) -> dict:
         "fts": ("fts.json", lambda c: _fts(c, year)),
         "advisories": ("advisories.json", lambda c: _advisories(c, year)),
         "exposure": ("exposure.json", lambda c: _exposure(c, year)),
+        "imf": ("imf.json", lambda c: _imf(c, year)),
+        "vdem": ("vdem.csv", lambda c: _vdem(c, year)),
+        "gpr": ("gpr.xls", lambda c: _gpr(c, year)),
+        "elections": ("elections.json", lambda c: _elections(c, year)),
     }
     only = {k for k in os.environ.get("GEOINTEL_SOURCES", "").split(",") if k}
     manifest: dict[str, dict] = {}

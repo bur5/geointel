@@ -142,3 +142,102 @@ def test_exposure_latest_values_and_world_share():
     assert profiles["USA"]["gdp_usd"] == {"value": 80.0, "year": 2024}
     assert profiles["SAU"]["oil_rents_gdp"]["year"] == 2022
     assert profiles["USA"]["world_gdp_share"]["value"] == 80.0
+
+
+def test_imf_outlook_flags_projected_crisis():
+    from geointel.risk.sources import outlook
+
+    payloads = {
+        "NGDP_RPCH": {
+            "values": {
+                "NGDP_RPCH": {
+                    "ARG": {"2025": 4.5, "2026": -3.5, "2027": 2.0},
+                    "WEOWORLD": {"2026": 3},
+                }
+            }
+        },
+        "PCPIPCH": {"values": {"PCPIPCH": {"VEN": {"2026": 180.0, "2027": 150.0}}}},
+    }
+    result = outlook.imf_outlook(payloads, reference_year=2026)
+    assert result["ARG"]["projects_crisis"] == ["2026"]
+    assert result["VEN"]["projects_crisis"] == ["2026", "2027"]
+    assert "WEOWORLD" not in result
+
+
+def test_owid_latest_and_gpr_series():
+    from geointel.risk.sources import outlook
+
+    text = (
+        "Entity,Code,Year,electdem_vdem\nRussia,RUS,2023,0.11\nRussia,RUS,2024,0.1\n"
+        "Kosovo,OWID_KOS,2024,0.6\nWorld,OWID_WRL,2024,0.4\n"
+    )
+    latest = outlook.owid_latest(text)
+    assert latest["RUS"] == {"value": 0.1, "year": 2024} and latest["XKX"]["value"] == 0.6
+    months = [f"20{y:02d}-{m:02d}" for y in range(20, 27) for m in range(1, 13)]
+    columns = {"GPRC_ISR": [1.0] * (len(months) - 12) + [3.0] * 12, "GPR": [1] * len(months)}
+    series = outlook.gpr_country_series(columns, months)
+    assert set(series) == {"ISR"}
+    assert series["ISR"]["ratio_12m"] == 3.0 and len(series["ISR"]["values"]) == 24
+
+
+def test_elections_filter_national_only():
+    from datetime import date
+
+    from geointel.risk.sources import elections
+
+    def b(entity, iso3, name, kind_label, when, precision=11):
+        return {
+            "e": {"value": f"http://www.wikidata.org/entity/{entity}"},
+            "iso3": {"value": iso3},
+            "eLabelEn": {"value": name},
+            "typeLabel": {"value": kind_label},
+            "date": {"value": when},
+            "precision": {"value": str(precision)},
+        }
+
+    payload = {
+        "results": {
+            "bindings": [
+                b(
+                    "Q1",
+                    "FRA",
+                    "2027 French presidential election",
+                    "presidential election",
+                    "2027-04-10T00:00:00Z",
+                ),
+                b(
+                    "Q2",
+                    "FRA",
+                    "2026 Paris municipal election",
+                    "municipal election",
+                    "2026-03-15T00:00:00Z",
+                ),
+                b(
+                    "Q3",
+                    "BRA",
+                    "2026 Brazilian general election",
+                    "general election",
+                    "2026-10-04T00:00:00Z",
+                ),
+                b(
+                    "Q4",
+                    "USA",
+                    "2026 Ohio gubernatorial election",
+                    "gubernatorial election",
+                    "2026-11-03T00:00:00Z",
+                ),
+                b(
+                    "Q5",
+                    "ITA",
+                    "Italian constitutional referendum",
+                    "referendum",
+                    "2027-01-01T00:00:00Z",
+                    9,
+                ),
+            ]
+        }
+    }
+    parsed = elections.parse(payload, today=date(2026, 11, 24))
+    assert set(parsed) == {"FRA", "BRA", "ITA"}
+    assert parsed["FRA"][0]["kind"] == "presidential"
+    assert parsed["ITA"][0]["precision"] == "year" and parsed["ITA"][0]["kind"] == "referendum"

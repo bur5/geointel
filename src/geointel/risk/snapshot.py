@@ -104,6 +104,10 @@ def build_snapshot(
                 "risks": risks[c.iso3],
                 "advisory": (extras or {}).get("advisories", {}).get(c.iso3),
                 "profile": (extras or {}).get("profiles", {}).get(c.iso3),
+                "outlook": (extras or {}).get("outlook", {}).get(c.iso3),
+                "democracy": (extras or {}).get("democracy", {}).get(c.iso3),
+                "gpr": (extras or {}).get("gpr", {}).get(c.iso3),
+                "elections": (extras or {}).get("elections", {}).get(c.iso3, []),
             }
             for c in countries
         ],
