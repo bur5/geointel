@@ -1,0 +1,9 @@
+country	ccode	year	month	day	coup
+Mali	432	2020	8	18	2
+Mali	432	2021	5	24	2
+Gabon	481	2023	8	30	2
+Turkey	640	2016	7	15	1
+Niger	436	2023	7	26	2
+Atlantis	999	2010	1	1	1
+Mali	432	2026	1	1	1
+Guinea	438	1985	1	1	2

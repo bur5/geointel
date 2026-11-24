@@ -2,6 +2,7 @@ name: CI
 
 on:
   push:
+    branches-ignore: [risk-data]
   pull_request:
 
 jobs:
