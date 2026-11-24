@@ -111,16 +111,18 @@ def read_gpr_xls(payload: bytes) -> tuple[dict[str, list], list[str]]:
     book = xlrd.open_workbook(file_contents=payload)
     sheet = book.sheet_by_index(0)
     header = [str(c.value).strip() for c in sheet.row(0)]
-    month_i = next(i for i, h in enumerate(header) if h.lower() in ("month", "date"))
+    month_i = next((i for i, h in enumerate(header) if h.lower() == "month"), None)
+    if month_i is None:
+        month_i = next(i for i, h in enumerate(header) if h.lower() in ("date", "yearmonth"))
     months: list[str] = []
     columns: dict[str, list] = {h: [] for h in header}
     for r in range(1, sheet.nrows):
         row = sheet.row(r)
         cell = row[month_i]
-        if cell.ctype == xlrd.XL_CELL_DATE:
+        try:
             y, m, *_ = xlrd.xldate_as_tuple(cell.value, book.datemode)
             months.append(f"{y:04d}-{m:02d}")
-        else:
+        except Exception:  # noqa: BLE001 - non-date or ambiguous cells
             months.append(str(cell.value)[:7])
         for i, h in enumerate(header):
             value = row[i].value if i < len(row) else None

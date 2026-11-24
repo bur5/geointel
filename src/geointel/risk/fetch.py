@@ -168,15 +168,45 @@ def _gpr(client: httpx.Client, _year: int) -> tuple[bytes, str, str]:
     return _get(client, outlook.GPR_URL).content, outlook.GPR_URL, "monthly"
 
 
+def _sparql(client: httpx.Client, query: str) -> dict:
+    for attempt in range(3):
+        response = client.get(
+            elections.ENDPOINT,
+            params={"query": query, "format": "json"},
+            headers={"Accept": "application/sparql-results+json"},
+            timeout=90,
+        )
+        if response.status_code in (429, 500, 502, 503, 504) and attempt < 2:
+            time.sleep(5 * (attempt + 1))
+            continue
+        response.raise_for_status()
+        return response.json()
+    raise RuntimeError("SPARQL failed")
+
+
 def _elections(client: httpx.Client, _year: int) -> tuple[bytes, str, str]:
-    response = client.get(
-        elections.ENDPOINT,
-        params={"query": elections.QUERY, "format": "json"},
-        headers={"Accept": "application/sparql-results+json"},
-        timeout=180,
+    from geointel.risk.countries import universe_codes
+
+    rows = _sparql(client, elections.COUNTRY_QUERY)["results"]["bindings"]
+    pairs = sorted(
+        {
+            (r["country"]["value"].rsplit("/", 1)[-1], r["iso3"]["value"].upper())
+            for r in rows
+            if r["iso3"]["value"].upper() in universe_codes()
+        }
     )
-    response.raise_for_status()
-    return response.content, elections.ENDPOINT, "SPARQL"
+    bindings, failures = [], 0
+    for start in range(0, len(pairs), 12):
+        query = elections.BATCH_QUERY % elections.batch_values(pairs[start : start + 12])
+        try:
+            bindings.extend(_sparql(client, query)["results"]["bindings"])
+        except Exception:  # noqa: BLE001 - a failed batch only loses those countries
+            failures += 1
+        time.sleep(1)
+    if not bindings:
+        raise RuntimeError(f"no election data ({failures} failed batches)")
+    payload = {"results": {"bindings": bindings}, "failed_batches": failures}
+    return json.dumps(payload).encode(), elections.ENDPOINT, f"{len(pairs)} countries"
 
 
 def _fcdo(client: httpx.Client, _year: int) -> tuple[bytes, str, str]:
