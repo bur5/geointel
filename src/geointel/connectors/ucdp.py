@@ -4,6 +4,7 @@ from typing import Any
 import httpx
 from pydantic import AliasChoices, BaseModel, ConfigDict, Field, ValidationError
 
+from geointel.coverage import Scope, Verification
 from geointel.domain.schemas import Confidence, NormalizedEvidence
 from geointel.geography import CountryIdentity, resolve_country
 from geointel.providers.runtime import (
@@ -31,6 +32,7 @@ class UCDPRawRecord(BaseModel):
     country_id: int | None = None
     date_start: datetime | None = None
     date_end: datetime | None = None
+    coverage_start: date | None = None
     coverage_end: date | None = None
     reference_date: date | None = None
     type_of_violence: int | None = None
@@ -95,8 +97,10 @@ class UCDPConnector:
             sleep=sleep or __import__("time").sleep,
         )
         self.last_audit: CollectionAudit | None = None
+        self.last_query_scope: Scope | None = None
 
     def collect(self, location: str, horizon_months: int = 12) -> list[NormalizedEvidence]:
+        self.last_query_scope = None
         if self.official_api:
             return self._collect_official(location)
         if not self.endpoint_path:
@@ -107,6 +111,9 @@ class UCDPConnector:
 
     def _collect_adapter(self, location: str) -> list[NormalizedEvidence]:
         url = f"{self.base_url}/{self.endpoint_path.lstrip('/')}"
+        self.last_query_scope = Scope(
+            kind="historical_release", geography=location, release=self.api_version
+        )
         headers = {"x-ucdp-access-token": self.access_token} if self.access_token else None
         try:
             payload, retrieval_url, _ = self.transport.get_json(
@@ -145,9 +152,13 @@ class UCDPConnector:
             "UCDP", "0.1.6.1", IntegrationMode.OFFICIAL_API, "ucdp-gedevents-v1"
         )
         self.last_audit = audit
+        audit.query_scope = Scope(
+            kind="historical_release", geography=country.name, release=self.api_version
+        )
         output: list[NormalizedEvidence] = []
         seen: set[str] = set()
         total_pages: int | None = None
+        total_count: int | None = None
         url = f"{self.base_url}/gedevents/{self.api_version}"
         audit.provider_restrictions = {
             "resource": "gedevents",
@@ -170,6 +181,23 @@ class UCDPConnector:
                 audit.request_count += attempts
                 audit.page_count += 1
                 records, declared_pages = self._official_envelope(payload)
+                declared_count = payload.get("TotalCount")
+                if type(declared_count) is not int or declared_count < 0:
+                    audit.pagination_ambiguous = True
+                elif page == 1:
+                    total_count = declared_count
+                elif declared_count != total_count:
+                    audit.pagination_ambiguous = True
+                audit.received += len(records)
+                audit.page_evidence.append(
+                    {
+                        "page": page,
+                        "row_count": len(records),
+                        "declared_pages": declared_pages,
+                    }
+                )
+                if (not records and declared_pages > 0) or (records and declared_pages == 0):
+                    audit.pagination_ambiguous = True
                 if total_pages is None:
                     total_pages = declared_pages
                     if total_pages < 0 or total_pages > 1_000_000:
@@ -181,11 +209,11 @@ class UCDPConnector:
                         "UCDP TotalPages changed during collection",
                         FailureCategory.PAGINATION_ERROR,
                     )
-                audit.received += len(records)
                 for raw in records:
                     try:
                         record_id = str(raw["id"])
                         if record_id in seen:
+                            audit.pagination_ambiguous = True
                             audit.duplicates += 1
                             continue
                         item = self.normalize(raw, location, retrieval_url, country)
@@ -199,6 +227,13 @@ class UCDPConnector:
                         audit.finish(CollectionStatus.PARTIAL)
                         return output
                 if page >= total_pages:
+                    audit.pagination_ambiguous |= total_count != audit.received
+                    if not audit.pagination_ambiguous and not audit.rejected:
+                        audit.verification = Verification(
+                            scope=audit.query_scope,
+                            basis="ucdp_gedevents_stable_total_pages_and_count",
+                            pagination_exhausted=True,
+                        )
                     audit.finish(
                         CollectionStatus.PARTIAL if audit.rejected else CollectionStatus.SUCCEEDED
                     )
@@ -277,6 +312,9 @@ class UCDPConnector:
                 "requested_geography": location,
                 "resolved_ucdp_country_id": resolved_country.gw_code if resolved_country else None,
                 "date_end": record.date_end.isoformat() if record.date_end else None,
+                "coverage_start": (
+                    record.coverage_start.isoformat() if record.coverage_start else None
+                ),
                 "coverage_end": record.coverage_end.isoformat() if record.coverage_end else None,
                 "reference_date": (
                     record.reference_date.isoformat() if record.reference_date else None

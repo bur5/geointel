@@ -1,4 +1,4 @@
-# GEOINTEL v0.1.7
+# GEOINTEL v0.1.8
 
 GEOINTEL is a geopolitical decision-support and conflict early-warning foundation. v0.1.0 preserves the UCDP/ACLED/VIEWS/CAST pipeline—collection → strategic retrieval/lenses → Analyst → four-category Forecaster → mandatory Red Team → synthesis → immutable persistence—and adds an auditable strategic-knowledge layer. It is not verified intelligence and does not provide personal relocation advice.
 
@@ -194,3 +194,22 @@ current operational coverage or escalation.
 contain deterministic `historical-observations-v1` features. See
 [the historical feature contract](docs/HISTORICAL_BASE_RATES.md). These are inputs
 for future calibrated forecasting models, not probabilities or model authority.
+
+
+## Normalized historical conflict profiles (v0.1.8)
+
+`collection_metadata.historical_conflict_profile` and Analyst output now expose a typed,
+auditable provider-neutral taxonomy, per-type and overall observation/year/fatality statistics,
+retrieved-observation shares, and dataset-reference trailing windows. Every mapping retains its
+provider category/value, source ID, dataset/version, geography, temporal role and method version.
+Verified GED `type_of_violence=3` maps to `ONE_SIDED_VIOLENCE`; `1` (state-based) and `2`
+(non-state) remain `OTHER_OR_UNRESOLVED` because the supplied field cannot establish the finer
+GEOINTEL categories. Unknown providers/values remain unresolved rather than being discarded.
+
+Observation rows are neither conflict nor episode counts; fatalities are not frequency. Unknown
+coverage remains unknown, absent years are not zeros, and annualized rates remain unavailable.
+Analyst/synthesis present compact normalized historical background. Deterministic Red Team checks
+challenge taxonomy, temporal, unit and denominator misuse. Historical features cannot create
+current coverage, current observed evidence, escalation indicators or numeric forecast
+probabilities. The four forecast categories and news/provider behavior remain intact.
+See [the complete profile and mapping contract](docs/HISTORICAL_BASE_RATES.md).

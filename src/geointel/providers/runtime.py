@@ -15,6 +15,8 @@ from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 import httpx
 
+from geointel.coverage import Scope, Verification
+
 
 class IntegrationMode(StrEnum):
     OFFICIAL_API = "OFFICIAL_API"
@@ -80,6 +82,12 @@ class CollectionAudit:
     rejection_reasons: list[str] = field(default_factory=list)
     provider_restrictions: dict[str, Any] = field(default_factory=dict)
 
+    query_scope: Scope | None = None
+    verification: Verification | None = None
+    coverage_restricted: bool = False
+    pagination_ambiguous: bool = False
+    page_evidence: list[dict[str, Any]] = field(default_factory=list)
+
     def finish(self, status: CollectionStatus) -> None:
         self.status, self.completed_at = status, datetime.now(UTC)
 
@@ -94,7 +102,16 @@ class CollectionAudit:
             "status": self.status.value,
             "failure_category": self.failure_category.value if self.failure_category else None,
         }
-        return json.loads(json.dumps(value, default=lambda x: x.isoformat()))
+        return json.loads(
+            json.dumps(
+                value,
+                default=lambda x: (
+                    x.model_dump(mode="json")
+                    if isinstance(x, (Scope, Verification))
+                    else x.isoformat()
+                ),
+            )
+        )
 
 
 SECRET_KEYS = re.compile(
@@ -387,23 +404,35 @@ def paginate(
     *,
     identity: Callable[[dict[str, Any]], str],
     audit: CollectionAudit,
+    initial_cursor: str | None = None,
     max_pages: int = 10,
     max_records: int = 10_000,
 ) -> list[dict[str, Any]]:
     """Paginate only an explicitly documented adapter cursor contract."""
     if not 1 <= max_pages <= 100 or not 1 <= max_records <= 100_000:
         raise ValueError("pagination bounds are invalid")
-    cursor, seen_cursors, output, identities = None, set(), [], set()
+    cursor = initial_cursor
+    seen_cursors = {cursor} if cursor is not None else set()
+    output: list[dict[str, Any]] = []
+    identities: set[str] = set()
     for _ in range(max_pages):
         try:
             records, next_cursor = fetch(cursor)
         except Exception as exc:
             audit.failure_category = getattr(exc, "category", FailureCategory.PAGINATION_ERROR)
             audit.failure_reason = sanitize_text(str(exc))
+            audit.rate_limited = audit.failure_category == FailureCategory.RATE_LIMITED
             audit.finish(CollectionStatus.PARTIAL if output else CollectionStatus.FAILED)
             return output
         audit.request_count += 1
         audit.page_count += 1
+        audit.page_evidence.append(
+            {
+                "page": audit.page_count,
+                "row_count": len(records),
+                "continuation_present": next_cursor is not None,
+            }
+        )
         audit.received += len(records)
         for record in records:
             try:
@@ -420,7 +449,7 @@ def paginate(
                 audit.truncated = True
                 audit.finish(CollectionStatus.PARTIAL)
                 return output
-        if not records or next_cursor is None:
+        if next_cursor is None:
             audit.finish(
                 CollectionStatus.SUCCEEDED if not audit.rejected else CollectionStatus.PARTIAL
             )
@@ -435,6 +464,8 @@ def paginate(
             audit.failure_reason = "invalid or repeated pagination cursor"
             audit.finish(CollectionStatus.PARTIAL if output else CollectionStatus.FAILED)
             return output
+        if not records:
+            audit.pagination_ambiguous = True
         seen_cursors.add(next_cursor)
         cursor = next_cursor
     audit.truncated = True

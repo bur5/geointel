@@ -9,6 +9,7 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
+from geointel.coverage import Scope
 from geointel.domain.schemas import NormalizedNewsReport
 from geointel.news.identity import canonicalize_article_url
 from geointel.news.query import NewsQueryPlan, plan_news_queries
@@ -117,6 +118,9 @@ class NewsAPIConnector:
             raise NewsAPIError(str(exc)) from exc
         self.last_query_plan = plan
         self.last_query_accepted_counts = {}
+        audit.query_scope = Scope(
+            kind="media", geography=location, start=start.date(), end=end.date()
+        )
         audit.provider_restrictions = {
             "window_start": start.isoformat(),
             "window_end": end.isoformat(),
@@ -155,6 +159,15 @@ class NewsAPIConnector:
                 audit.request_count += attempts
                 audit.page_count += 1
                 rows, total = self._articles(payload)
+                audit.page_evidence.append(
+                    {
+                        "query_family": query.signal_family,
+                        "page": 1,
+                        "row_count": len(rows),
+                        "declared_total": total,
+                    }
+                )
+                audit.pagination_ambiguous |= len(rows) < total
                 audit.received += len(rows)
                 retrieved = self._now().astimezone(UTC)
                 accepted_before = audit.accepted

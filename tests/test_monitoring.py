@@ -218,3 +218,55 @@ def test_cli_create_run_due_and_alert_inspection(tmp_path):
     # Manual run advanced next_due_at, so run-due deterministically finds nothing.
     assert command("run-due") == []
     assert command("list-alerts") == []
+
+
+def test_legacy_rollout_uses_first_v1_eligibility_baseline(session):
+    svc = service(session)
+    target = svc.add_target(svc.create_watchlist("Rollout"), "ESP", "Spain")
+    legacy = svc.run_target(target)
+    legacy.analysis_run.pipeline_version = "0.1.7"
+    metadata = dict(legacy.analysis_run.collection_metadata)
+    metadata.pop("collection_coverage")
+    metadata["connector_outcomes"] = []
+    legacy.analysis_run.collection_metadata = metadata
+    session.commit()
+
+    initial = svc.run_target(target)
+    assert initial.previous_analysis_run_id == legacy.analysis_run_id
+    assert initial.baseline_established
+    assert any(c.change_type == "source_availability_change" for c in initial.changes)
+    assert all(not c.material for c in initial.changes)
+    next_run = svc.run_target(target)
+    assert next_run.previous_analysis_run_id == initial.analysis_run_id
+    assert not next_run.baseline_established
+    assert session.scalars(select(Alert)).all() == []
+
+
+def test_unchanged_provider_cannot_corroborate_new_events():
+    detector = ChangeDetector()
+    before = state(assessment_records={"event_ids": ["B:old"]})
+    after = state(
+        assessment_records={"event_ids": ["B:old", "A:1", "A:2"], "recency": "current_corroborated"}
+    )
+    changes = detector.detect(before, after)
+    assert {c["change_type"] for c in changes} == {"new_operational_events", "data_recency_change"}
+    assert all(not c["material"] for c in changes)
+    after["assessment_records"]["event_ids"].append("B:new")
+    assert all(c["material"] for c in detector.detect(before, after))
+
+
+def test_operational_health_materiality_excludes_historical_health():
+    detector = ChangeDetector()
+    before = state(has_history=True, assessment_records={})
+    outage = state(
+        has_history=True,
+        assessment_records={},
+        source_health=before["source_health"] | {"ACLED": "failed", "VIEWS": "failed"},
+    )
+    (change,) = detector.detect(before, outage)
+    assert change["material"]
+    assert "UCDP" not in change["current_state"]["value"]
+    historical_outage = outage | {"source_health": outage["source_health"] | {"UCDP": "failed"}}
+    (change,) = detector.detect(outage, historical_outage)
+    assert not change["material"]
+    assert change["current_state"]["value"]["UCDP"] == "failed"

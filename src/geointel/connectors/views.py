@@ -6,6 +6,7 @@ from typing import Any
 import httpx
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
+from geointel.coverage import Scope
 from geointel.domain.schemas import NormalizedForecastSignal
 from geointel.providers.runtime import sanitize_mapping, sanitize_url
 
@@ -58,8 +59,10 @@ class VIEWSConnector:
         self.retries = retries
         self._client = client
         self._sleep = sleep
+        self.last_query_scope: Scope | None = None
 
     def collect(self, location: str, horizon_months: int = 12) -> list[NormalizedForecastSignal]:
+        self.last_query_scope = None
         if not self.endpoint_path:
             raise VIEWSError(
                 "VIEWS endpoint path is not configured; provide a verified adapter endpoint"
@@ -73,6 +76,7 @@ class VIEWSConnector:
         self, client: httpx.Client, location: str, horizon_months: int
     ) -> list[NormalizedForecastSignal]:
         url = f"{self.base_url}/{self.endpoint_path.lstrip('/')}"
+        self.last_query_scope = Scope(kind="forecast", geography=location)
         last: Exception | None = None
         attempts_used = 0
         for attempt in range(self.retries + 1):
