@@ -5,8 +5,6 @@ from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine, select
-
 from sqlalchemy import create_engine, select, text
 from sqlalchemy.exc import ArgumentError, OperationalError
 from sqlalchemy.orm import Session
@@ -332,6 +330,14 @@ def test_postgres_historical_summary_and_raw_provenance(session, monkeypatch):
         == "annual_historical"
     )
 
+    monkeypatch.setitem(dashboard_app.dependency_overrides, get_session, lambda: session)
+    with TestClient(dashboard_app) as client:
+        response = client.get("/api/v1/dashboard/ucdp-observations?country=ES")
+        assert response.status_code == 200
+        (record,) = response.json()["items"]
+        assert record["temporal_role"] == "annual_historical"
+        assert record["provenance"]["source_record_id"] == "postgres-history"
+
 
 def test_postgres_collection_coverage_json_round_trip(session):
     from geointel.connectors.base import DisabledConnector
@@ -523,13 +529,6 @@ def test_postgres_concurrent_target_and_failed_finalization(postgres_engine):
         with postgres_engine.begin() as connection:
             connection.execute(DropSchema(schema, cascade=True))
 
-    monkeypatch.setitem(dashboard_app.dependency_overrides, get_session, lambda: session)
-    with TestClient(dashboard_app) as client:
-        response = client.get("/api/v1/dashboard/ucdp-observations?country=ES")
-        assert response.status_code == 200
-        (record,) = response.json()["items"]
-        assert record["temporal_role"] == "annual_historical"
-        assert record["provenance"]["source_record_id"] == "postgres-history"
 
 def test_postgres_search_missing_relation_preserves_transaction(session):
     # Simulate an unmigrated relation within the rollback-isolated test transaction.
