@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches-ignore: [risk-data]
+    branches-ignore: [risk-data, ci-shots]
   pull_request:
 
 jobs:
@@ -63,6 +63,8 @@ jobs:
 
   frontend:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     defaults:
       run:
         working-directory: frontend
@@ -77,6 +79,20 @@ jobs:
       - run: npm run build
       - run: npx playwright install --with-deps chromium
       - run: npm test
+        env:
+          GEOINTEL_SCREENSHOTS: ${{ github.workspace }}/shots
+      - name: Publish screenshots for review (ci-shots branch)
+        if: github.event_name == 'push'
+        working-directory: ${{ github.workspace }}
+        run: |
+          [ -d shots ] || exit 0
+          dest="${GITHUB_REF_NAME//\//-}"
+          git config user.name "geointel-bot"
+          git config user.email "geointel-bot@users.noreply.github.com"
+          git fetch --depth=1 origin ci-shots && git worktree add publish FETCH_HEAD && (cd publish && git checkout -B ci-shots) \
+            || (git worktree add --detach publish && cd publish && git checkout --orphan ci-shots && git rm -rfq .)
+          mkdir -p "publish/$dest" && cp shots/*.png "publish/$dest/"
+          cd publish && git add -A && (git commit -qm "Screenshots for $GITHUB_REF_NAME" && git push origin ci-shots || echo "no changes")
 
   postgres-integration:
     runs-on: ubuntu-latest
