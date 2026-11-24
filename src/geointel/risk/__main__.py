@@ -26,8 +26,11 @@ def load_histories(
         fcdo,
         fts,
         gdacs,
+        migration,
         ncei_tsunami,
         outlook,
+        polymarket,
+        trade,
         ucdp_acd,
         usgs,
         worldbank,
@@ -48,6 +51,14 @@ def load_histories(
         )
         histories[EventType.INTERNAL_ARMED_CONFLICT] = internal
         histories[EventType.INTERSTATE_CONFLICT] = interstate
+        text = ucdp_acd.read_csv_bytes(path.read_bytes())
+        extras["dyads"] = ucdp_acd.dyad_years(text)
+        extras["ucdp_last_year"] = interstate.end_year
+        extras["active_interstate"] = {
+            code
+            for code, years in interstate.years_with_event.items()
+            if interstate.end_year in years
+        }
 
     def coup(path: Path) -> None:
         text = path.read_bytes().decode("utf-8", errors="replace")
@@ -105,6 +116,31 @@ def load_histories(
                 parsed[code] = entry
         extras["fcdo"] = parsed
 
+    def defence(path: Path) -> None:
+        extras["milex"] = trade.milex_summary(trade.owid_series(path.read_text()))
+
+    def markets(path: Path) -> None:
+        extras["markets"] = polymarket.markets(json.loads(path.read_text())["responses"])
+
+    def displaced(path: Path) -> None:
+        payload = json.loads(path.read_text())
+        extras["displacement"] = migration.displacement(
+            migration.merge_pages(payload["pages"]), payload["year"]
+        )
+
+    def asylum(path: Path) -> None:
+        extras["asylum"] = migration.asylum_trend(
+            migration.jsonstat_series(json.loads(path.read_text()))
+        )
+
+    def bilateral(path: Path) -> None:
+        payload = json.loads(path.read_text())
+        codes = {int(k): v for k, v in payload["codes"].items()}
+        exports = trade.exports_by_partner(payload["responses"], codes)
+        extras["trade"] = trade.trade_links(exports)
+        periods = [r.get("period") for r in payload["responses"] if r.get("period")]
+        extras["trade_year"] = max(set(periods), key=periods.count) if periods else None
+
     def admin_regions(path: Path) -> None:
         from geointel.risk.regions import RegionIndex, annotate
 
@@ -125,6 +161,11 @@ def load_histories(
         ("gpr", outlook.GPR_SOURCE, gpr),
         ("elections", elections.SOURCE, votes),
         ("fcdo", fcdo.SOURCE, uk_travel),
+        ("milex", trade.MILEX_SOURCE, defence),
+        ("markets", polymarket.SOURCE, markets),
+        ("unhcr", migration.UNHCR_SOURCE, displaced),
+        ("eurostat", migration.EUROSTAT_SOURCE, asylum),
+        ("trade", trade.TRADE_SOURCE, bilateral),
         ("regions", "Natural Earth admin-1 regions", admin_regions),  # must stay last
     ]
     for key, name, loader in loaders:
@@ -191,6 +232,8 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     from geointel.risk.hazards import build_hazard_details
+    from geointel.risk.links import build_links
+    from geointel.risk.scenarios import build_scenarios
     from geointel.risk.snapshot import build_snapshot
 
     now = datetime.now(UTC)
@@ -209,6 +252,49 @@ def main(argv: list[str] | None = None) -> int:
     details = build_hazard_details(hazard_events, now)
     (args.out.parent / "hazards.json").write_text(
         json.dumps(details, ensure_ascii=False, separators=(",", ":"))
+    )
+    scenarios = build_scenarios(
+        dyads=extras.get("dyads"),
+        last_conflict_year=extras.get("ucdp_last_year"),
+        active_interstate=extras.get("active_interstate", set()),
+        markets=extras.get("markets"),
+        milex=extras.get("milex", {}),
+        gpr=extras.get("gpr", {}),
+        generated_at=now,
+    )
+    for item in scenarios["scenarios"]:
+        horizons = " ".join(f"{h}={v['p']:.3f}" for h, v in item["horizons"].items())
+        parts = " ".join(f"{c['kind']}={c['annual']:.3f}" for c in item["components"])
+        print(
+            f"[scenario] {item['key']} {horizons} | {parts} | x{item['indicator_factor']} "
+            f"| market={item['market_status']}"
+        )
+        for candidate in item["market_candidates"]:
+            print(
+                f"[scenario]   candidate {candidate['p']:.3f} {candidate['end']} "
+                f"${candidate['volume']:.0f} {candidate['question'][:100]}"
+            )
+    (args.out.parent / "scenarios.json").write_text(
+        json.dumps(scenarios, ensure_ascii=False, separators=(",", ":"))
+    )
+    links = build_links(
+        trade=extras.get("trade"),
+        trade_year=extras.get("trade_year"),
+        displacement=extras.get("displacement"),
+        asylum=extras.get("asylum"),
+        profiles=extras.get("profiles"),
+        sources=[s for s in sources if s["key"] in ("trade", "unhcr", "eurostat", "milex")],
+        generated_at=now,
+    )
+    for code, value in (extras.get("milex") or {}).items():
+        links["countries"].setdefault(code, {})["milex"] = value
+    (args.out.parent / "links.json").write_text(
+        json.dumps(links, ensure_ascii=False, separators=(",", ":"))
+    )
+    print(
+        f"[links] countries={len(links['countries'])} "
+        f"trade={sum(1 for c in links['countries'].values() if 'trade' in c)} "
+        f"migration={sum(1 for c in links['countries'].values() if 'migration' in c)}"
     )
     print(
         json.dumps(
