@@ -37,6 +37,8 @@ def test_universe_and_name_resolution():
     codes = {c.iso3 for c in universe()}
     assert len(codes) == 196
     assert {"UKR", "RUS", "TWN", "PSE", "XKX", "SSD"} <= codes
+    numeric = {c.iso3: c.numeric for c in universe()}
+    assert numeric["UKR"] == "804" and numeric["TWN"] == "158" and numeric["XKX"] is None
     assert resolve_country_name("Russia (Soviet Union)") == "RUS"
     assert resolve_country_name("Government of DR Congo (Zaire)") == "COD"
     assert resolve_country_name("Hyderabad") is None

@@ -1,12 +1,6 @@
 import { defineConfig } from 'vite';
 
+// Relative base so the static build works on GitHub Pages or any sub-path.
 export default defineConfig({
-  server: {
-    proxy: {
-      '/geointel-api/': {
-        target: 'http://127.0.0.1:8000',
-        rewrite: (path) => path.replace(/^\/geointel-api/, ''),
-      },
-    },
-  },
+  base: './',
 });

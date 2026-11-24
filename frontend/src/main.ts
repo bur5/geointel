@@ -1,353 +1,328 @@
 import './style.css';
-import { band, fixtureDate, fixtures, loadForecasts, months, provenance } from './data';
-import type { Fixture, Forecast } from './data';
-import { countries, countryNames, drawMap } from './map';
+import {
+  band, changesSince, loadSnapshot, percent, readVisit, writeVisit,
+} from './data';
+import type { Change, CountryEntry, EventTypeEntry, HorizonKey, Lang, Risk, Snapshot, VisitMemory } from './data';
+import { dictionaries } from './i18n';
+import { drawMap } from './map';
 
 const pages = [
-  ['overview', 'Global Overview', '◈'],
-  ['country', 'Country Intelligence', '◎'],
-  ['risk', 'Risk Monitoring', '▥'],
-  ['forecasts', 'Forecasts', '⌁'],
-  ['briefings', 'Intelligence Briefings', '▤'],
-  ['analyst', 'AI Analyst', '✧'],
+  ['overview', 'navOverview', '◈'],
+  ['country', 'navCountry', '◎'],
+  ['changes', 'navChanges', '⌁'],
+  ['method', 'navMethod', '▤'],
 ] as const;
 type Page = typeof pages[number][0];
-type Mode = 'demo' | 'api';
 
 const root = document.querySelector<HTMLElement>('#app')!;
-let mode: Mode = new URLSearchParams(location.search).get('mode') === 'api' ? 'api' : 'demo';
-let country = '804';
-let riskCountry = '';
-let period = 6;
-let briefCountry = '';
-let briefRegion = '';
-let briefSince = '';
-let abandonForecasts: AbortController | undefined;
-let updateMapSelection: ((id: string) => void) | undefined;
-const messages: { question: string; country: string }[] = [];
+const stored = (key: string) => { try { return localStorage.getItem(key); } catch { return null; } };
+const store = (key: string, value: string) => { try { localStorage.setItem(key, value); } catch { /* ignore */ } };
 
-const available = () => mode === 'demo' ? fixtures : [];
-const name = (id: string) => countryNames.get(id) ?? 'Unknown geography';
-const score = (item: Fixture) => item.history.at(-1)!;
-const sorted = () => [...available()].sort((a, b) => score(b) - score(a));
-const currentPage = (): Page => pages.find(([key]) => '#' + key === location.hash)?.[0] ?? 'overview';
-const date = (value: string) => new Intl.DateTimeFormat('en-GB', {
-  day: '2-digit', month: 'short', year: 'numeric', timeZone: 'UTC',
-}).format(new Date(value));
-const escape = (value: string) => value.replace(/[&<>"']/g, (character) => ({
+let lang: Lang = (new URLSearchParams(location.search).get('lang') ?? stored('geointel.lang')) === 'en' ? 'en' : 'ru';
+let eventType = stored('geointel.type') ?? 'internal_armed_conflict';
+let horizon: HorizonKey = (stored('geointel.horizon') as HorizonKey | null) ?? '1y';
+let selected = stored('geointel.country') ?? 'UKR';
+let snapshot: Snapshot | undefined;
+let previousVisit: VisitMemory | undefined;
+let loadError = false;
+let updateMapSelection: ((key: string) => void) | undefined;
+
+const t = () => dictionaries[lang];
+const escape = (value: string) => value.replace(/[&<>"']/g, (c) => ({
   '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
-}[character]!));
-const signed = (value: number) => (value > 0 ? '+' : '') + value;
-const synthetic = '<span class="tag synthetic">Synthetic</span>';
-const state = (headline: string, description: string, role = 'status') =>
-  '<div class="state" role="' + role + '"><strong>' + headline + '</strong><p>' + description + '</p></div>';
-const unavailable = (subject: string) => state(subject + ' unavailable', 'Current GEOINTEL API contracts do not provide this view.');
-const options = (items: readonly (readonly [string, string])[], selected: string) => items
-  .map(([value, label]) => '<option value="' + escape(value) + '"' + (value === selected ? ' selected' : '') + '>' + escape(label) + '</option>').join('');
-const countryOptions = (selected: string, all = false) => options(all ? [['', 'All countries'], ...countries] : countries, selected);
-const list = (items: string[]) => items.length
-  ? '<ul>' + items.map((item) => '<li>' + escape(item) + '</li>').join('') + '</ul>' : '<p class="muted">Unavailable</p>';
+}[c]!));
+const currentPage = (): Page => pages.find(([key]) => '#' + key === location.hash)?.[0] ?? 'overview';
+const dateTime = (value: string) => new Intl.DateTimeFormat(lang === 'ru' ? 'ru-RU' : 'en-GB', {
+  day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: 'UTC',
+}).format(new Date(value)) + ' UTC';
 
-function chart(values: number[], labels: string[], description: string) {
-  const points = values.map((value, i) => [28 + i * 284 / (values.length - 1), 104 - value * .86]);
-  return `<div class="chart"><svg viewBox="0 0 340 130" role="img" aria-label="${escape(description + ': ' + values.map((v, i) => labels[i] + ' ' + v).join(', ') + ' on a 0–100 scale')}">
-    <defs><linearGradient id="trend-fill" x2="0" y2="1"><stop stop-color="#62aaff" stop-opacity=".28"/><stop offset="1" stop-color="#62aaff" stop-opacity="0"/></linearGradient></defs>
-    ${[0, 50, 100].map((value) => `<line x1="28" x2="312" y1="${104-value*.86}" y2="${104-value*.86}" class="chart-grid"/><text x="21" y="${107-value*.86}" text-anchor="end">${value}</text>`).join('')}
-    <polygon fill="url(#trend-fill)" points="28,104 ${points.join(' ')} 312,104"/>
-    <polyline points="${points.join(' ')}" class="trend-line"/>
-    ${points.map(([x, y], i) => `<circle cx="${x}" cy="${y}" r="3"/><text x="${x}" y="123" text-anchor="middle">${labels[i]}</text>`).join('')}
-  </svg></div>`;
+let regionNames: Intl.DisplayNames | undefined;
+function countryName(country: CountryEntry | undefined, iso3 = ''): string {
+  if (!country) return iso3;
+  try {
+    regionNames ??= new Intl.DisplayNames([lang], { type: 'region' });
+    return regionNames.of(country.iso2) ?? country.name;
+  } catch {
+    return country.name;
+  }
 }
 
-function scoreDefinition() {
-  return 'Illustrative index from 0–100 in the synthetic fixture. Bands: low 0–44, elevated 45–69, high 70–100.';
+const byIso = () => new Map((snapshot?.countries ?? []).map((c) => [c.iso3, c]));
+function shapeToIso(): Map<string, string> {
+  const map = new Map<string, string>();
+  for (const c of snapshot?.countries ?? []) if (c.numeric) map.set(c.numeric, c.iso3);
+  map.set('name:Kosovo', 'XKX');
+  return map;
+}
+const typeEntry = (key: string) => snapshot?.event_types.find((e) => e.key === key);
+const typeLabel = (entry: EventTypeEntry | undefined) => entry ? (lang === 'ru' ? entry.label_ru : entry.label_en) : '';
+const horizonLabel = (key: string) => {
+  const h = snapshot?.horizons.find((item) => item.key === key);
+  return h ? (lang === 'ru' ? h.label_ru : h.label_en) : key;
+};
+const isConflict = (key: string) => key.endsWith('conflict');
+const questionText = (key: string, risk: Risk) =>
+  risk.question === 'active_at_end' ? t().qActive : isConflict(key) ? t().qOnsetConflict : t().qEvent;
+const confidenceText = (value: Risk['confidence']) => ({
+  low: t().confidenceLow, medium: t().confidenceMedium, high: t().confidenceHigh,
+}[value]);
+const ongoingTag = () => `<span class="tag active-tag">${t().ongoing}</span>`;
+const state = (headline: string, description = '', role = 'status') =>
+  `<div class="state" role="${role}"><strong>${headline}</strong>${description ? `<p>${description}</p>` : ''}</div>`;
+
+function cell(risk: Risk, h: HorizonKey) {
+  const v = risk.horizons[h];
+  const cls = risk.question === 'active_at_end' ? 'active' : band(v.p);
+  return `<span class="prob ${cls}">${percent(v.p, lang)}</span><small class="range">${percent(v.low, lang)}–${percent(v.high, lang)}</small>`;
 }
 
-function countryPanel() {
-  const item = available().find((entry) => entry.id === country);
-  return `<section class="panel country-panel" aria-labelledby="country-heading">
-    <div class="panel-heading"><div><span class="eyebrow">COUNTRY INTELLIGENCE</span><h2 id="country-heading">${escape(name(country))}</h2><p>${item?.region ?? 'Country / territory'} · ISO numeric ${escape(country)}</p></div>${item ? synthetic : ''}</div>
-    <label class="field country-field">Select country<select data-field="country">${countryOptions(country)}</select></label>
-    ${item ? `<div class="score-card"><div><span class="eyebrow">SYNTHETIC RISK INDEX</span><strong>${score(item)}<small> / 100</small></strong></div><span class="tag ${band(score(item)).toLowerCase()}">${band(score(item))}</span></div>
-      <details class="definition"><summary>Index definition</summary><p>${scoreDefinition()} The index has no probability interpretation.</p></details>
-      <div class="country-section"><h3>Synthetic historical trend</h3>${chart(item.history, months, 'Synthetic historical trend')}</div>
-      <div class="country-section"><h3>Synthetic recent events</h3>${eventList([item], 6, false)}</div>
-      <div class="country-section"><h3>Forecast information</h3>${item.projection ? `<p>Synthetic 1-month index projection: <strong>${item.projection.low}–${item.projection.high}</strong>. Illustrative bounds. Statistical confidence unavailable.</p>` : state('Forecast unavailable', 'This fixture has no projection.')}</div>
-      <div class="country-section"><h3>Source and freshness</h3><p><a href="#fixture-source" data-source>[${provenance}]</a><br>Fixture snapshot · ${date(fixtureDate)} UTC<br>Real-world source freshness unavailable.</p></div>`
-      : mode === 'demo' ? state('Country data unavailable', 'This geography has no synthetic indicators, events, or forecast in the fixture.') : unavailable('Country indicators, events and forecasts')}
-    </section>`;
+function controls() {
+  const types = snapshot?.event_types ?? [];
+  const typeOptions = types.map((entry) => {
+    const suffix = !entry.modeled ? ' — ' + t().notModeled : !entry.available ? ' — ' + t().unavailable : '';
+    return `<option value="${entry.key}"${entry.key === eventType ? ' selected' : ''}${entry.available ? '' : ' disabled'}>${escape(typeLabel(entry) + suffix)}</option>`;
+  }).join('');
+  const horizonButtons = (snapshot?.horizons ?? []).map((h) =>
+    `<button type="button" data-horizon="${h.key}" aria-pressed="${h.key === horizon}">${escape(lang === 'ru' ? h.label_ru : h.label_en)}</button>`).join('');
+  return `<div class="filters">
+    <label class="field">${t().eventType}<select data-field="type">${typeOptions}</select></label>
+    <div class="field"><span>${t().horizon}</span><div class="segmented" role="group" aria-label="${t().horizon}">${horizonButtons}</div></div>
+  </div>`;
 }
 
-function eventList(items: Fixture[], window: number, showNames = true) {
-  const events = items.flatMap((item) => item.events.filter((event) => window === 6 || event.date >= '2025-02-01')
-    .map((event) => ({ ...event, id: item.id }))).sort((a, b) => b.date.localeCompare(a.date));
-  return events.length ? `<ol class="timeline">${events.map((event) => `<li><time datetime="${event.date}">${date(event.date)}</time><span>${showNames ? '<strong>' + escape(name(event.id)) + '</strong> · ' : ''}${event.title}</span></li>`).join('')}</ol>`
-    : state('No events', 'No synthetic events match the selected country and period.');
-}
-
-function riskMap() {
-  return `<section class="panel map-panel" aria-labelledby="map-title">
-    <div class="panel-heading"><div><h2 id="map-title">Geographic risk distribution</h2><p>${mode === 'demo' ? 'Synthetic conflict-risk index · 01 Mar 2025' : 'Country risk unavailable from the current API'}</p></div></div>
-    <div class="map-stage" id="map">
-      <svg viewBox="0 0 900 440" tabindex="0" role="img" aria-label="World country boundaries. Zoom with the map controls and pan with arrow keys. Use Select country for keyboard selection."><g></g></svg>
-      <div class="tooltip" aria-hidden="true" hidden></div>
-      <div class="map-controls" aria-label="Map zoom controls">
-        <button data-map="in" aria-label="Zoom in">+</button><button data-map="out" aria-label="Zoom out">−</button><button data-map="reset" aria-label="Reset map">↺</button>
-      </div>
-    </div>
-    <div class="map-legend" aria-label="Risk legend">
-      ${mode === 'demo' ? '<span><i class="low"></i>Low · 0–44</span><span><i class="elevated"></i>Elevated · 45–69</span><span><i class="high"></i>High · 70–100</span>' : ''}<span><i></i>Unavailable</span>
-    </div>
-    <div class="map-credit">Boundaries · Natural Earth / World Atlas</div>
+function metrics() {
+  if (!snapshot) return '';
+  const active = snapshot.countries.filter((c) =>
+    Object.entries(c.risks).some(([key, r]) => isConflict(key) && r.active)).length;
+  const visitChanges = previousVisit ? changesSince(previousVisit, snapshot).length : null;
+  return `<section class="metrics" aria-label="Summary">
+    <div><span>${t().countries.toUpperCase()}</span><strong>${snapshot.countries.length}</strong></div>
+    <div><span>${t().activeConflicts.toUpperCase()}</span><strong>${active}</strong></div>
+    <div><span>${t().sinceVisit.toUpperCase()}</span><strong>${visitChanges ?? '—'}</strong><small>${visitChanges === null ? t().firstVisit : ''}</small></div>
+    <div><span>${t().updated.toUpperCase()}</span><strong class="small-strong">${dateTime(snapshot.generated_at)}</strong></div>
   </section>`;
 }
 
-function watchlist() {
-  const items = sorted().slice(0, 5);
-  return `<section class="panel"><div class="panel-heading"><div><h2>Highest index readings</h2><p>Synthetic readings on the fixture snapshot date</p></div>${synthetic}</div>
-    <div class="watchlist">${items.map((item, index) => `<button data-pick="${item.id}"><span class="rank">${String(index + 1).padStart(2, '0')}</span>
-      <span><strong>${escape(name(item.id))}</strong><small>${item.region}</small></span><b class="${band(score(item)).toLowerCase()}">${score(item)}</b><span aria-hidden="true">›</span></button>`).join('')}</div></section>`;
+function mapPanel() {
+  const legend = [['minimal', '<1%'], ['low', '1–5%'], ['elevated', '5–20%'], ['high', '20–50%'], ['critical', '≥50%']]
+    .map(([cls, label]) => `<span><i class="${cls}"></i>${label}</span>`).join('');
+  return `<section class="panel" aria-labelledby="map-heading">
+    <div class="panel-heading"><div><h2 id="map-heading">${t().mapTitle}</h2><p>${escape(typeLabel(typeEntry(eventType)))} · ${escape(horizonLabel(horizon))}</p></div></div>
+    <div class="map-stage" id="map"><svg viewBox="0 0 900 440" role="img" tabindex="0" aria-label="${t().mapTitle}"><g></g></svg><div class="tooltip" hidden></div>
+      <div class="map-controls"><button data-map="in" aria-label="Zoom in">+</button><button data-map="out" aria-label="Zoom out">−</button><button data-map="reset" aria-label="Reset">↺</button></div></div>
+    <div class="map-legend">${legend}${isConflict(eventType) ? `<span><i class="active"></i>${t().legendActive}</span>` : ''}<span><i></i>${t().noData}</span></div>
+    <div class="map-credit">Natural Earth / World Atlas</div>
+  </section>`;
+}
+
+function ranking() {
+  const rows = (snapshot?.countries ?? [])
+    .filter((c) => c.risks[eventType])
+    .map((c) => ({ c, r: c.risks[eventType] }))
+    .sort((a, b) => b.r.horizons[horizon].p - a.r.horizons[horizon].p)
+    .slice(0, 15);
+  return `<section class="panel"><div class="panel-heading"><div><h2>${t().top}</h2><p>${escape(typeLabel(typeEntry(eventType)))} · ${escape(horizonLabel(horizon))}</p></div></div>
+    <div class="watchlist">${rows.map(({ c, r }, i) => `<button type="button" data-select="${c.iso3}">
+      <span class="rank">${String(i + 1).padStart(2, '0')}</span>
+      <span>${escape(countryName(c))}${r.active ? ' ' + ongoingTag() : ''}</span>
+      <span class="ranked-value">${cell(r, horizon)}</span><span aria-hidden="true">›</span></button>`).join('')}</div></section>`;
+}
+
+function countrySummary() {
+  const country = byIso().get(selected);
+  const types = (snapshot?.event_types ?? []).filter((e) => e.available);
+  const rows = types.map((entry) => {
+    const risk = country?.risks[entry.key];
+    if (!risk) return '';
+    return `<div class="risk-row"><div><strong>${escape(typeLabel(entry))}</strong>${risk.active ? ' ' + ongoingTag() : ''}
+      <small>${escape(questionText(entry.key, risk))}</small></div><div class="risk-value">${cell(risk, horizon)}</div></div>`;
+  }).join('');
+  return `<section class="panel country-panel" id="country-panel" aria-labelledby="country-heading">
+    <div class="panel-heading"><div><span class="eyebrow">${t().navCountry.toUpperCase()}</span><h2 id="country-heading">${escape(countryName(country, selected))}</h2><p>${escape(horizonLabel(horizon))}</p></div></div>
+    <label class="field country-field">${t().selectCountry}<select data-field="country">${countryOptions()}</select></label>
+    <div class="country-section">${rows || state(t().noData)}</div>
+    <div class="country-section"><a href="#country">${t().details} →</a></div>
+  </section>`;
+}
+
+function countryOptions() {
+  return (snapshot?.countries ?? [])
+    .map((c) => [c.iso3, countryName(c)] as const)
+    .sort((a, b) => a[1].localeCompare(b[1], lang))
+    .map(([iso3, label]) => `<option value="${iso3}"${iso3 === selected ? ' selected' : ''}>${escape(label)}</option>`).join('');
 }
 
 function overview() {
-  const items = available();
-  return `<div class="metrics">
-    <div><span>COUNTRIES WITH READINGS</span><strong>${items.length || '—'}</strong><small>${items.length ? 'Synthetic fixture coverage' : 'Coverage unavailable'}</small></div>
-    <div><span>HIGH INDEX READINGS</span><strong>${items.length ? items.filter((item) => band(score(item)) === 'High').length : '—'}</strong><small>${items.length ? '70–100 on the synthetic index' : 'Index unavailable'}</small></div>
-    <div><span>FIXTURE SNAPSHOT</span><strong>${items.length ? '01 Mar 2025' : '—'}</strong><small>${items.length ? 'Fixed demonstration snapshot · UTC' : 'API mode'}</small></div>
-  </div>
-  <div class="overview-grid">${riskMap()}<div id="country-panel" aria-live="polite">${countryPanel()}</div>${items.length ? watchlist() : ''}</div>`;
+  return `<div class="page-heading"><h1>${t().overviewTitle}</h1><p>${t().overviewLead}</p></div>
+    <div class="notice">${t().baselineNotice}</div>
+    ${metrics()}
+    ${controls()}
+    <div class="overview-grid">${mapPanel()}${countrySummary()}${ranking()}</div>`;
 }
 
-function riskView() {
-  if (mode === 'api') return unavailable('Risk distribution, trends and event timeline');
-  const items = sorted().filter((item) => !riskCountry || item.id === riskCountry);
-  const trend = items.length ? months.map((_, index) => Math.round(items.reduce((sum, item) => sum + item.history[index], 0) / items.length)) : [];
-  return `<div class="filters"><label class="field">Country<select data-field="risk-country">${countryOptions(riskCountry, true)}</select></label>
-  <label class="field">Snapshot period<select data-field="period">${options([['6', 'Oct 2024 – Mar 2025'], ['2', 'Feb – Mar 2025']], String(period))}</select></label>${synthetic}</div>
-  ${items.length ? `<div class="two-col">
-    <section class="panel"><div class="panel-heading"><div><h2>Geographic distribution</h2><p>Snapshot readings by country · 01 Mar 2025</p></div></div><div class="section-body">
-      ${items.map((item) => `<div class="bar-row"><span>${escape(name(item.id))}</span><meter min="0" max="100" value="${score(item)}" class="${band(score(item)).toLowerCase()}" aria-label="${escape(name(item.id))} synthetic risk index"></meter><strong>${score(item)}</strong></div>`).join('')}
-      <p class="muted">${scoreDefinition()}</p></div></section>
-    <section class="panel"><div class="panel-heading"><div><h2>Synthetic index trend</h2><p>${riskCountry ? escape(name(riskCountry)) : 'Unweighted mean across fixture countries'}</p></div></div><div class="section-body">${chart(trend.slice(-period), months.slice(-period), 'Synthetic index trend')}
-      <h3>Escalation indicators</h3><p class="muted">Change in synthetic index points across the selected period.</p>
-      ${items.map((item) => `<div class="delta"><span>${escape(name(item.id))}</span><strong>${signed(score(item) - item.history[6-period])} pts</strong></div>`).join('')}</div></section>
-  </div><section class="panel"><div class="panel-heading"><div><h2>Synthetic event timeline</h2><p>${provenance} · ${date(fixtureDate)} UTC · Real-world freshness unavailable</p></div></div><div class="section-body">${eventList(items, period)}</div></section>`
-  : state('Country data unavailable', 'This country has no synthetic risk readings or events.')}`;
+function countryPage() {
+  const country = byIso().get(selected);
+  const horizons = snapshot?.horizons ?? [];
+  const types = snapshot?.event_types ?? [];
+  const rows = types.map((entry) => {
+    const risk = country?.risks[entry.key];
+    const head = `<th scope="row"><strong>${escape(typeLabel(entry))}</strong>${risk?.active ? ' ' + ongoingTag() : ''}</th>`;
+    if (!entry.modeled || !entry.available || !risk) {
+      return `<tr class="muted-row">${head}<td colspan="${horizons.length}">${!entry.modeled ? t().notModeled : t().unavailable}</td></tr>`;
+    }
+    return `<tr>${head}${horizons.map((h) => `<td>${cell(risk, h.key)}</td>`).join('')}</tr>
+      <tr class="note-row"><td colspan="${horizons.length + 1}">${escape(questionText(entry.key, risk))}
+        ${escape(t().basis(risk.basis.exposure_years, risk.basis.event_years, risk.basis.last_event_year))}
+        ${t().stateAsOf} ${risk.state_as_of}. ${t().confidence}: ${confidenceText(risk.confidence)}.
+        <details><summary>${t().definition}</summary>${escape(lang === 'ru' ? entry.resolution_ru : entry.resolution_en)}</details></td></tr>`;
+  }).join('');
+  return `<div class="page-heading"><h1>${escape(countryName(country, selected))}</h1><p>${t().probHint}</p></div>
+    <label class="field narrow">${t().selectCountry}<select data-field="country">${countryOptions()}</select></label>
+    <section class="panel"><div class="table-wrap"><table class="risk-table">
+      <thead><tr><th scope="col">${t().eventType}</th>${horizons.map((h) => `<th scope="col">${escape(lang === 'ru' ? h.label_ru : h.label_en)}</th>`).join('')}</tr></thead>
+      <tbody>${rows}</tbody></table></div></section>
+    <div class="notice">${t().baselineNotice}</div>`;
 }
 
-function briefings() {
-  if (mode === 'api') return unavailable('Intelligence briefings');
-  const regions = [...new Set(fixtures.map((item) => item.region))].sort();
-  const items = sorted().filter((item) => (!briefCountry || item.id === briefCountry)
-    && (!briefRegion || item.region === briefRegion) && (!briefSince || fixtureDate >= briefSince));
-  return `<div class="filters">
-    <label class="field">Country<select data-field="brief-country">${countryOptions(briefCountry, true)}</select></label>
-    <label class="field">Region<select data-field="brief-region">${options([['', 'All regions'], ...regions.map((region) => [region, region] as const)], briefRegion)}</select></label>
-    <label class="field">Published on or after<input type="date" data-field="brief-since" value="${escape(briefSince)}"></label>${synthetic}
-  </div><div class="stack">${items.length ? items.map((item) => `<article class="panel briefing">
-    <details><summary><span><strong>${escape(name(item.id))} · Synthetic country briefing</strong><small>${item.region} · ${date(fixtureDate)} UTC</small></span></summary>
-      <div class="section-body"><h3>Simulated observations</h3>${eventList([item], 6, false)}
-      <h3>Synthetic forecast example</h3><p>${item.projection ? `1-month index projection: ${item.projection.low}–${item.projection.high}. Illustrative bounds. Confidence unavailable.` : 'Forecast unavailable in this fixture.'}</p>
-      <h3>Demonstration interpretation</h3><p>The synthetic score changed by ${signed(score(item) - item.history[0])} points over the fixture period. This description applies only to the synthetic series.</p>
-      <h3>Evidence and provenance</h3><p><a href="#fixture-source" data-source>[${provenance}]</a> · snapshot ${date(fixtureDate)} UTC</p></div>
-    </details></article>`).join('') : state('No matching briefings', 'Adjust the country, region, or publication date.')}</div>`;
+function changeList(changes: Change[]) {
+  if (!changes.length) return state(t().noChanges);
+  const countries = byIso();
+  return `<ul class="changes">${changes.slice(0, 200).map((change) => {
+    const name = countryName(countries.get(change.iso3), change.iso3);
+    const type = typeLabel(typeEntry(change.event_type));
+    if (change.kind === 'state_change') {
+      return `<li><button type="button" data-select="${change.iso3}">${escape(name)}</button> · ${escape(type)} · <strong>${change.to === 'active_at_end' ? t().stateStarted : t().stateEnded}</strong></li>`;
+    }
+    const delta = change.delta ?? 0;
+    return `<li><button type="button" data-select="${change.iso3}">${escape(name)}</button> · ${escape(type)} · ${escape(horizonLabel(change.horizon ?? ''))}:
+      ${percent(Number(change.from), lang)} → <strong>${percent(Number(change.to), lang)}</strong>
+      <span class="${delta > 0 ? 'up' : 'down'}">${delta > 0 ? '▲' : '▼'} ${(Math.abs(delta) * 100).toFixed(1).replace('.', lang === 'ru' ? ',' : '.')} ${lang === 'ru' ? 'п.п.' : 'pp'}</span></li>`;
+  }).join('')}</ul>`;
 }
 
-function forecastCard(row: Forecast) {
-  const range = row.probability_low === null || row.probability_high === null ? 'Unavailable' :
-    new Intl.NumberFormat('en', { style: 'percent', maximumFractionDigits: 2 }).formatRange(row.probability_low, row.probability_high);
-  return `<article class="panel section-body forecast"><span class="tag">API forecast</span><h2>${escape(row.question)}</h2>
-    <p class="muted">${escape(row.conflict_type)} · ${row.horizon_months} month(s) · Version ${row.version}</p>
-    <dl><dt>Probability interval</dt><dd>${range}</dd><dt>Reported confidence</dt><dd>${escape(row.confidence)}</dd>
-    <dt>Generated</dt><dd><time datetime="${escape(row.created_at)}">${escape(row.created_at)}</time></dd>
-    <dt>Provenance</dt><dd>Analysis run ${escape(row.analysis_run_id)} · Forecast ${escape(row.id)}</dd></dl>
-    <p>${escape(row.rationale)}</p><details><summary>Evidence and uncertainty</summary>
-      <h3>Evidence for</h3>${list(row.evidence_for)}<h3>Evidence against</h3>${list(row.evidence_against)}
-      <h3>Unknowns</h3>${list(row.unknowns)}<h3>Resolution criteria</h3>${list(row.resolution_criteria)}
-      <h3>Change conditions</h3>${list(row.change_conditions)}
-    </details></article>`;
+function changesPage() {
+  if (!snapshot) return '';
+  const visit = previousVisit
+    ? `<p class="muted">${dateTime(previousVisit.generated_at)} → ${dateTime(snapshot.generated_at)}</p>${changeList(changesSince(previousVisit, snapshot))}`
+    : state(t().firstVisitNote);
+  const data = snapshot.previous_generated_at
+    ? `<p class="muted">${dateTime(snapshot.previous_generated_at)} → ${dateTime(snapshot.generated_at)}</p>${changeList(snapshot.changes)}`
+    : state(t().firstSnapshot);
+  return `<div class="page-heading"><h1>${t().changesTitle}</h1></div>
+    <div class="two-col"><section class="panel"><div class="panel-heading"><h2>${t().changesVisit}</h2></div><div class="section-body">${visit}</div></section>
+    <section class="panel"><div class="panel-heading"><h2>${t().changesData}</h2></div><div class="section-body">${data}</div></section></div>`;
 }
 
-function forecasts() {
-  if (mode === 'api') return '<div id="forecast-results" class="stack" aria-live="polite"></div>';
-  return `<div class="notice">These synthetic projections illustrate the index display. They have no probability or calibrated confidence.</div>
-    <div class="two-col">${sorted().filter((item) => item.projection).map((item) => `<article class="panel section-body forecast">${synthetic}
-      <h2>${escape(name(item.id))}</h2><p>${item.region} · 1-month horizon</p><dl><dt>Illustrative index interval</dt><dd>${item.projection!.low}–${item.projection!.high} / 100</dd>
-      <dt>Statistical confidence</dt><dd>Unavailable</dd><dt>Snapshot</dt><dd>${date(fixtureDate)} UTC</dd></dl>
-      <a href="#fixture-source" data-source>[${provenance}]</a></article>`).join('')}</div>`;
+function methodPage() {
+  if (!snapshot) return '';
+  const sources = snapshot.sources.map((s) => `<tr><td>${escape(s.name)}</td><td class="${s.status === 'ok' ? 'low' : 'high'}">${s.status === 'ok' ? t().ok : t().failed}</td>
+    <td>${s.version ? escape(t().version + ' ' + s.version) : ''}${s.retrieved_at ? '<br><small>' + dateTime(s.retrieved_at) + '</small>' : ''}</td>
+    <td>${s.url ? `<a href="${escape(s.url)}" rel="noreferrer">link</a>` : ''}</td></tr>`).join('');
+  const types = snapshot.event_types.map((e) => `<tr><td>${escape(typeLabel(e))}</td>
+    <td>${!e.modeled ? t().notModeled : e.available ? t().ok : t().unavailable}</td>
+    <td>${e.data_window ? `${t().window}: ${e.data_window[0]}–${e.data_window[1]}` : ''}</td>
+    <td><small>${escape(lang === 'ru' ? e.resolution_ru : e.resolution_en)}</small></td></tr>`).join('');
+  return `<div class="page-heading"><h1>${t().methodTitle}</h1></div>
+    <section class="panel"><div class="panel-heading"><h2>${t().method}</h2></div><div class="section-body">
+      <p>${escape(lang === 'ru' ? snapshot.method.description_ru : snapshot.method.description_en)}</p>
+      <dl><dt>${t().calibration}</dt><dd>${t().notCalibrated}</dd><dt>${t().interval}</dt><dd>${escape(snapshot.method.interval)}</dd><dt>ID</dt><dd>${escape(snapshot.method.name)}</dd></dl></div></section>
+    <section class="panel"><div class="panel-heading"><h2>${t().sources}</h2></div><div class="table-wrap"><table class="risk-table"><tbody>${sources}</tbody></table></div></section>
+    <section class="panel"><div class="panel-heading"><h2>${t().eventTypes}</h2></div><div class="table-wrap"><table class="risk-table"><tbody>${types}</tbody></table></div></section>`;
 }
 
-const prompts = ['Summarize the synthetic index', 'List synthetic recent events', 'Describe forecast uncertainty'];
-
-function analystReply(id: string, question: string) {
-  const item = fixtures.find((entry) => entry.id === id);
-  if (!item) return state('Country data unavailable', 'The fixture has no records for this geography.');
-  let content: string;
-  if (question === prompts[0]) {
-    content = `<p>The synthetic index for ${escape(name(id))} is <strong>${score(item)}/100</strong> (${band(score(item)).toLowerCase()}), a change of ${signed(score(item) - item.history[0])} points across the fixture period.</p>`;
-  } else if (question === prompts[1]) {
-    content = eventList([item], 6, false);
-  } else if (question === prompts[2]) {
-    content = item.projection ? `<p>The synthetic 1-month interval is ${item.projection.low}–${item.projection.high} index points. Statistical confidence and calibrated uncertainty are unavailable.</p>` : '<p>Projection and uncertainty are unavailable for this country.</p>';
-  } else {
-    content = '<p>This demonstration has scripted responses for the three suggested questions. Choose one to inspect the selected country fixture.</p>';
-  }
-  return content + `<p class="muted"><a href="#fixture-source" data-source>[${provenance}]</a> · ${date(fixtureDate)} UTC</p>`;
+function body(page: Page) {
+  if (loadError) return state(t().loadError, `<button data-retry>${t().retry}</button>`, 'alert');
+  if (!snapshot) return state(t().loading);
+  if (page === 'country') return countryPage();
+  if (page === 'changes') return changesPage();
+  if (page === 'method') return methodPage();
+  return overview();
 }
-
-function messagePair(message: typeof messages[number]) {
-  return `<div class="message user"><span class="eyebrow">YOU · ${escape(name(message.country))}</span><p>${escape(message.question)}</p></div>
-    <div class="message"><span class="eyebrow">SCRIPTED DEMONSTRATION RESPONSE</span>${analystReply(message.country, message.question)}</div>`;
-}
-
-function messageHistory() {
-  return messages.length ? messages.map(messagePair).join('')
-    : '<div data-chat-empty>' + state('Start with a suggested question', 'Choose a country to examine its synthetic data, evidence and forecast uncertainty.') + '</div>';
-}
-
-function analyst() {
-  if (mode === 'api') return unavailable('AI Analyst conversations');
-  return `<section class="panel analyst">
-    <div class="panel-heading"><div><h2>Analyst conversation</h2><p>Scripted demonstrations grounded in the local synthetic fixture</p></div>${synthetic}</div>
-    <div class="section-body">
-      <label class="field">Country context<select data-field="country">${countryOptions(country)}</select></label>
-      <div id="history" class="history" role="log" aria-label="Conversation history" tabindex="0">${messageHistory()}</div>
-      <div class="prompts">${prompts.map((prompt, index) => `<button type="button" data-prompt="${index}">${prompt}</button>`).join('')}</div>
-      <form id="chat-form"><label class="field">Message<input name="question" maxlength="500" required placeholder="Ask about the fixture…"></label><button class="primary" type="submit">Send</button></form>
-    </div></section>`;
-}
-
-const descriptions: Record<Page, string> = {
-  overview: 'Explore country coverage and conflict-risk indicators.',
-  country: 'Review geographic context, historical readings and evidence.',
-  risk: 'Compare geographic distribution, trends and escalation indicators.',
-  forecasts: 'Inspect forecast horizons, confidence and uncertainty.',
-  briefings: 'Browse country reports and their supporting evidence.',
-  analyst: 'Explore the selected country through a conversational interface.',
-};
-
-const views: Record<Page, () => string> = { overview, country: countryPanel, risk: riskView, forecasts, briefings, analyst };
 
 function render() {
-  abandonForecasts?.abort();
-  updateMapSelection = undefined;
   const page = currentPage();
-  const title = pages.find(([key]) => key === page)![1];
-  document.title = title + ' | GEOINTEL';
+  document.documentElement.lang = lang;
+  regionNames = undefined;
   root.innerHTML = `<aside class="sidebar">
-    <a class="brand" href="#overview"><span class="brand-icon" aria-hidden="true">◈</span><span>GEOINTEL<small>INTELLIGENCE WORKSTATION</small></span></a>
-    <nav aria-label="Global navigation">${pages.map(([key, label, icon]) => `<a href="#${key}" ${key === page ? 'aria-current="page"' : ''}><span aria-hidden="true">${icon}</span>${label}</a>`).join('')}</nav>
-    <div class="sidebar-footer"><span class="status-dot"></span> Frontend v0.1</div>
-  </aside><div class="shell">
-    <header class="topbar"><span>Intelligence workspace</span><div><span class="status-label"><i></i>${mode === 'demo' ? 'Synthetic data' : 'Backend data only'}</span>
-      <label class="mode">Data mode<select data-field="mode">${options([['demo', 'Demo mode'], ['api', 'API mode']], mode)}</select></label></div></header>
-    <main id="workspace" tabindex="-1"><header class="page-heading"><h1>${title}</h1><p>${descriptions[page]}</p></header>
-      <div class="notice ${mode === 'api' ? 'api' : ''}"><strong>${mode === 'demo' ? 'Demonstration environment' : 'API environment'}</strong><span>${mode === 'demo' ? 'All displayed indicators, events and projections are synthetic.' : 'Forecasts use the configured backend. Other data depends on compatible API contracts.'}</span></div>
-      ${views[page]()}
-    </main></div>
-    <dialog id="fixture-source" aria-labelledby="source-title">
-      <form method="dialog"><button aria-label="Close source details">×</button></form>
-      <h2 id="source-title">${provenance}</h2><p>Fixed synthetic snapshot dated ${date(fixtureDate)} UTC. The frontend fixture supplies illustrative readings, event descriptions and index projections. It has no external sources or live refresh.</p>
-    </dialog>`;
+      <a class="brand" href="#overview"><span class="brand-icon">◈</span><span>${t().title}<small>${t().subtitle.toUpperCase()}</small></span></a>
+      <nav aria-label="Primary">${pages.map(([key, label, icon]) =>
+        `<a href="#${key}"${key === page ? ' aria-current="page"' : ''}><span aria-hidden="true">${icon}</span>${t()[label]}</a>`).join('')}</nav>
+      <div class="sidebar-footer">${snapshot ? dateTime(snapshot.generated_at) : ''}</div>
+    </aside>
+    <div><header class="topbar"><span>${t().subtitle}</span><div><button type="button" data-lang>${t().langSwitch}</button></div></header>
+    <main id="workspace" tabindex="-1">${body(page)}</main></div>`;
   const map = root.querySelector<HTMLElement>('#map');
-  if (map) updateMapSelection = drawMap(map, country, new Map(available().map((item) => [item.id, score(item)])), selectCountry);
-  if (page === 'forecasts' && mode === 'api') void renderApiForecasts();
-}
-
-async function renderApiForecasts() {
-  const node = root.querySelector<HTMLElement>('#forecast-results')!;
-  const controller = new AbortController();
-  abandonForecasts = controller;
-  node.innerHTML = state('Loading forecasts', 'Requesting records from the configured GEOINTEL API.');
-  try {
-    const rows = await loadForecasts(AbortSignal.any([controller.signal, AbortSignal.timeout(12000)]));
-    if (!controller.signal.aborted) node.innerHTML = rows.length ? rows.map(forecastCard).join('') : state('No forecasts', 'The backend returned no forecast records.');
-  } catch {
-    if (!controller.signal.aborted) node.innerHTML = state('Forecast API unavailable', 'The request failed or the response was invalid. <button data-retry>Retry</button>', 'alert');
+  if (map && snapshot) {
+    const shapes = shapeToIso();
+    const countries = byIso();
+    updateMapSelection = drawMap(map, [...shapes].find(([, iso]) => iso === selected)?.[0] ?? '',
+      (key) => {
+        const risk = countries.get(shapes.get(key) ?? '')?.risks[eventType];
+        if (!risk) return '';
+        return risk.question === 'active_at_end' ? 'active' : band(risk.horizons[horizon].p);
+      },
+      (key, fallback) => {
+        const country = countries.get(shapes.get(key) ?? '');
+        const risk = country?.risks[eventType];
+        const label = country ? countryName(country) : fallback;
+        if (!risk) return label + ' · ' + t().noData;
+        const v = risk.horizons[horizon];
+        return `${label} · ${percent(v.p, lang)} (${percent(v.low, lang)}–${percent(v.high, lang)})${risk.active ? ' · ' + t().ongoing : ''}`;
+      },
+      (key) => { const iso = shapes.get(key); if (iso) selectCountry(iso); });
   }
 }
 
-function selectCountry(id: string) {
-  if (!countryNames.has(id)) return;
-  country = id;
-  const panel = root.querySelector('#country-panel');
-  if (panel) {
-    const restoreFocus = panel.contains(document.activeElement);
-    panel.innerHTML = countryPanel();
-    updateMapSelection?.(id);
-    if (restoreFocus) panel.querySelector('select')?.focus();
-  } else if (currentPage() === 'country') {
+function selectCountry(iso3: string) {
+  selected = iso3;
+  store('geointel.country', iso3);
+  const panel = root.querySelector<HTMLElement>('#country-panel');
+  if (panel && currentPage() === 'overview') {
+    panel.outerHTML = countrySummary();
+    const key = [...shapeToIso()].find(([, iso]) => iso === iso3)?.[0];
+    if (key) updateMapSelection?.(key);
+  } else {
     render();
-    root.querySelector<HTMLElement>('[data-field="country"]')?.focus();
   }
-}
-
-function sendMessage(question: string) {
-  question = question.trim();
-  if (!question || mode !== 'demo' || currentPage() !== 'analyst') return;
-  messages.push({ question, country });
-  const history = root.querySelector<HTMLElement>('#history')!;
-  history.querySelector('[data-chat-empty]')?.remove();
-  history.insertAdjacentHTML('beforeend', messagePair({ question, country }));
-  history.scrollTop = history.scrollHeight;
 }
 
 root.addEventListener('click', (event) => {
-  const control = (event.target as Element).closest<HTMLElement>('[data-pick], [data-source], [data-prompt], [data-retry]');
-  if (!control) return;
-  if (control.dataset.pick) {
-    selectCountry(control.dataset.pick);
-    root.querySelector<HTMLSelectElement>('#country-panel select')?.focus();
-  }
-  if (control.hasAttribute('data-source')) {
-    event.preventDefault();
-    root.querySelector<HTMLDialogElement>('dialog')?.showModal();
-  }
-  if (control.dataset.prompt !== undefined) sendMessage(prompts[Number(control.dataset.prompt)]);
-  if (control.hasAttribute('data-retry')) void renderApiForecasts();
+  const target = event.target as HTMLElement;
+  const select = target.closest<HTMLElement>('[data-select]')?.dataset.select;
+  if (select) { selectCountry(select); if (currentPage() === 'changes') location.hash = '#country'; return; }
+  const h = target.closest<HTMLElement>('[data-horizon]')?.dataset.horizon as HorizonKey | undefined;
+  if (h) { horizon = h; store('geointel.horizon', h); render(); return; }
+  if (target.closest('[data-lang]')) { lang = lang === 'ru' ? 'en' : 'ru'; store('geointel.lang', lang); render(); return; }
+  if (target.closest('[data-retry]')) void start();
 });
 
 root.addEventListener('change', (event) => {
-  const target = event.target as HTMLSelectElement | HTMLInputElement;
-  const field = target.dataset.field;
-  if (!field) return;
-  if (field === 'country') { selectCountry(target.value); return; }
-  if (field === 'mode') {
-    mode = target.value === 'api' ? 'api' : 'demo';
-    const url = new URL(location.href);
-    if (mode === 'api') url.searchParams.set('mode', 'api');
-    else url.searchParams.delete('mode');
-    history.replaceState(null, '', url);
-  }
-  if (field === 'risk-country') riskCountry = target.value;
-  if (field === 'period') period = Number(target.value);
-  if (field === 'brief-country') briefCountry = target.value;
-  if (field === 'brief-region') briefRegion = target.value;
-  if (field === 'brief-since') briefSince = target.value;
-  render();
-  root.querySelector<HTMLElement>('[data-field="' + field + '"]')?.focus();
+  const field = event.target as HTMLSelectElement;
+  if (field.dataset.field === 'type') { eventType = field.value; store('geointel.type', eventType); render(); }
+  if (field.dataset.field === 'country') selectCountry(field.value);
 });
 
-root.addEventListener('submit', (event) => {
-  const form = event.target as HTMLFormElement;
-  if (form.id !== 'chat-form') return;
-  event.preventDefault();
-  const question = new FormData(form).get('question');
-  if (typeof question === 'string' && question.trim()) {
-    sendMessage(question);
-    form.reset();
-    form.querySelector('input')?.focus();
-  }
-});
+window.addEventListener('hashchange', () => { render(); root.querySelector<HTMLElement>('main')?.focus(); });
 
-window.addEventListener('hashchange', () => {
-  if (location.hash === '#workspace') return;
+async function start() {
+  loadError = false;
   render();
-  root.querySelector<HTMLElement>('main')?.focus();
-});
-document.querySelector('.skip')?.addEventListener('click', (event) => {
-  event.preventDefault();
-  root.querySelector<HTMLElement>('main')?.focus();
-});
-render();
+  try {
+    snapshot = await loadSnapshot();
+    previousVisit = readVisit();
+    if (previousVisit?.generated_at === snapshot.generated_at) {
+      // Same data as last time: keep comparing against the visit before that.
+      previousVisit = JSON.parse(stored('geointel.prevVisit.v1') ?? 'null') ?? undefined;
+    } else if (previousVisit) {
+      store('geointel.prevVisit.v1', JSON.stringify(previousVisit));
+    }
+    writeVisit(snapshot);
+    if (!typeEntry(eventType)?.available) eventType = snapshot.event_types.find((e) => e.available)?.key ?? eventType;
+    if (!byIso().has(selected)) selected = snapshot.countries[0]?.iso3 ?? '';
+  } catch {
+    loadError = true;
+  }
+  render();
+}
+
+void start();
