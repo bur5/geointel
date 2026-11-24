@@ -99,6 +99,22 @@ def main(argv: list[str] | None = None) -> int:
         previous = json.loads(args.previous.read_text())
     snapshot = build_snapshot(histories, sources, generated_at=now, previous=previous)
     available = sum(1 for t in snapshot["event_types"] if t["available"])
+    for entry in snapshot["event_types"]:
+        if not entry["available"]:
+            continue
+        key = entry["key"]
+        ranked = sorted(
+            (
+                (c["risks"][key]["horizons"]["1y"]["p"], c["iso3"], c["risks"][key]["question"])
+                for c in snapshot["countries"]
+                if key in c["risks"]
+            ),
+            reverse=True,
+        )
+        top = ", ".join(
+            f"{iso3} {p:.2f}{'*' if q == 'active_at_end' else ''}" for p, iso3, q in ranked[:12]
+        )
+        print(f"[summary] {key} 1y top: {top}")
     args.out.parent.mkdir(parents=True, exist_ok=True)
     args.out.write_text(json.dumps(snapshot, ensure_ascii=False, separators=(",", ":")))
     print(
