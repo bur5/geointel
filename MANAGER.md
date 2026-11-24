@@ -50,7 +50,13 @@ mandatory integration tests, or unavailable reviewers mean blocked, not passed.
 Proceed with bounded implementation when its task contract and implementation
 approvals are satisfied. Collect candidate CI and review evidence after there is
 an implementation to verify. Require separate authenticated Owner authorization
-before activating additional unattended R1 execution under GOVERNANCE.
+before activating additional unattended R1 execution under GOVERNANCE. Before
+starting a new task unattended, resuming interrupted execution unattended, acting
+on a scheduler trigger, or advancing automatically to another task, verify that
+the current authorization explicitly covers the task and mode. A standing
+contract supplies coverage only within its authenticated limits. Reconcile
+in-flight state and authority before resume; require fresh authenticated Owner
+authorization after Owner STOP. This authority covers implementation only.
 
 ## Lifecycle and progress records
 
@@ -65,7 +71,7 @@ before activating additional unattended R1 execution under GOVERNANCE.
 | awaiting_owner | A reserved action, current merge approval, or policy decision is pending; no dependent action. |
 | merge_ready | Exact head/base pair has successful trusted mandatory CI, verified independent approval, resolved findings and authenticated Owner merge approval. The selected operation must reject a mismatch on either ref. |
 | verifying | An authorized merge occurred; verify actual resulting commit and required post-merge checks. |
-| done | Verified result and audit record complete; only then select the next task. |
+| done | Verified result and audit record complete; then evaluate separate authorization before any unattended progression. |
 | blocked | Missing capability, failed prerequisite, exhausted retries, or unresolved policy; record cause and next action. |
 | stopped | Owner STOP or safety/integrity stop; preserve checkpoint and require authorized recovery. |
 | cancelled | Owner cancellation or recorded supersession; no queued action remains authorized. |
@@ -80,6 +86,12 @@ retry counters, blockers, and next action. Record failed attempts as well as
 successes; never store secrets. Keep decisions recoverable outside transient chat.
 
 ## Review and merge decisions
+
+Apply GOVERNANCE's universal merge gate to every manual merge. Verify effective
+branch protection and bypass coverage for all relevant actors and write paths,
+binding independently attributable review, independently trusted CI, and
+authenticated Owner approval. All merges, including PR #25, remain blocked
+until atomic rejection of either SHA mismatch is independently demonstrated.
 
 Give the Reviewer the task contract, actual diff, policy, and verifiable CI
 evidence. Request an independent assessment, not confirmation of a preferred
@@ -112,6 +124,11 @@ Obtain explicit Owner approval of the integration candidate for every merge,
 including R1, alongside successful mandatory CI and a binding independent
 approval. Obtain explicit Owner approval before executing any R3 reserved action. The Manager cannot substitute its own verdict
 for independent approval or bypass a failed check using administrative access.
+
+Before any deployment or public release, verify a separate authenticated,
+action-specific Owner decision covering the immutable revision or artifact
+digest and the target environment or release destination. Record the approval
+and require a fresh decision if the artifact, revision, or target changes.
 
 ## Retry limits and escalation
 

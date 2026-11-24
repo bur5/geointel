@@ -93,20 +93,40 @@ block the action and request clarification through a verified Owner channel.
 - **Unattended R1 execution:** Additional unattended authority requires a
   separate, authenticated Owner decision as an R3 protected-policy change.
   The decision must define the scope, budget, duration, and stop conditions.
-  The prerequisites for future automation below apply before activation.
+  The unattended R1 implementation requirements below apply before activation.
 - **Manual merge:** Every candidate requires successful trusted CI, binding
   independent review, authenticated Owner approval, and an operation that
   rejects a change to either approved SHA. The requirements below apply.
-- **Production deployment and public release:** Each requires its own explicit
-  Owner approval before execution, within the approved scope and target.
+- **Deployment and public release:** Each requires separate, explicit,
+  authenticated, action-specific Owner approval before execution. Record the
+  immutable revision or artifact digest and the target environment or release
+  destination, plus the approved scope and limits. A change to the revision,
+  artifact, or target requires fresh approval. Isolated tests in an approved
+  workspace remain bounded implementation.
 
 ### Manual merge requirements
 
-**Every merge, including R1, requires explicit Owner approval of the integration
-candidate, successful trusted mandatory CI, and binding independent approval. All merges are manual
-and automated merge authority remains disabled.** Missing independent review
-blocks merge. CI success provides test evidence only.
-This milestone PR changes protected policy and requires Owner approval.
+Every merge, including R1 and PR #25 itself, is manual and subject to all of
+the following requirements:
+
+1. Verify effective branch protection on the target ref, including applicable
+   repository and inherited rules, required PRs, and enforcement at the time
+   of merge. Verify bypass coverage for administrators, collaborators, Apps,
+   and all merge and write identities. Block if any path can bypass the
+   required review, CI, or authorized merge operation.
+2. Require binding, independently attributable approval from a verified
+   Owner-designated reviewer or a reviewer designated through auditable Owner
+   delegation. Resolve material findings before approval.
+3. Require independently trusted mandatory CI that succeeds under the approved
+   policy for the exact integration candidate and authoritative run attempt.
+4. Require authenticated, action-specific Owner merge approval for both SHAs
+   and a final operation independently demonstrated to reject a mismatch on
+   either ref. Automated merge authority remains disabled.
+
+**No currently verified merge mechanism satisfies the atomic exact-head and
+exact-base requirement. All merges, including PR #25, remain blocked until
+compliant enforcement is independently demonstrated.** A final read of both
+refs does not provide that atomic guarantee.
 
 Record all merge evidence against the integration candidate, defined by the PR
 head SHA and current target base SHA. Any change to either SHA invalidates prior
@@ -126,8 +146,8 @@ gate baseline and require Owner approval before applying changes to that baselin
 Missing, skipped or stale mandatory evidence, or any unresolved evidence-trust
 issue, blocks merge. A green badge or copied review text is insufficient.
 
-R3 reserved actions require explicit Owner approval before execution. Deployment
-and public release each require separate approval.
+R3 reserved actions require explicit Owner approval before execution. Apply the
+action-specific deployment and public release requirements above.
 
 ### Independent reviewer authorization
 
@@ -144,26 +164,37 @@ the designation or delegation chain, independence, authorized scope and coverage
 of the exact head/base pair. Record those checks with the verdict and evidence
 links. Missing or unverifiable evidence blocks the gate.
 
-### Prerequisites for any future automation proposal
+### Additional unattended R1 implementation
 
-Any proposal to grant autonomous R1 execution or merge authority requires
-separate Owner review as an R3 protected-policy change. Before considering such
-a proposal, verify the CI trust boundary and document evidence for the following
-controls. Completing these prerequisites grants no execution or merge authority.
+Initiating a new task unattended, resuming an interrupted run unattended,
+dispatching work on a scheduler or other automated trigger, or automatically
+progressing to a subsequent task each requires coverage by a separate
+authenticated Owner authorization for unattended R1 implementation. Record
+the permitted actions and task IDs or narrowly defined task class, trigger and
+resume rules, risk limits, budget, duration, and stop conditions. Activating that
+authority is an R3 protected-policy decision.
 
-1. Enforceable protection of `main`, mandatory named CI checks, independently
-   attributable review, no author-controlled bypass, and fail-closed handling of
-   missing, skipped, stale, or failed required checks.
-2. Mandatory CI, independent review and explicit Owner merge approval bound to
-   the exact head/base pair, with fresh evidence and approvals after either changes.
-3. Verified cloud orchestration, durable task state, scoped identities, bounded
-   retries and resource use, duplicate-run prevention, and restart recovery.
-   Demonstrate continued operation with the Owner's laptop disconnected.
-4. Tested rollback safeguards, a known-good commit, post-merge verification,
-   emergency stop, and a recovery rehearsal without production data changes.
-   Recovery must not rely on destructive resets or unauthorised data deletion.
-5. An auditable eligibility decision and a least-privilege merge executor that
-   cannot treat the Manager or Developer's self-review as independent approval.
+A standing task contract can supply this coverage only when the Owner explicitly
+authorizes the unattended modes and tasks it covers and its limits remain
+current. A queued issue, scheduler configuration, prior task approval, or task
+completion supplies no authority to start another task. Revalidate coverage for
+each dispatch or transition. Before an unattended resume, reconcile in-flight
+actions, ownership, scope, budget, current refs, and authority. Owner STOP,
+revocation, expiry, or unresolved state blocks work. Resumption after an Owner
+STOP requires fresh authenticated Owner authorization.
+
+Before activating additional unattended implementation, verify the CI trust
+boundary and document evidence for the universal merge controls, including
+how work remains blocked when a gate is unavailable. Verify durable task
+state, scoped identities, bounded retries and resource use, duplicate-run
+prevention, a known-good recovery point, tested rollback safeguards, emergency
+stop, and operation with the Owner's laptop disconnected. Rehearse recovery
+without production changes, destructive resets, or unauthorized data deletion. Unattended implementation authority grants
+no authority to an automated merge executor and no deployment or release
+authority. Any future merge-executor authority is a separate R3 protected-policy
+decision. It remains disabled and would require independently demonstrated
+enforcement of the universal merge gate, least-privilege execution, an
+auditable eligibility decision, post-merge verification, and tested rollback.
 
 ## Scientific integrity
 

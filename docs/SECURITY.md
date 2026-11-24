@@ -8,13 +8,19 @@ Developer authorization follows [GOVERNANCE.md](../GOVERNANCE.md):
   task scope, risk tier, and resource budget. The resulting candidate is subject
   to the merge gates.
 - Additional unattended R1 execution requires separate authenticated Owner
-  authorization as a protected-policy decision.
-- Every merge is manual and requires successful trusted mandatory CI, binding
-  independent review, and authenticated Owner merge approval for the exact
-  head/base pair. Require the final operation to reject a mismatch on either
-  ref. Either SHA changing requires fresh evidence and approvals.
-- Production deployment and public release each require separate explicit
-  Owner approval.
+  authorization covering the task and mode, including new starts, interrupted
+  resumes, scheduler dispatch, and automatic progression. A standing contract
+  supplies coverage only within its authenticated limits. This authority covers
+  implementation only; automated merge-executor authority remains disabled.
+- Every merge is manual and requires verified effective branch protection and
+  bypass coverage, independently trusted mandatory CI, binding independently
+  attributable review, and authenticated Owner merge approval for the exact
+  head/base pair. Either SHA changing requires fresh evidence and approvals.
+  All merges, including PR #25, remain blocked until the final operation is
+  independently demonstrated to reject a mismatch on either ref.
+- Deployment and public release each require separate authenticated,
+  action-specific Owner approval for the immutable revision or artifact digest
+  and the target environment or release destination.
 
 Before counting independent review, verify the reviewer's identity, auditable Owner designation or delegation, independence, authorized scope and coverage of both SHAs under GOVERNANCE.md. Manager selection without Owner authorization can provide advisory feedback only. Any R2 scientific, evidence, security, or architectural impact requires enhanced independent review, including when the highest applicable tier is R3. Production deployment, public release, irreversible data deletion, new spending/services/accounts/repositories/API integrations, expanded permissions and protected policy changes remain explicitly Owner-gated before execution. Database deletion, auth, secrets and production infrastructure retain extra restrictions. Intended development flow: Manager → Developer branch/sandbox → CI → Independent Reviewer → gated merge → next task; production deployment and public release each require separate explicit Owner approval. Voice is future interface-only functionality and receives no privileged forecasting role. All technical security and threat-model requirements below remain in force; these documents do not install or enable automation.
 

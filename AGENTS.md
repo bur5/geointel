@@ -21,9 +21,12 @@ approval. Do not invoke Claude resources as part of the default workflow.
 
 Use the approved task contract for bounded edits and tests. Additional unattended
 R1 execution requires separate authenticated Owner authorization under
-GOVERNANCE. Candidate CI, binding review, and Owner merge approval govern the
-subsequent merge decision. Production deployment and public release each require
-separate explicit Owner approval.
+GOVERNANCE. Verify explicit coverage before unattended task starts, interrupted
+resumes, scheduler dispatch, or automatic progression. A standing contract
+supplies coverage only within its authenticated limits. This authority covers
+implementation only. Deployment and public release each require separate
+authenticated, action-specific Owner approval for the immutable revision or
+artifact digest and target environment or release destination.
 
 1. Inspect the current base SHA, working tree, task contract, risk tier, and scope.
    Preserve unrelated changes. Use a dedicated branch based on `main`; never
@@ -104,7 +107,11 @@ docs/AGENT_RULES.md. A documentation change altering these controls is not R1.
 
 ## Approval gates and stop conditions
 
-Automated merge authority remains disabled. Every manual merge, including R1,
+Automated merge authority remains disabled. Apply GOVERNANCE's universal merge
+gate to every manual merge. Verify effective protection, bypass coverage,
+independently trusted CI, and binding independently attributable review.
+All merges, including PR #25, remain blocked until atomic rejection of either
+SHA mismatch is independently demonstrated. Every manual merge, including R1,
 requires fresh successful mandatory CI evidence, independent approval from an
 Owner-authorized reviewer, and explicit Owner merge approval for the exact PR
 head SHA and target base SHA. R3 reserved actions require explicit Owner
