@@ -118,9 +118,18 @@ artifacts written by untrusted jobs.
 
 ### Required verification before every merge
 
-Before **any merge to `main`**, including a manual R1 merge, the Owner must verify active
-repository protection, trusted required checks, and independent Owner authorization for the
-exact change under review. These requirements also apply before autonomous R1 execution.
+Bounded implementation may begin in isolation when its approved task scope,
+risk tier, resource budget, and applicable implementation prerequisites are
+satisfied. CI evaluates the resulting candidate. Activating additional
+unattended R1 execution requires a separate authenticated Owner decision and
+the applicable governance prerequisites. Production deployment and public
+release each require separate explicit Owner approval.
+
+Before **any merge to `main`**, including a manual R1 merge, require active
+repository protection, successful trusted mandatory CI, binding independent
+review, and authenticated Owner approval for the exact head/base pair. The
+final merge operation must reject a mismatch on either ref. A final read of
+both refs is useful for checking freshness and leaves a race before the merge.
 
 1. In GitHub Settings under Rules → Rulesets and Branches → Branch protection rules, or via
    the equivalent authenticated GitHub API, inspect the effective repository and inherited
@@ -129,7 +138,10 @@ exact change under review. These requirements also apply before autonomous R1 ex
    administrators, apps, and merge actors. Confirm the merge path cannot bypass these
    requirements through a bypass entry, a direct push, or an override. Verify that the
    candidate is tested against current `main` using strict up-to-date checks or an enforced
-   merge queue with checks on the merge-group commit.
+   merge queue with checks on the merge-group commit. The current candidate
+   workflow runs on PR and push events. A future queue pilot would require
+   trusted verification triggered for the exact merge group and fresh
+   authorization when it changes.
 2. Verify that GitHub requires a workflow from a protected, independently controlled source
    through a ruleset, or requires an independently produced status check bound to the
    expected trusted GitHub App. Verify the workflow source repository, ref and path, or the
@@ -147,11 +159,19 @@ exact change under review. These requirements also apply before autonomous R1 ex
    The aggregate's `always()` condition and literal success comparison reject non-success
    dependency results when it runs. An absent, skipped or interrupted aggregate supplies
    no positive evidence. Recheck after changes to the head, base, candidate, or run attempt.
-4. Verify the Owner's approval through a trusted source for that candidate. Verify the
-   repository and organization settings for same-repository PRs, fork write tokens and
+4. Verify binding review from an independent, Owner-designated reviewer (or a
+   reviewer designated through auditable Owner delegation) and the Owner's
+   merge approval through the authenticated authorization channel. Both must
+   cover the exact head/base pair. Refresh CI, review, and merge approval if
+   either SHA changes. Verify the repository and organization settings for same-repository PRs, fork write tokens and
    secrets, runner access, and protected environments. Review artifact provenance and
    dependency integrity before granting execution authority. CI status, PR comments, and
    Manager or Developer output confer no authority to dispatch or merge.
 
 If any protection, provenance, required job result, or approval cannot be verified, the
 merge must wait, including for manual R1.
+
+This CI policy change follows the governance change in PR #25. After PR #25
+advances `main`, refresh this branch against the new live base. Reconcile the
+security guidance, rerun trusted verification, and obtain fresh binding review
+and authenticated Owner merge approval for the resulting exact head/base pair.
