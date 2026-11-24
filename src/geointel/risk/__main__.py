@@ -21,10 +21,13 @@ def load_histories(
     from geointel.risk.sources import (
         advisories,
         coups,
+        elections,
         exposure,
+        fcdo,
         fts,
         gdacs,
         ncei_tsunami,
+        outlook,
         ucdp_acd,
         usgs,
         worldbank,
@@ -81,6 +84,32 @@ def load_histories(
     def structure(path: Path) -> None:
         extras["profiles"] = exposure.latest(json.loads(path.read_text()))
 
+    def imf(path: Path) -> None:
+        extras["outlook"] = outlook.imf_outlook(json.loads(path.read_text()), reference_year)
+
+    def democracy(path: Path) -> None:
+        extras["democracy"] = outlook.owid_latest(path.read_text())
+
+    def gpr(path: Path) -> None:
+        columns, months = outlook.read_gpr_xls(path.read_bytes())
+        extras["gpr"] = outlook.gpr_country_series(columns, months)
+
+    def votes(path: Path) -> None:
+        extras["elections"] = elections.parse(json.loads(path.read_text()))
+
+    def uk_travel(path: Path) -> None:
+        parsed = {}
+        for page in json.loads(path.read_text()):
+            code, entry = fcdo.parse_country(page)
+            if code and entry:
+                parsed[code] = entry
+        extras["fcdo"] = parsed
+
+    def admin_regions(path: Path) -> None:
+        from geointel.risk.regions import RegionIndex, annotate
+
+        annotate(hazard_events, RegionIndex.from_bytes(path.read_bytes()))
+
     loaders: list[tuple[str, str, Callable[[Path], None]]] = [
         ("ucdp_acd", ucdp_acd.SOURCE, ucdp),
         ("coups", coups.SOURCE, coup),
@@ -91,6 +120,12 @@ def load_histories(
         ("fts", fts.SOURCE, humanitarian),
         ("advisories", advisories.SOURCE, travel),
         ("exposure", exposure.SOURCE, structure),
+        ("imf", outlook.IMF_SOURCE, imf),
+        ("vdem", outlook.VDEM_SOURCE, democracy),
+        ("gpr", outlook.GPR_SOURCE, gpr),
+        ("elections", elections.SOURCE, votes),
+        ("fcdo", fcdo.SOURCE, uk_travel),
+        ("regions", "Natural Earth admin-1 regions", admin_regions),  # must stay last
     ]
     for key, name, loader in loaders:
         info = manifest.get(key, {})

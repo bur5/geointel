@@ -31,6 +31,10 @@ test('overview renders live snapshot with map and ranking', async ({ page }) => 
   await page.locator('[data-field="type"]').selectOption('view_travel');
   await expect(page.locator('#map path.country.v-critical').first()).toBeVisible();
   await shoot(page, 'overview-travel');
+  await page.locator('[data-field="type"]').selectOption('internal_armed_conflict');
+  await page.getByRole('button', { name: 'Блокам' }).click();
+  await expect(page.locator('.group-card').first()).toBeVisible();
+  await shoot(page, 'overview-blocs');
   await page.setViewportSize({ width: 390, height: 844 });
   await shoot(page, 'overview-mobile');
   expect(errors).toEqual([]);
@@ -47,7 +51,10 @@ test('country, changes, assistant and method pages; language switch', async ({ p
   await expect(page.locator('.hazard-card').first()).toBeVisible();
   await expect(page.locator('.country-map circle').first()).toBeVisible();
   await expect(page.locator('.verdict')).toHaveCount(3);
+  await expect(page.locator('.ctx')).not.toHaveCount(0);
   await shoot(page, 'country-japan');
+  await page.locator('[data-field="country"]').selectOption('USA');
+  await expect(page.locator('.verdict').first()).not.toContainText('Не ехать');
   await page.goto('/#changes');
   await expect(page.locator('.changes li')).toHaveCount(1);
   await shoot(page, 'changes');

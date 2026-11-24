@@ -13,7 +13,19 @@ from pathlib import Path
 
 import httpx
 
-from geointel.risk.sources import advisories, exposure, fts, gdacs, ncei_tsunami, usgs, worldbank
+from geointel.risk import regions
+from geointel.risk.sources import (
+    advisories,
+    elections,
+    exposure,
+    fcdo,
+    fts,
+    gdacs,
+    ncei_tsunami,
+    outlook,
+    usgs,
+    worldbank,
+)
 
 UCDP_ACD_VERSIONS = ("26.1", "25.1", "24.1")
 COUPS_URLS = (
@@ -141,6 +153,82 @@ def _exposure(client: httpx.Client, reference_year: int) -> tuple[bytes, str, st
     return json.dumps(payload).encode(), "https://api.worldbank.org/v2", "WDI structure"
 
 
+def _imf(client: httpx.Client, _year: int) -> tuple[bytes, str, str]:
+    payload = {
+        code: _get(client, outlook.imf_url(code)).json() for code in outlook.IMF_INDICATORS.values()
+    }
+    return json.dumps(payload).encode(), "https://www.imf.org/external/datamapper/api/v1", "WEO"
+
+
+def _vdem(client: httpx.Client, _year: int) -> tuple[bytes, str, str]:
+    return _download_first(client, [(outlook.owid_url(slug), slug) for slug in outlook.VDEM_SLUGS])
+
+
+def _gpr(client: httpx.Client, _year: int) -> tuple[bytes, str, str]:
+    return _get(client, outlook.GPR_URL).content, outlook.GPR_URL, "monthly"
+
+
+def _sparql(client: httpx.Client, query: str) -> dict:
+    for attempt in range(2):
+        response = client.get(
+            elections.ENDPOINT,
+            params={"query": query, "format": "json"},
+            headers={"Accept": "application/sparql-results+json"},
+            timeout=45,
+        )
+        if response.status_code in (429, 500, 502, 503, 504) and attempt < 1:
+            time.sleep(5 * (attempt + 1))
+            continue
+        response.raise_for_status()
+        return response.json()
+    raise RuntimeError("SPARQL failed")
+
+
+def _elections(client: httpx.Client, _year: int) -> tuple[bytes, str, str]:
+    from geointel.risk.countries import universe_codes
+
+    rows = _sparql(client, elections.COUNTRY_QUERY)["results"]["bindings"]
+    pairs = sorted(
+        {
+            (r["country"]["value"].rsplit("/", 1)[-1], r["iso3"]["value"].upper())
+            for r in rows
+            if r["iso3"]["value"].upper() in universe_codes()
+        }
+    )
+    bindings, failures = [], 0
+    deadline = time.monotonic() + 420  # never let elections hold up the daily run
+    for start in range(0, len(pairs), 12):
+        if time.monotonic() > deadline:
+            failures += 1
+            break
+        query = elections.BATCH_QUERY % elections.batch_values(pairs[start : start + 12])
+        try:
+            bindings.extend(_sparql(client, query)["results"]["bindings"])
+        except Exception:  # noqa: BLE001 - a failed batch only loses those countries
+            failures += 1
+        time.sleep(1)
+    if not bindings:
+        raise RuntimeError(f"no election data ({failures} failed batches)")
+    payload = {"results": {"bindings": bindings}, "failed_batches": failures}
+    return json.dumps(payload).encode(), elections.ENDPOINT, f"{len(pairs)} countries"
+
+
+def _fcdo(client: httpx.Client, _year: int) -> tuple[bytes, str, str]:
+    pages = []
+    for url in fcdo.child_urls(_get(client, fcdo.INDEX_URL).json()):
+        try:
+            pages.append(_get(client, url, retries=1).json())
+        except Exception:  # noqa: BLE001 - a missing country page is not fatal
+            continue
+    if not pages:
+        raise RuntimeError("no FCDO country pages")
+    return json.dumps(pages).encode(), fcdo.INDEX_URL, f"{len(pages)} countries"
+
+
+def _regions(client: httpx.Client, _year: int) -> tuple[bytes, str, str]:
+    return _get(client, regions.URL).content, regions.URL, "ne_10m_admin_1"
+
+
 def fetch_all(raw_dir: Path, reference_year: int | None = None) -> dict:
     raw_dir.mkdir(parents=True, exist_ok=True)
     year = reference_year or datetime.now(UTC).year
@@ -155,6 +243,12 @@ def fetch_all(raw_dir: Path, reference_year: int | None = None) -> dict:
         "fts": ("fts.json", lambda c: _fts(c, year)),
         "advisories": ("advisories.json", lambda c: _advisories(c, year)),
         "exposure": ("exposure.json", lambda c: _exposure(c, year)),
+        "imf": ("imf.json", lambda c: _imf(c, year)),
+        "vdem": ("vdem.csv", lambda c: _vdem(c, year)),
+        "gpr": ("gpr.xls", lambda c: _gpr(c, year)),
+        "elections": ("elections.json", lambda c: _elections(c, year)),
+        "fcdo": ("fcdo.json", lambda c: _fcdo(c, year)),
+        "regions": ("regions.geojson", lambda c: _regions(c, year)),
     }
     only = {k for k in os.environ.get("GEOINTEL_SOURCES", "").split(",") if k}
     manifest: dict[str, dict] = {}

@@ -40,12 +40,22 @@ def build_hazard_details(events: list[dict], generated_at: datetime | None = Non
                 if item.get("month"):
                     months[int(item["month"]) - 1] += 1
             top = sorted(items, key=_rank, reverse=True)[:MAX_EVENTS_PER_HAZARD]
+            region_counts: dict[tuple[str, str], int] = defaultdict(int)
+            for item in items:
+                if item.get("region_en"):
+                    region_counts[
+                        (item["region_en"], item.get("region_ru") or item["region_en"])
+                    ] += 1
             entry[HAZARD_TYPES[hazard]] = {
                 "count": len(items),
                 "red": sum(1 for item in items if item.get("alert") == "Red"),
                 "first_year": min(item["year"] for item in items),
                 "last_year": max(item["year"] for item in items),
                 "months": months,
+                "regions": [
+                    {"en": en, "ru": ru, "n": n}
+                    for (en, ru), n in sorted(region_counts.items(), key=lambda kv: -kv[1])[:8]
+                ],
                 "events": [
                     {
                         "name": item.get("name", ""),
@@ -53,6 +63,8 @@ def build_hazard_details(events: list[dict], generated_at: datetime | None = Non
                         "year": item.get("year"),
                         "month": item.get("month"),
                         "severity": item.get("severity", ""),
+                        "region_en": item.get("region_en"),
+                        "region_ru": item.get("region_ru"),
                         "lat": round(item["lat"], 2) if item.get("lat") is not None else None,
                         "lon": round(item["lon"], 2) if item.get("lon") is not None else None,
                     }

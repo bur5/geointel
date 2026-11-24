@@ -12,11 +12,20 @@ export interface Risk {
 }
 export interface Advisory { level: 1 | 2 | 3 | 4; title: string; url: string | null; updated: string | null; summary: string }
 export type Profile = Record<string, { value: number; year: number }>;
+export interface AdvisoryUK { level: 1 | 2 | 3 | 4; partial: boolean; statuses: string[]; url: string | null; updated: string | null; restrictions: string[] }
+export interface Outlook { growth?: Record<string, number>; inflation?: Record<string, number>; debt?: Record<string, number>; projects_crisis: string[] }
+export interface Gpr { latest_month: string; latest: number; baseline_mean: number; ratio_12m: number | null; months: string[]; values: number[] }
+export interface Election { date: string; precision: 'day' | 'month' | 'year'; kind: 'presidential' | 'parliamentary' | 'referendum'; name_en: string; name_ru: string | null; wikidata: string }
 export interface CountryEntry {
   iso3: string; iso2: string; numeric: string | null; name: string;
   risks: Record<string, Risk>;
   advisory?: Advisory | null;
+  advisory_uk?: AdvisoryUK | null;
   profile?: Profile | null;
+  outlook?: Outlook | null;
+  democracy?: { value: number; year: number } | null;
+  gpr?: Gpr | null;
+  elections?: Election[];
 }
 export interface EventTypeEntry {
   key: string; label_en: string; label_ru: string; resolution_en: string; resolution_ru: string;
@@ -128,9 +137,11 @@ export function changesSince(visit: VisitMemory, snapshot: Snapshot, threshold =
 export interface HazardEvent {
   name: string; alert: 'Orange' | 'Red' | null; year: number; month: number | null;
   severity: string; lat: number | null; lon: number | null;
+  region_en?: string | null; region_ru?: string | null;
 }
 export interface HazardSummary {
   count: number; red: number; first_year: number; last_year: number; months: number[]; events: HazardEvent[];
+  regions?: { en: string; ru: string; n: number }[];
 }
 export interface HazardDetails {
   schema: string; generated_at: string;
