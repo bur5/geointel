@@ -94,7 +94,13 @@ def build_snapshot(
         "event_types": type_entries,
         "sources": sources,
         "countries": [
-            {"iso3": c.iso3, "iso2": c.iso2, "name": c.name, "risks": risks[c.iso3]}
+            {
+                "iso3": c.iso3,
+                "iso2": c.iso2,
+                "numeric": c.numeric,
+                "name": c.name,
+                "risks": risks[c.iso3],
+            }
             for c in countries
         ],
     }

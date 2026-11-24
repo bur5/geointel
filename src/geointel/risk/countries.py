@@ -42,7 +42,11 @@ FIRST_YEAR = {
     "SSD": 2011,
 }
 
-_SPECIAL_NAMES = {"XKX": ("XK", "Kosovo"), "TWN": ("TW", "Taiwan"), "PSE": ("PS", "Palestine")}
+_SPECIAL_NAMES = {
+    "XKX": ("XK", "Kosovo", None),
+    "TWN": ("TW", "Taiwan", "158"),
+    "PSE": ("PS", "Palestine", "275"),
+}
 
 _ALIASES = {
     "russia": "RUS",
@@ -151,6 +155,7 @@ class Country:
     iso2: str
     name: str
     first_year: int | None
+    numeric: str | None = None
 
 
 @lru_cache(maxsize=1)
@@ -158,14 +163,14 @@ def universe() -> tuple[Country, ...]:
     result = []
     for iso3 in (*UN_MEMBERS, *OBSERVERS_AND_OTHERS):
         if iso3 in _SPECIAL_NAMES:
-            iso2, name = _SPECIAL_NAMES[iso3]
+            iso2, name, numeric = _SPECIAL_NAMES[iso3]
         else:
             record = pycountry.countries.get(alpha_3=iso3)
             if record is None:
                 raise ValueError(f"unknown ISO alpha-3 code in universe: {iso3}")
-            iso2 = record.alpha_2
+            iso2, numeric = record.alpha_2, record.numeric
             name = getattr(record, "common_name", None) or record.name
-        result.append(Country(iso3, iso2, name, FIRST_YEAR.get(iso3)))
+        result.append(Country(iso3, iso2, name, FIRST_YEAR.get(iso3), numeric))
     return tuple(sorted(result, key=lambda country: country.iso3))
 
 

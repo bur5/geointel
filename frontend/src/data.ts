@@ -1,100 +1,121 @@
-export const fixtureDate = '2025-03-01';
-export const provenance = 'GEOINTEL synthetic fixture v0.1';
-export const months = ['Oct', 'Nov', 'Dec', 'Jan', 'Feb', 'Mar'];
+export type Lang = 'ru' | 'en';
+export type HorizonKey = '1m' | '1y' | '5y' | '10y';
 
-export interface Fixture {
-  id: string;
-  region: string;
-  history: number[];
-  events: { date: string; title: string }[];
-  projection?: { low: number; high: number };
+export interface Probability { p: number; low: number; high: number }
+export interface Risk {
+  question: 'onset_within' | 'active_at_end';
+  active: boolean | null;
+  state_as_of: number;
+  confidence: 'low' | 'medium' | 'high';
+  horizons: Record<HorizonKey, Probability>;
+  basis: { exposure_years: number; event_years: number; last_event_year: number | null };
+}
+export interface CountryEntry {
+  iso3: string; iso2: string; numeric: string | null; name: string;
+  risks: Record<string, Risk>;
+}
+export interface EventTypeEntry {
+  key: string; label_en: string; label_ru: string; resolution_en: string; resolution_ru: string;
+  modeled: boolean; available: boolean; source?: string; data_window?: [number, number];
+  records?: number; unresolved_labels?: number;
+}
+export interface SourceEntry {
+  key: string; name: string; url: string | null; version: string | null;
+  retrieved_at: string | null; status: 'ok' | 'failed'; error: string | null;
+}
+export interface Change {
+  iso3: string; event_type: string; kind: 'probability_change' | 'state_change';
+  horizon?: HorizonKey; from: number | string | null; to: number | string; delta?: number;
+}
+export interface Snapshot {
+  schema: string;
+  generated_at: string;
+  previous_generated_at: string | null;
+  method: { name: string; calibration: string; interval: string; description_en: string; description_ru: string };
+  horizons: { key: HorizonKey; years: number; label_en: string; label_ru: string }[];
+  event_types: EventTypeEntry[];
+  sources: SourceEntry[];
+  countries: CountryEntry[];
+  changes: Change[];
 }
 
-const regionalData: [string, string, number[], string, string][] = [
-  ['804', 'Eastern Europe', [61, 65, 64, 70, 73, 78], 'Reporting volume increases', 'New synthetic event cluster'],
-  ['729', 'Northern Africa', [72, 74, 80, 82, 80, 84], 'Coverage expands across reporting areas', 'Simulated disruption recorded'],
-  ['104', 'Southeast Asia', [60, 63, 59, 64, 68, 71], 'Reporting pattern shifts', 'Synthetic incident count rises'],
-  ['170', 'South America', [43, 47, 45, 44, 51, 54], 'Synthetic incident levels fluctuate', 'Additional fixture reports recorded'],
-  ['586', 'Southern Asia', [55, 57, 54, 58, 56, 62], 'Brief increase in fixture activity', 'Synthetic reporting volume rises'],
-  ['566', 'Western Africa', [41, 44, 45, 47, 48, 50], 'Reporting coverage improves', 'Moderate synthetic change recorded'],
-  ['076', 'South America', [25, 29, 28, 33, 30, 32], 'Synthetic series shows a brief rise', 'Fixture observations stabilize'],
-  ['250', 'Western Europe', [16, 19, 18, 17, 22, 20], 'Minor synthetic change recorded', 'Fixture observations decline'],
-];
-
-export const fixtures: Fixture[] = regionalData.map(([id, region, history, earlier, latest], index) => ({
-  id, region, history,
-  events: [{ date: '2025-02-26', title: latest }, { date: '2025-01-14', title: earlier }],
-  projection: index < 4 ? { low: history[5] - 9, high: history[5] + 12 } : undefined,
-}));
-
-export function band(score: number) {
-  if (score >= 70) return 'High';
-  if (score >= 45) return 'Elevated';
-  return 'Low';
+export async function loadSnapshot(signal?: AbortSignal): Promise<Snapshot> {
+  const response = await fetch(import.meta.env.BASE_URL + 'data/risk.json', { signal, cache: 'no-cache' });
+  if (!response.ok) throw new Error('HTTP ' + response.status);
+  const data = await response.json() as Snapshot;
+  if (data.schema !== 'geointel-risk-snapshot-v1' || !Array.isArray(data.countries)) {
+    throw new Error('Unexpected snapshot format');
+  }
+  return data;
 }
 
-export interface Forecast {
-  id: string;
-  analysis_run_id: string;
-  conflict_type: string;
-  question: string;
-  horizon_months: number;
-  version: number;
-  probability_low: number | null;
-  probability_high: number | null;
-  confidence: string;
-  rationale: string;
-  evidence_for: string[];
-  evidence_against: string[];
-  unknowns: string[];
-  resolution_criteria: string[];
-  change_conditions: string[];
-  created_at: string;
+// Probability bands used for colouring (share of probability, 0–1).
+export type Band = 'minimal' | 'low' | 'elevated' | 'high' | 'critical';
+export function band(p: number): Band {
+  if (p >= 0.5) return 'critical';
+  if (p >= 0.2) return 'high';
+  if (p >= 0.05) return 'elevated';
+  if (p >= 0.01) return 'low';
+  return 'minimal';
 }
 
-function validBound(value: unknown): value is number | null {
-  return value === null || (typeof value === 'number' && value >= 0 && value <= 1);
+export function percent(p: number, lang: Lang): string {
+  const value = p * 100;
+  const digits = value < 1 && value > 0 ? 1 : 0;
+  const text = value > 0 && value < 0.1 ? '<0.1' : value.toFixed(digits);
+  return (lang === 'ru' ? text.replace('.', ',') : text) + '%';
 }
 
-const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const conflictTypes = new Set<unknown>([
-  'interstate_armed_conflict', 'internal_armed_conflict', 'one_sided_violence', 'major_political_violence',
-]);
-const confidenceLevels = new Set<unknown>(['low', 'medium', 'high']);
+// "Since your last visit": the previous visit's probabilities are kept in this browser only.
+const VISIT_KEY = 'geointel.lastVisit.v1';
+export interface VisitMemory { generated_at: string; values: Record<string, number> }
 
-function validTimestamp(value: unknown): boolean {
-  if (typeof value !== 'string') return false;
-  // PostgreSQL emits a zone. SQLite can return the same timestamp without one.
-  const parts = /^(\d{4}-\d{2}-\d{2})T(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d{1,6})?(Z|[+-]\d{2}:\d{2})?$/.exec(value);
-  if (!parts || !Number.isFinite(Date.parse(parts[2] ? value : value + 'Z'))) return false;
-  // Date.parse can roll invalid calendar days into the next month.
-  const day = new Date(parts[1] + 'T00:00:00Z');
-  return Number.isFinite(day.getTime()) && day.toISOString().slice(0, 10) === parts[1];
+export function flatten(snapshot: Snapshot): Record<string, number> {
+  const values: Record<string, number> = {};
+  for (const country of snapshot.countries) {
+    for (const [type, risk] of Object.entries(country.risks)) {
+      for (const [horizon, value] of Object.entries(risk.horizons)) {
+        values[country.iso3 + '|' + type + '|' + horizon] = value.p;
+      }
+      values[country.iso3 + '|' + type + '|state'] = risk.question === 'active_at_end' ? 1 : 0;
+    }
+  }
+  return values;
 }
 
-function isForecast(value: unknown): value is Forecast {
-  if (!value || typeof value !== 'object') return false;
-  const row = value as Record<string, unknown>;
-  const low = row.probability_low;
-  const high = row.probability_high;
-  if (!validBound(low) || !validBound(high)) return false;
-  if (low !== null && high !== null && low > high) return false;
-  return typeof row.id === 'string' && uuid.test(row.id)
-    && typeof row.analysis_run_id === 'string' && uuid.test(row.analysis_run_id)
-    && conflictTypes.has(row.conflict_type) && confidenceLevels.has(row.confidence)
-    && typeof row.question === 'string' && typeof row.rationale === 'string'
-    && validTimestamp(row.created_at)
-    && typeof row.version === 'number' && Number.isSafeInteger(row.version) && row.version >= 1
-    && typeof row.horizon_months === 'number' && Number.isInteger(row.horizon_months)
-    && row.horizon_months >= 1 && row.horizon_months <= 120
-    && ['evidence_for', 'evidence_against', 'unknowns', 'resolution_criteria', 'change_conditions']
-      .every((key) => Array.isArray(row[key]) && row[key].every((item) => typeof item === 'string'));
+export function readVisit(): VisitMemory | undefined {
+  try {
+    const raw = localStorage.getItem(VISIT_KEY);
+    return raw ? JSON.parse(raw) as VisitMemory : undefined;
+  } catch {
+    return undefined;
+  }
 }
 
-export async function loadForecasts(signal: AbortSignal): Promise<Forecast[]> {
-  const response = await fetch('/geointel-api/forecasts', { signal, headers: { Accept: 'application/json' } });
-  if (!response.ok) throw new Error('Forecast service unavailable');
-  const payload: unknown = await response.json();
-  if (!Array.isArray(payload) || !payload.every(isForecast)) throw new Error('Invalid forecast response');
-  return payload;
+export function writeVisit(snapshot: Snapshot) {
+  try {
+    localStorage.setItem(VISIT_KEY, JSON.stringify({ generated_at: snapshot.generated_at, values: flatten(snapshot) }));
+  } catch {
+    // Storage may be unavailable (private mode); the feature then degrades silently.
+  }
+}
+
+export function changesSince(visit: VisitMemory, snapshot: Snapshot, threshold = 0.02): Change[] {
+  const current = flatten(snapshot);
+  const result: Change[] = [];
+  for (const [key, value] of Object.entries(current)) {
+    const before = visit.values[key];
+    if (before === undefined) continue;
+    const [iso3, eventType, horizon] = key.split('|');
+    if (horizon === 'state') {
+      if (before !== value) {
+        result.push({ iso3, event_type: eventType, kind: 'state_change',
+          from: before ? 'active_at_end' : 'onset_within', to: value ? 'active_at_end' : 'onset_within' });
+      }
+    } else if (Math.abs(value - before) >= threshold) {
+      result.push({ iso3, event_type: eventType, kind: 'probability_change',
+        horizon: horizon as HorizonKey, from: before, to: value, delta: value - before });
+    }
+  }
+  return result.sort((a, b) => Math.abs(b.delta ?? 1) - Math.abs(a.delta ?? 1));
 }

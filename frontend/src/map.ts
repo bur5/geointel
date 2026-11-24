@@ -3,7 +3,6 @@ import { feature } from 'topojson-client';
 import type { FeatureCollection, Geometry } from 'geojson';
 import type { GeometryCollection, Topology } from 'topojson-specification';
 import atlas from 'world-atlas/countries-110m.json';
-import { band } from './data';
 
 interface Place { name: string }
 
@@ -14,12 +13,20 @@ const project = geoNaturalEarth1().fitExtent([[24, 16], [876, 426]], {
   features: geography.features.filter((country) => country.properties.name !== 'Antarctica'),
 });
 const path = geoPath(project);
-export const countryNames = new Map(geography.features
-  .filter((country) => country.id != null && country.properties.name !== 'Antarctica')
-  .map((country) => [String(country.id), country.properties.name]));
-export const countries = [...countryNames].sort((a, b) => a[1].localeCompare(b[1]));
+// Map shape key: ISO numeric id, or the shape name when the atlas has no id (e.g. Kosovo).
+const shapeKey = (country: { id?: string | number; properties: Place }) =>
+  country.id != null ? String(country.id) : 'name:' + country.properties.name;
+export const shapeNames = new Map(geography.features
+  .filter((country) => country.properties.name !== 'Antarctica')
+  .map((country) => [shapeKey(country), country.properties.name]));
 
-export function drawMap(container: HTMLElement, selected: string, scores: Map<string, number>, select: (id: string) => void) {
+export function drawMap(
+  container: HTMLElement,
+  selected: string,
+  classOf: (key: string) => string,
+  labelOf: (key: string, name: string) => string,
+  select: (key: string) => void,
+) {
   const svg = container.querySelector<SVGSVGElement>('svg')!;
   const layer = svg.querySelector<SVGGElement>('g')!;
   const tooltip = container.querySelector<HTMLElement>('.tooltip')!;
@@ -30,13 +37,12 @@ export function drawMap(container: HTMLElement, selected: string, scores: Map<st
   layer.append(grid);
   const paths = geography.features.filter((country) => country.properties.name !== 'Antarctica');
   for (const country of paths) {
-    const id = String(country.id);
-    const score = scores.get(id);
+    const id = shapeKey(country);
     const shape = document.createElementNS(ns, 'path');
     shape.setAttribute('d', path(country) ?? '');
-    shape.setAttribute('class', 'country ' + (score === undefined ? '' : band(score).toLowerCase()) + (id === selected ? ' selected' : ''));
-    if (country.id != null) shape.dataset.country = id;
-    const label = country.properties.name + ' · ' + (score === undefined ? 'Data unavailable' : 'Synthetic score ' + score + '/100');
+    shape.setAttribute('class', 'country ' + classOf(id) + (id === selected ? ' selected' : ''));
+    shape.dataset.country = id;
+    const label = labelOf(id, country.properties.name);
     const title = document.createElementNS(ns, 'title');
     title.textContent = label;
     shape.append(title);

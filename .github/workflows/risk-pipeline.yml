@@ -8,6 +8,7 @@ on:
     branches: [main]
     paths:
       - "src/geointel/risk/**"
+      - "frontend/**"
       - ".github/workflows/risk-pipeline.yml"
   pull_request:
     paths:
@@ -20,6 +21,8 @@ concurrency:
 
 permissions:
   contents: write
+  pages: write
+  id-token: write
 
 jobs:
   build:
@@ -79,3 +82,36 @@ jobs:
           git add -A
           git commit -qm "Risk snapshot ${day}" || { echo "No changes"; exit 0; }
           git push origin risk-data
+
+  deploy-site:
+    needs: build
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - uses: actions/download-artifact@v4
+        with:
+          name: risk-snapshot
+          path: snapshot
+      - name: Build site with the latest snapshot
+        working-directory: frontend
+        run: |
+          npm ci
+          mkdir -p public/data
+          cp ../snapshot/site/risk.json public/data/risk.json
+          npm run build
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: frontend/dist
+      - id: deployment
+        uses: actions/deploy-pages@v4
