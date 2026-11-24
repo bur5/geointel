@@ -68,6 +68,10 @@ class Scenario:
     market_queries: tuple[str, ...] = ()
     market_groups: tuple[tuple[str, ...], ...] = ()
     market_exclude: tuple[str, ...] = ()
+    # Markets whose "Yes" is the opposite of the scenario (e.g. "ceasefire holds").
+    market_inverse: tuple[tuple[str, ...], ...] = ()
+    # Words that mark a closer fit to the scenario definition; such markets are preferred.
+    market_prefer: tuple[str, ...] = ()
     milex: tuple[str, ...] = ()
     gpr: tuple[str, ...] = ()
     war_context: tuple[str, ...] = ()  # countries whose ongoing interstate war raises risk
@@ -256,6 +260,7 @@ CATALOGUE: tuple[Scenario, ...] = (
             ("attack", "invade", "invasion", "strike", "military clash", "war ", "troops"),
         ),
         market_exclude=("ceasefire", "peace", "join", "summit", "meet ", "visit"),
+        market_prefer=("invade", "invasion"),
         milex=_t("RUS POL EST LVA LTU DEU FIN"),
         gpr=_t("RUS POL DEU FIN"),
         war_context=_t("RUS UKR"),
@@ -488,7 +493,8 @@ CATALOGUE: tuple[Scenario, ...] = (
             ("strike", "attack", "military action", "bomb"),
             ("israel", " us ", "u.s.", "united states", "iran strike"),
         ),
-        market_exclude=("ceasefire", "nuclear deal", "regime", "leader", "khamenei"),
+        market_exclude=("nuclear deal", "regime", "leader", "khamenei", "airspace"),
+        market_inverse=(("iran",), ("israel",), ("ceasefire",), ("continue", "hold")),
         milex=_t("IRN ISR SAU"),
         gpr=_t("IRN ISR SAU"),
         exposures=(
@@ -738,27 +744,52 @@ def expert_component(scenario: Scenario) -> dict:
     }
 
 
+MIN_MARKET_DAYS = 120  # shorter windows say little about a year and are not annualised
+
+
 def market_candidates(scenario: Scenario, all_markets: Iterable[dict]) -> list[dict]:
-    found = [
-        m
-        for m in all_markets
-        if polymarket.matches(m["question"], scenario.market_groups, scenario.market_exclude)
-    ]
+    found = []
+    for m in all_markets:
+        if polymarket.matches(m["question"], scenario.market_groups, scenario.market_exclude):
+            found.append({**m, "inverse": False})
+        elif scenario.market_inverse and polymarket.matches(m["question"], scenario.market_inverse):
+            found.append({**m, "p": round(1 - m["p"], 4), "inverse": True})
     return sorted(found, key=lambda m: -m["volume"])
 
 
-def market_component(candidates: list[dict], today: date) -> dict | None:
-    usable = [m for m in candidates if m["volume"] >= 5000 and date.fromisoformat(m["end"]) > today]
+def _fit(scenario: Scenario | None, market: dict) -> int:
+    text = market["question"].lower()
+    return int(bool(scenario) and any(word in text for word in scenario.market_prefer))
+
+
+def _days(market: dict, today: date) -> int:
+    return (date.fromisoformat(market["end"]) - today).days
+
+
+def near_term_market(scenario: Scenario, candidates: list[dict], today: date) -> dict | None:
+    """The best-fitting liquid open market (shown as a signal even if it resolves soon)."""
+    open_ = [m for m in candidates if m["volume"] >= 5000 and _days(m, today) > 0]
+    if not open_:
+        return None
+    return max(open_, key=lambda m: (_fit(scenario, m), m["volume"]))
+
+
+def market_component(
+    candidates: list[dict], today: date, scenario: Scenario | None = None
+) -> dict | None:
+    usable = [
+        m
+        for m in candidates
+        if m["volume"] >= 5000 and not m.get("inverse") and _days(m, today) >= MIN_MARKET_DAYS
+    ]
     if not usable:
         return None
-    # Prefer liquid markets that resolve at least a month out.
-    later = [m for m in usable if (date.fromisoformat(m["end"]) - today).days >= 30] or usable
-    best = max(later, key=lambda m: m["volume"])
-    days = (date.fromisoformat(best["end"]) - today).days
-    years = max(days / 365.25, 1 / 12)
+    best = max(usable, key=lambda m: (_fit(scenario, m), m["volume"]))
+    days = _days(best, today)
+    years = days / 365.25
     hazard = _p_to_hazard(best["p"], years)
-    # Short windows say little about a whole year: their weight shrinks below six months.
-    weight = (1.5 if best["volume"] >= 100_000 else 0.75) * max(0.3, min(1.0, days / 180))
+    # Windows under a year still say less about a whole year: their weight shrinks a little.
+    weight = (1.5 if best["volume"] >= 100_000 else 0.75) * min(1.0, days / 365)
     return {
         "kind": "market",
         "annual": round(hazard, 4),
@@ -795,7 +826,7 @@ def indicators(
     milex: Mapping[str, dict],
     gpr: Mapping[str, dict],
     active_interstate: set[str],
-    market: dict | None,
+    near: dict | None,
     today: date,
 ) -> list[dict]:
     """Escalation (+1) / de-escalation (-1) signals with their evidence."""
@@ -856,15 +887,22 @@ def indicators(
                 "source": "GeoIntel curated list",
             }
         )
-    change = (market or {}).get("market", {}).get("month_change")
-    if change is not None:
+    if near is not None:
+        change = near.get("month_change")
+        if near.get("inverse") and change is not None:
+            change = -change
+        trend = "" if change is None else f"; {change * 100:+.1f} pp / 30d"
+        direction = 0 if change is None else 1 if change > 0.03 else -1 if change < -0.03 else 0
         signals.append(
             {
                 "key": "market_trend",
-                "direction": 1 if change > 0.03 else -1 if change < -0.03 else 0,
-                "label_ru": "Изменение цены рынка за месяц",
-                "label_en": "Market price change over a month",
-                "value": f"{change * 100:+.1f} п. п.",
+                "direction": direction,
+                "label_ru": "Рынок прогнозов: ближайший вопрос",
+                "label_en": "Prediction market: nearest question",
+                "value": (
+                    f"{near['p'] * 100:.1f}% → {near['end']}{trend}. "
+                    f"{'NOT: ' if near.get('inverse') else ''}{near['question'][:120]}"
+                ),
                 "source": "Polymarket",
             }
         )
@@ -927,10 +965,11 @@ def build_scenarios(
             if history:
                 components.insert(0, history)
         candidates = market_candidates(scenario, markets or []) if markets is not None else []
-        market = market_component(candidates, today)
+        market = market_component(candidates, today, scenario)
         if market:
             components.append(market)
-        signals = indicators(scenario, milex, gpr, active_interstate, market, today)
+        near = near_term_market(scenario, candidates, today)
+        signals = indicators(scenario, milex, gpr, active_interstate, near, today)
         factor = indicator_factor(signals, scenario.polarity)
         pooled = pool(components, factor)
         affected: list[dict] = []
@@ -972,8 +1011,8 @@ def build_scenarios(
                     for w in sorted(scenario.warnings, key=lambda w: w.date, reverse=True)
                 ],
                 "market_candidates": [
-                    {k: m[k] for k in ("question", "p", "end", "volume", "slug")}
-                    for m in candidates[:5]
+                    {k: m[k] for k in ("question", "p", "end", "volume", "slug", "inverse")}
+                    for m in candidates[:6]
                 ],
                 "market_status": (
                     "unavailable" if markets is None else "matched" if market else "no_match"

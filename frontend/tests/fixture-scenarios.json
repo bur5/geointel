@@ -388,30 +388,30 @@
    "event_en": "A general ceasefire along the whole front, announced by both sides and holding for at least 30 days (local or energy-only truces do not count).",
    "polarity": -1,
    "annual": {
-    "p": 0.2424,
+    "p": 0.1888,
     "low": 0.1,
-    "high": 0.7313
+    "high": 0.45
    },
    "horizons": {
     "1m": {
-     "p": 0.0229,
+     "p": 0.0173,
      "low": 0.0087,
-     "high": 0.1037
+     "high": 0.0486
     },
     "1y": {
-     "p": 0.2424,
+     "p": 0.1888,
      "low": 0.1,
-     "high": 0.7313
+     "high": 0.45
     },
     "5y": {
-     "p": 0.7504,
+     "p": 0.6486,
      "low": 0.4095,
-     "high": 0.9986
+     "high": 0.9497
     },
     "10y": {
-     "p": 0.9377,
+     "p": 0.8765,
      "low": 0.6513,
-     "high": 1.0
+     "high": 0.9975
     }
    },
    "confidence": "low",
@@ -426,16 +426,6 @@
      "detail_ru": "Межгосударственные войны длительностью больше четырёх лет редко заканчиваются быстро; переговоры при посредничестве США возобновились в ноябре 2026 года, но без прорыва по прекращению огня. Оценка GeoIntel: около 25% в год.",
      "detail_en": "Interstate wars lasting over four years rarely end quickly; US-mediated talks resumed in November 2026 without a ceasefire breakthrough. GeoIntel judgement: about 25% a year.",
      "url": null
-    },
-    {
-     "kind": "market",
-     "annual": 0.4571,
-     "low": 0.2743,
-     "high": 0.7313,
-     "weight": 0.45,
-     "detail_ru": "Рынок Polymarket: «Russia x Ukraine ceasefire in 2026?» — 6.0% к 2026-12-31, объём торгов $3 100 000. Пересчитано в годовую вероятность. Вопрос рынка может отличаться от определения сценария.",
-     "detail_en": "Polymarket: \"Russia x Ukraine ceasefire in 2026?\" at 6.0% by 2026-12-31, volume $3,100,000. Converted to an annual probability. The market's question may differ from the scenario definition.",
-     "url": "https://polymarket.com/event/russia-x-ukraine-ceasefire-in-2026"
     }
    ],
    "indicators": [
@@ -466,9 +456,9 @@
     {
      "key": "market_trend",
      "direction": -1,
-     "label_ru": "Изменение цены рынка за месяц",
-     "label_en": "Market price change over a month",
-     "value": "-4.0 п. п.",
+     "label_ru": "Рынок прогнозов: ближайший вопрос",
+     "label_en": "Prediction market: nearest question",
+     "value": "6.0% → 2026-12-31; -4.0 pp / 30d. Russia x Ukraine ceasefire in 2026?",
      "source": "Polymarket"
     }
    ],
@@ -488,10 +478,11 @@
      "p": 0.06,
      "end": "2026-12-31",
      "volume": 3100000.0,
-     "slug": "russia-x-ukraine-ceasefire-in-2026"
+     "slug": "russia-x-ukraine-ceasefire-in-2026",
+     "inverse": false
     }
    ],
-   "market_status": "matched",
+   "market_status": "no_match",
    "affected": [
     {
      "iso3": "RUS",
@@ -768,9 +759,9 @@
     {
      "key": "market_trend",
      "direction": 0,
-     "label_ru": "Изменение цены рынка за месяц",
-     "label_en": "Market price change over a month",
-     "value": "+1.0 п. п.",
+     "label_ru": "Рынок прогнозов: ближайший вопрос",
+     "label_en": "Prediction market: nearest question",
+     "value": "7.0% → 2027-12-31; +1.0 pp / 30d. Will China invade Taiwan by December 31, 2027?",
      "source": "Polymarket"
     }
    ],
@@ -790,7 +781,8 @@
      "p": 0.07,
      "end": "2027-12-31",
      "volume": 420000.0,
-     "slug": "china-invade-taiwan-2027"
+     "slug": "china-invade-taiwan-2027",
+     "inverse": false
     }
    ],
    "market_status": "matched",

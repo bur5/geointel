@@ -187,3 +187,42 @@ def test_trade_links_and_military_spending():
     )
     assert built["countries"]["DEU"]["migration"]["hosted_per_1000"] == 1.0
     assert any(r["key"] == "channel" for r in built["routes"])
+
+
+def test_short_markets_are_signals_and_inverse_markets_flip():
+    markets = [
+        {
+            "question": "NATO x Russia military clash by December 31, 2026?",
+            "slug": "a",
+            "p": 0.15,
+            "end": "2026-12-31",
+            "volume": 4_000_000.0,
+            "month_change": 0.05,
+        },
+        {
+            "question": "Israel x Iran ceasefire continues through December 31?",
+            "slug": "b",
+            "p": 0.7,
+            "end": "2026-12-31",
+            "volume": 3_000_000.0,
+            "month_change": -0.1,
+        },
+    ]
+    result = scenarios.build_scenarios(
+        dyads=None,
+        last_conflict_year=None,
+        active_interstate=set(),
+        markets=markets,
+        milex={},
+        gpr={},
+        generated_at=NOW,
+    )
+    by_key = {s["key"]: s for s in result["scenarios"]}
+    nato = by_key["russia_nato"]
+    assert nato["market_status"] == "no_match"  # 37 days is too short to annualise
+    trend = next(i for i in nato["indicators"] if i["key"] == "market_trend")
+    assert trend["direction"] == 1 and "15.0%" in trend["value"]
+    iran = by_key["iran_strikes"]
+    assert iran["market_candidates"][0]["inverse"] and iran["market_candidates"][0]["p"] == 0.3
+    trend = next(i for i in iran["indicators"] if i["key"] == "market_trend")
+    assert trend["direction"] == 1 and trend["value"].startswith("30.0%")

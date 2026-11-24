@@ -25,9 +25,10 @@ const ru = {
   kind: { history: 'История конфликтов сторон (UCDP/PRIO)', expert: 'Экспертная априорная оценка GeoIntel', market: 'Рынок прогнозов (Polymarket)' },
   factor: (x: string) => `Поправка по индикаторам: шансы × ${x}`,
   pooled: 'Итог',
-  marketNone: 'Подходящего рынка прогнозов не нашлось — источник не участвует.',
+  marketNone: 'Подходящего рынка прогнозов со сроком от 4 месяцев не нашлось — источник не участвует (рынки на ближайшие недели показаны в индикаторах).',
   marketOff: 'Рынки прогнозов сегодня недоступны — источник не участвует.',
   candidates: 'Найденные рынки (для проверки)',
+  inverse: 'обратный вопрос, вероятность сценария',
   indicatorsTitle: 'Индикаторы эскалации и деэскалации',
   indicatorsLead: 'Сигналы, которые сдвигают оценку. Стрелка вверх — в сторону эскалации.',
   dir: { 1: 'эскалация', 0: 'нейтрально', [-1]: 'деэскалация' } as Record<number, string>,
@@ -105,9 +106,10 @@ const en: Dict = {
   kind: { history: 'Conflict history of the sides (UCDP/PRIO)', expert: 'GeoIntel expert prior', market: 'Prediction market (Polymarket)' },
   factor: (x: string) => `Indicator adjustment: odds × ${x}`,
   pooled: 'Result',
-  marketNone: 'No matching prediction market was found, so this source is not used.',
+  marketNone: 'No matching prediction market running at least 4 months was found, so this source is not used (near-term markets appear among the indicators).',
   marketOff: 'Prediction markets were unavailable today, so this source is not used.',
   candidates: 'Markets found (for checking)',
+  inverse: 'inverse question, scenario probability',
   indicatorsTitle: 'Escalation and de-escalation indicators',
   indicatorsLead: 'Signals that shift the estimate. An up arrow points towards escalation.',
   dir: { 1: 'escalation', 0: 'neutral', [-1]: 'de-escalation' } as Record<number, string>,
@@ -222,7 +224,7 @@ export function scenarioDetail(ctx: ViewContext, s: Scenario, horizonLabels: Rec
       `<li><span class="role-countries">${codes.map((c) => `<button type="button" class="link" data-select="${c}">${esc(ctx.name(c))}</button>`).join(', ')}</span><span class="muted-text">${esc(reason)}</span></li>`).join('')}</ul></div>`;
   }).join('');
   const candidates = s.market_candidates.length ? `<details><summary>${d.candidates}</summary><ul class="candidates">${s.market_candidates.map((m) =>
-    `<li><a href="https://polymarket.com/event/${esc(m.slug)}" rel="noreferrer" lang="en">${esc(m.question)}</a> — ${ctx.pct(m.p)}, ${esc(m.end)}</li>`).join('')}</ul></details>` : '';
+    `<li><a href="https://polymarket.com/event/${esc(m.slug)}" rel="noreferrer" lang="en">${esc(m.question)}</a> — ${m.inverse ? d.inverse + ' ' : ''}${ctx.pct(m.p)}, ${esc(m.end)}</li>`).join('')}</ul></details>` : '';
   return `<article class="scenario" id="scenario-detail">
     <div class="scenario-head"><h2>${esc(title(s, lang))}</h2>
       <p class="muted-text">${d.confidenceLabel}: ${d.confidence[s.confidence]}.${s.polarity < 0 ? ' ' + d.deescalation : ''}</p>

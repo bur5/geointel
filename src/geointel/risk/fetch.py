@@ -296,14 +296,39 @@ def _eurostat(client: httpx.Client, reference_year: int) -> tuple[bytes, str, st
     return response.content, migration.EUROSTAT_URL, f"since {since}"
 
 
+TRADE_FIELDS = ("reporterCode", "reporterISO", "partnerCode", "partnerISO", "primaryValue")
+
+
+def _trade_cache() -> dict[int, dict]:
+    """Previously fetched reporters (Comtrade is slow, so the cache fills over several days)."""
+    path = os.environ.get("GEOINTEL_TRADE_CACHE")
+    if not path or not Path(path).is_file():
+        return {}
+    try:
+        payload = json.loads(Path(path).read_text())
+    except ValueError:
+        return {}
+    cached: dict[int, dict] = {}
+    for response in payload.get("responses") or []:
+        rows = response.get("data") or []
+        if rows:
+            cached[int(rows[0].get("reporterCode", -1))] = response
+    return cached
+
+
 def _trade(client: httpx.Client, reference_year: int) -> tuple[bytes, str, str]:
     reporters = trade.reference_codes(_get(client, trade.REPORTERS_URL).json())
     partners = trade.reference_codes(_get(client, trade.PARTNERS_URL).json())
     codes = {**partners, **reporters}
-    responses, failures = [], 0
-    deadline = time.monotonic() + 600  # never let trade hold up the daily run
     year = reference_year - 2
-    for code in sorted(reporters):
+    cached = {
+        code: r
+        for code, r in _trade_cache().items()
+        if code in reporters and r["period"] >= year - 1
+    }
+    fresh, failures = {}, 0
+    deadline = time.monotonic() + 600  # never let trade hold up the daily run
+    for code in sorted(c for c in reporters if c not in cached):
         if time.monotonic() > deadline:
             break
         for period in (year, year - 1):
@@ -322,13 +347,16 @@ def _trade(client: httpx.Client, reference_year: int) -> tuple[bytes, str, str]:
                 failures += 1
                 break
             if body.get("data"):
-                responses.append({"period": period, "data": body["data"]})
+                rows = [{k: row.get(k) for k in TRADE_FIELDS} for row in body["data"]]
+                fresh[code] = {"period": period, "data": rows}
                 break
         time.sleep(1.1)
+    responses = [*cached.values(), *fresh.values()]
     if not responses:
         raise RuntimeError(f"no Comtrade data ({failures} failures)")
     payload = {"year": year, "codes": codes, "responses": responses, "failures": failures}
-    return json.dumps(payload).encode(), trade.DATA_URL, f"{len(responses)} reporters"
+    version = f"{len(responses)}/{len(reporters)} reporters ({len(fresh)} new)"
+    return json.dumps(payload).encode(), trade.DATA_URL, version
 
 
 def fetch_all(raw_dir: Path, reference_year: int | None = None) -> dict:

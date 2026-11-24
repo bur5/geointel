@@ -269,6 +269,9 @@ def main(argv: list[str] | None = None) -> int:
             f"[scenario] {item['key']} {horizons} | {parts} | x{item['indicator_factor']} "
             f"| market={item['market_status']}"
         )
+        for component in item["components"]:
+            if component["kind"] == "history":
+                print(f"[scenario]   history: {component['detail_en'][:220]}")
         for candidate in item["market_candidates"]:
             print(
                 f"[scenario]   candidate {candidate['p']:.3f} {candidate['end']} "

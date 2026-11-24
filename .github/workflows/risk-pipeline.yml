@@ -41,9 +41,12 @@ jobs:
           mkdir -p data
           if git fetch --depth=1 origin risk-data 2>/dev/null; then
             git show FETCH_HEAD:latest/risk.json > data/previous.json 2>/dev/null || rm -f data/previous.json
+            git show FETCH_HEAD:cache/trade.json > data/trade-cache.json 2>/dev/null || rm -f data/trade-cache.json
           fi
 
       - name: Fetch public datasets
+        env:
+          GEOINTEL_TRADE_CACHE: data/trade-cache.json
         run: python -m geointel.risk fetch --raw-dir data/raw
 
       - name: Build snapshot
@@ -77,7 +80,8 @@ jobs:
             git worktree add --detach publish
             cd publish && git checkout --orphan risk-data && git rm -rfq .
           fi
-          mkdir -p latest history
+          mkdir -p latest history cache
+          [ -f ../data/raw/trade.json ] && cp ../data/raw/trade.json cache/trade.json
           cp ../data/site/risk.json latest/risk.json
           cp ../data/site/hazards.json latest/hazards.json
           cp ../data/site/scenarios.json latest/scenarios.json
