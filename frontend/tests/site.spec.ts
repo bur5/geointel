@@ -5,6 +5,8 @@ const fixture = readFileSync(new URL('./fixture-risk.json', import.meta.url), 'u
 const hazards = readFileSync(new URL('./fixture-hazards.json', import.meta.url), 'utf8');
 const scenarios = readFileSync(new URL('./fixture-scenarios.json', import.meta.url), 'utf8');
 const links = readFileSync(new URL('./fixture-links.json', import.meta.url), 'utf8');
+const signals = readFileSync(new URL('./fixture-signals.json', import.meta.url), 'utf8');
+const backtest = readFileSync(new URL('./fixture-backtest.json', import.meta.url), 'utf8');
 const shots = process.env.GEOINTEL_SCREENSHOTS;
 const shoot = async (page: import('@playwright/test').Page, name: string) => {
   if (!shots) return;
@@ -17,6 +19,8 @@ test.beforeEach(async ({ page }) => {
   await page.route('**/data/hazards.json', (route) => route.fulfill({ body: hazards, contentType: 'application/json' }));
   await page.route('**/data/scenarios.json', (route) => route.fulfill({ body: scenarios, contentType: 'application/json' }));
   await page.route('**/data/links.json', (route) => route.fulfill({ body: links, contentType: 'application/json' }));
+  await page.route('**/data/signals.json', (route) => route.fulfill({ body: signals, contentType: 'application/json' }));
+  await page.route('**/data/backtest.json', (route) => route.fulfill({ body: backtest, contentType: 'application/json' }));
 });
 
 test('overview renders live snapshot with map and ranking', async ({ page }) => {
@@ -110,5 +114,25 @@ test('scenarios, links graph and migration', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/#scenarios');
   await shoot(page, 'scenarios-mobile');
+  expect(errors).toEqual([]);
+});
+
+test('warning signs: signals page, country section and backtest', async ({ page }) => {
+  const errors: string[] = [];
+  page.on('pageerror', (error) => errors.push(error.message));
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await page.goto('/#signals');
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Сигналы');
+  await expect(page.locator('#signals-map path.country.elevated').first()).toBeVisible();
+  await expect(page.locator('.table tbody tr')).not.toHaveCount(0);
+  await shoot(page, 'signals');
+  await page.goto('/#country');
+  await page.locator('[data-field="country"]').selectOption('UKR');
+  await expect(page.locator('#country-signals .sig').first()).toBeVisible();
+  await expect(page.locator('#country-signals .adjusted li').first()).toBeVisible();
+  await shoot(page, 'country-ukraine-signals');
+  await page.goto('/#scenarios');
+  await expect(page.locator('.bt-chart path.bt-month')).toBeVisible();
+  await shoot(page, 'scenarios-backtest');
   expect(errors).toEqual([]);
 });

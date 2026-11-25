@@ -1,11 +1,13 @@
 import './style.css';
-import { band, changesSince, loadHazards, loadLinks, loadScenarios, loadSnapshot, percent, readVisit, writeVisit } from './data';
+import { band, changesSince, loadBacktest, loadHazards, loadLinks, loadScenarios, loadSignals, loadSnapshot, percent, readVisit, writeVisit } from './data';
 import type {
-  Change, CountryEntry, EventTypeEntry, HazardDetails, HazardSummary, HorizonKey, Lang, LinksFile, Probability, Risk, ScenarioFile,
+  BacktestFile, Change, CountryEntry, EventTypeEntry, HazardDetails, HazardSummary, HorizonKey, Lang, LinksFile, Probability, Risk,
+  ScenarioFile, SignalsFile,
   Snapshot, VisitMemory,
 } from './data';
 import { countryScenarios, linksSection, migrationClass, migrationPage, migrationSection, roleClass, scenariosPage, vt } from './views';
 import type { ViewContext } from './views';
+import { backtestSection, countrySignals, factorClass, signalsPage, st } from './signalsView';
 import type { ChainEvent } from './chains';
 import { dictionaries } from './i18n';
 import { drawCountryMap, drawMap, neighboursOf } from './map';
@@ -17,6 +19,7 @@ import type { Level, Verdict } from './insights';
 const pages = [
   ['overview', 'navOverview'],
   ['scenarios', 'navScenarios'],
+  ['signals', 'navSignals'],
   ['country', 'navCountry'],
   ['migration', 'navMigration'],
   ['changes', 'navChanges'],
@@ -42,6 +45,8 @@ let updateMapSelection: ((key: string) => void) | undefined;
 let hazardsData: HazardDetails | undefined;
 let scenariosData: ScenarioFile | undefined;
 let linksData: LinksFile | undefined;
+let signalsData: SignalsFile | undefined;
+let backtestData: BacktestFile | undefined;
 let currentScenario = stored('geointel.scenario') ?? 'russia_nato';
 let chainEvent: ChainEvent = (stored('geointel.chain') as ChainEvent | null) ?? 'conflict';
 let migMode: 'hosted' | 'abroad' = stored('geointel.migmode') === 'abroad' ? 'abroad' : 'hosted';
@@ -351,6 +356,7 @@ function countryPage() {
       <div class="lead-summary"><h2>${t().summaryTitle}</h2>${summarySentences(country, '1y')}</div>
     </section>
     ${country ? implications(country) : ''}
+    <section class="section" id="country-signals">${countrySignals(viewContext(), signalsData, country)}</section>
     <section class="section" id="country-scenarios">${countryScenarios(viewContext(), scenariosData, selected)}</section>
     <section class="section" id="country-links">${linksSection(viewContext(), selected, chainEvent, neighbourCodes(selected), linksData)}</section>
     <section class="section hazards" id="hazards" aria-live="polite"><div class="section-head"><h2>${t().hazardsTitle}</h2><p>${t().hazardsLead}</p></div>
@@ -524,7 +530,8 @@ function body(page: Page) {
   if (loadError) return notice(t().loadError, `<button class="button" data-retry>${t().retry}</button>`, 'alert');
   if (!snapshot) return `<div class="loading" role="status">${t().loading}</div>`;
   if (page === 'country') return countryPage();
-  if (page === 'scenarios') return scenariosPage(viewContext(), scenariosData, currentScenario, horizonLabels());
+  if (page === 'scenarios') return scenariosPage(viewContext(), scenariosData, currentScenario, horizonLabels()) + backtestSection(viewContext(), backtestData);
+  if (page === 'signals') return signalsPage(viewContext(), signalsData);
   if (page === 'migration') return migrationPage(viewContext(), linksData, migMode);
   if (page === 'changes') return changesPage();
   if (page === 'assistant') return assistantPage();
@@ -594,6 +601,17 @@ function drawExtraMaps() {
       },
       (key) => { const iso = shapes.get(key); if (iso) { selectCountry(iso); location.hash = '#country'; } },
       SCENARIO_FOCUS[scenario.key]);
+  }
+  const signalsMap = root.querySelector<HTMLElement>('#signals-map');
+  if (signalsMap && signalsData) {
+    const of = (iso: string) => signalsData?.countries[iso];
+    drawMap(signalsMap, '', (key) => factorClass(of(shapes.get(key) ?? '')?.max_factor),
+      (key, fallback) => {
+        const iso = shapes.get(key) ?? '';
+        const c = of(iso);
+        return `${iso ? nameOf(iso) : fallback}${c ? `: ×${c.max_factor.toFixed(2).replace('.', lang === 'ru' ? ',' : '.')} · ${st(lang).activeSigns(c.active)}` : ''}`;
+      },
+      (key) => { const iso = shapes.get(key); if (iso) { selectCountry(iso); location.hash = '#country'; } });
   }
   const migrationMap = root.querySelector<HTMLElement>('#migration-map');
   if (migrationMap && linksData) {
@@ -690,6 +708,8 @@ async function start() {
     void loadHazards().then((data) => { hazardsData = data; if (currentPage() === 'overview') render(); });
     void loadScenarios().then((data) => { scenariosData = data; if (['scenarios', 'country'].includes(currentPage())) render(); });
     void loadLinks().then((data) => { linksData = data; if (['migration', 'country'].includes(currentPage())) render(); });
+    void loadSignals().then((data) => { signalsData = data; if (['signals', 'country'].includes(currentPage())) render(); });
+    void loadBacktest().then((data) => { backtestData = data; if (currentPage() === 'scenarios') render(); });
     if (!isView(eventType) && !typeEntry(eventType)?.available) eventType = snapshot.event_types.find((e) => e.available)?.key ?? eventType;
     if (!byIso().has(selected)) selected = snapshot.countries[0]?.iso3 ?? '';
   } catch {
