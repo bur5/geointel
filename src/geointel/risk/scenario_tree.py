@@ -32,18 +32,18 @@ class Ramp:
     war_late: float  # extra risk reached by year 8 if the war continues (from year 4)
     cease_points: tuple[tuple[float, float], ...]  # (years after ceasefire, multiplier)
     us_weak: float  # multiplier once US guarantees weaken
-    rearm_share: float = 0.6  # share of the increase kept, since Europe is rearming
+    rearm_share: float = 0.5  # share of the increase kept, since Europe is rearming
 
 
 RAMPS = {
     "russia_nato": Ramp(
         war_late=1.5,
-        cease_points=((0.0, 1.0), (0.5, 1.0), (2.0, 1.8), (5.0, 2.5)),
+        cease_points=((0.0, 1.0), (0.5, 1.0), (2.0, 1.6), (5.0, 2.2)),
         us_weak=1.5,
     ),
     "russia_nato_war": Ramp(
         war_late=1.3,
-        cease_points=((0.0, 1.0), (2.0, 1.0), (5.0, 3.0)),
+        cease_points=((0.0, 1.0), (2.0, 1.0), (5.0, 2.5)),
         us_weak=2.0,
     ),
 }
@@ -54,7 +54,7 @@ BASIS_RU = (
     "Дании (2025: локальная война через полгода после прекращения огня, угроза Балтии через два "
     "года, большая война через пять лет) и Литвы (2026: ограниченный конфликт через 6–10 лет, "
     "если война продолжится). Сами коэффициенты — суждение GeoIntel; поскольку Европа "
-    "перевооружается, а сроки описывают возможности, а не намерения, учитываем 60% роста, "
+    "перевооружается, а сроки описывают возможности, а не намерения, учитываем половину роста, "
     "заложенного в этих сроках. Прекращение огня и ослабление гарантий США считаем "
     "независимыми событиями."
 )
@@ -64,7 +64,7 @@ BASIS_EN = (
     "(2025: a local war six months after a ceasefire, a threat to the Baltics in two years, a "
     "large war in five) and Lithuanian intelligence (2026: a limited conflict in 6–10 years if the "
     "war continues). The multipliers are GeoIntel judgement; because Europe is rearming and the "
-    "timelines describe capability rather than intent, we keep 60% of the increase they imply. "
+    "timelines describe capability rather than intent, we keep half of the increase they imply. "
     "A ceasefire and a weakening of US guarantees are treated as independent events."
 )
 
@@ -111,11 +111,29 @@ def _coarse(dist: list[tuple[int | None, float]], step: int = 3) -> list[tuple[i
     return list(grouped.items())
 
 
+SIGN_HALF_LIFE_MONTHS = 6  # today's warning signs say less and less about later years
+
+
+def _base_annual(item: dict) -> float:
+    """The pooled annual hazard without today's warning-sign factor."""
+    p = min(max(item["annual"]["p"], 1e-6), 1 - 1e-6)
+    factor = item.get("indicator_factor") or 1.0
+    odds = p / (1 - p) / factor
+    return odds / (1 + odds)
+
+
 def simulate(
-    key: str, annual: float, ceasefire_annual: float, us_weak_annual: float
+    key: str,
+    annual: float,
+    ceasefire_annual: float,
+    us_weak_annual: float,
+    sign_factor: float = 1.0,
 ) -> dict[str, object]:
+    """``annual`` is the hazard without warning signs; ``sign_factor`` (today's signs) fades
+    with a half-life of six months."""
     ramp = RAMPS[key]
     monthly = -math.log(max(1 - annual, 1e-6)) / 12
+    fade = [sign_factor ** (0.5 ** (m / SIGN_HALF_LIFE_MONTHS)) for m in range(MONTHS)]
     cease_dist = _coarse(_event_months(ceasefire_annual))
     weak_dist = _coarse(_event_months(us_weak_annual))
     cum = [0.0] * (MONTHS + 1)  # P(event by month m)
@@ -129,7 +147,7 @@ def simulate(
             row = branches.setdefault((c_label, w_label), [0.0, 0.0, 0.0])
             row[0] += weight
             for m in range(MONTHS):
-                hazard += monthly * multiplier(ramp, m, c, w)
+                hazard += monthly * multiplier(ramp, m, c, w) * fade[m]
                 p_event = 1 - math.exp(-hazard)
                 cum[m + 1] += weight * p_event
                 if m + 1 == 60:
@@ -169,30 +187,36 @@ def simulate(
 def apply_trees(scenarios: list[dict]) -> None:
     """Replace constant-hazard 5- and 10-year figures of tree scenarios with tree results."""
     by_key = {s["key"]: s for s in scenarios}
-    cease = by_key.get("ukraine_ceasefire", {}).get("annual", {}).get("p", 0.25)
-    weak = by_key.get("us_guarantee", {}).get("annual", {}).get("p", 0.1)
+    cease = _base_annual(by_key["ukraine_ceasefire"]) if "ukraine_ceasefire" in by_key else 0.25
+    weak = _base_annual(by_key["us_guarantee"]) if "us_guarantee" in by_key else 0.1
     for key in RAMPS:
         item = by_key.get(key)
         if item is None:
             continue
-        annual = item["annual"]
-        mid = simulate(key, annual["p"], cease, weak)
-        low = simulate(key, annual["low"], cease, weak)
-        high = simulate(key, annual["high"], cease, weak)
+        factor = item.get("indicator_factor") or 1.0
+        base = _base_annual(item)
+        scale = base / max(item["annual"]["p"], 1e-9)
+        runs = {
+            name: simulate(key, min(item["annual"][name] * scale, 0.99), cease, weak, factor)
+            for name in ("p", "low", "high")
+        }
         for horizon, field in (("5y", "p5y"), ("10y", "p10y")):
+            mid = runs["p"][field]
             item["horizons"][horizon] = {
-                "p": mid[field],
-                "low": min(low[field], mid[field]),
-                "high": max(high[field], mid[field]),
+                "p": mid,
+                "low": min(runs["low"][field], mid),
+                "high": max(runs["high"][field], mid),
             }
         item["tree"] = {
             "inputs": {
-                "annual_now": annual["p"],
-                "ceasefire_annual": cease,
-                "us_weak_annual": weak,
+                "annual_now": item["annual"]["p"],
+                "annual_base": round(base, 4),
+                "sign_factor": factor,
+                "ceasefire_annual": round(cease, 4),
+                "us_weak_annual": round(weak, 4),
             },
-            "yearly": mid["yearly"],
-            "branches": mid["branches"],
+            "yearly": runs["p"]["yearly"],
+            "branches": runs["p"]["branches"],
             "basis_ru": BASIS_RU,
             "basis_en": BASIS_EN,
         }

@@ -231,6 +231,7 @@ CATALOGUE: tuple[Scenario, ...] = (
                 "Russia has no intention of militarily attacking Estonia or any other NATO state",
             ),
         ),
+        prior_includes=("ongoing_war", "war_economy", "milex_rise"),
         milex=_t("RUS POL EST LVA LTU DEU FIN"),
         gpr=_t("RUS POL DEU FIN"),
         war_context=_t("RUS UKR"),
@@ -764,14 +765,6 @@ def _large_war() -> Scenario:
                 3.0,
                 "an outright invasion was highly unlikely but possible",
             ),
-            Assessment(
-                "2026-02-10",
-                "Estonian Foreign Intelligence Service",
-                "https://www.valisluureamet.ee/doc/raport/2026-en.pdf",
-                "highly unlikely",
-                1.0,
-                "Russia has no intention of militarily attacking Estonia or any other NATO state",
-            ),
         ),
     )
 
@@ -948,10 +941,19 @@ def scenario_signs(
     from geointel.risk.warning_signs import SPEC
 
     found: list[dict] = []
+    if not scenario.use_signs:
+        return found
+    # Signs already reflected in another component are not counted twice: the prior's basis
+    # (e.g. the ongoing war) and, when official judgements are pooled, intelligence warnings.
+    skip = set(scenario.prior_includes)
+    if scenario.assessments:
+        skip.add("intel_warning")
     for code in sorted(watched_countries(scenario)):
         for sign in country_signs.get(code, []):
             spec = SPEC.get(sign["key"])
             if sign.get("status") != "active" or spec is None or scenario.risk not in spec.applies:
+                continue
+            if sign["key"] in skip:
                 continue
             if (
                 sign.get("actor")
