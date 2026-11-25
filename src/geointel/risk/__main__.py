@@ -389,9 +389,10 @@ def build_signal_layer(snapshot: dict, extras: dict, sources: list[dict], now) -
     )
     by_iso = {c["iso3"]: c for c in snapshot["countries"]}
     for code, entry in list(signals["countries"].items()):
-        persistent = set((trends.get(code) or {}).get("persistent", []))
-        if persistent:
-            signals["countries"][code] = apply_persistence(by_iso[code], entry, persistent)
+        trend = trends.get(code) or {}
+        signals["countries"][code] = apply_persistence(
+            by_iso[code], entry, set(trend.get("persistent", [])), trend.get("recent5", {})
+        )
         signals["countries"][code]["trend"] = trends.get(code, {})
     signals["dyads"] = dyad_trend
     top = sorted(signals["countries"].items(), key=lambda kv: -kv[1]["max_factor"])[:15]

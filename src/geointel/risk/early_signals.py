@@ -283,7 +283,13 @@ def persistence(
         for r in last14:
             for key in r[2]:
                 counts[key] = counts.get(key, 0) + 1
+        recent5: dict[str, int] = {}
+        for r in rows:
+            if 0 <= (today - date.fromisoformat(r[0])).days <= 4:
+                for key in r[2]:
+                    recent5[key] = recent5.get(key, 0) + 1
         trends[code] = {
+            "recent5": recent5,
             "factor_7d": factor_at(7),
             "factor_30d": factor_at(30),
             "persistent": sorted(k for k, n in counts.items() if n >= 10),

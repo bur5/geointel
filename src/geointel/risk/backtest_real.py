@@ -217,6 +217,25 @@ def signs_at(case: Case, days: dict[str, dict], at: date, radar: dict[str, list]
     return signs
 
 
+def confirmed_signs(
+    case: Case, days: dict[str, dict], at: date, radar: dict[str, list] | None
+) -> list:
+    """Signs at ``at`` weighed like the live pipeline: a sign not active on at least three of
+    the last five days counts at half strength (monthly cases look back five months)."""
+    from geointel.risk.warning_signs import CONFIRM_DAYS, FRESH_STRENGTH
+
+    step = timedelta(days=30 if case.monthly else 1)
+    counts: dict[str, int] = {}
+    for back in range(5):
+        for sign in signs_at(case, days, at - back * step, radar):
+            counts[sign["key"]] = counts.get(sign["key"], 0) + 1
+    signs = signs_at(case, days, at, radar)
+    for sign in signs:
+        if counts.get(sign["key"], 0) < CONFIRM_DAYS:
+            sign["strength"] = sign.get("strength", 1.0) * FRESH_STRENGTH
+    return signs
+
+
 def evaluate(case: Case, days: dict[str, dict], radar: dict[str, list] | None = None) -> dict:
     event = date.fromisoformat(case.event)
     at = date.fromisoformat(case.start)
@@ -224,7 +243,7 @@ def evaluate(case: Case, days: dict[str, dict], radar: dict[str, list] | None = 
     p1m_base = 1 - (1 - case.base_annual) ** (1 / 12)
     points = []
     while at < event:
-        signs = signs_at(case, days, at, radar)
+        signs = confirmed_signs(case, days, at, radar)
         combined = combine(signs, case.risk)
         points.append(
             {
