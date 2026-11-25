@@ -560,6 +560,7 @@ def main(argv: list[str] | None = None) -> int:
     notify_cmd.add_argument(
         "--signals-history", type=Path, default=Path("data/cache-out/signals_history.json")
     )
+    notify_cmd.add_argument("--force", action="store_true", help="send even if nothing changed")
     args = parser.parse_args(argv)
 
     if args.command == "notify":
@@ -575,13 +576,13 @@ def main(argv: list[str] | None = None) -> int:
             notify.load(args.signals) or {},
             (notify.load(args.signals_history) or {}).get("countries", {}),
             today,
+            force=args.force,
         )
         if text is None:
             print("[notify] nothing material changed")
             return 0
         print(f"[notify] digest of {len(text)} characters")
-        notify.send(text)
-        return 0
+        return 0 if notify.send(text) or not args.force else 1
 
     if args.command == "backtest-real":
         return run_backtest_real(args.out, [c for c in args.cases.split(",") if c])

@@ -100,14 +100,16 @@ def digest(
     signals: Mapping,
     history: Mapping[str, list],
     today: date,
+    force: bool = False,
 ) -> str | None:
+    """``force`` builds the weekly-style message even when nothing changed (test runs)."""
     catalogue = {c["key"]: c for c in signals.get("catalogue", [])}
     changes = alert_changes(scenarios, previous) + scenario_changes(scenarios, previous)
     signs = new_signs(signals, history, catalogue)
-    weekly = today.weekday() == 0
+    weekly = today.weekday() == 0 or force
     if not changes and not signs and not weekly:
         return None
-    parts = [f"GeoIntel, {today.strftime('%d.%m.%Y')}"]
+    parts = [f"GeoIntel, {today.strftime('%d.%m.%Y')}" + (" — пробная отправка" if force else "")]
     if changes:
         parts.append("Изменились уровни тревоги и вероятности:\n" + "\n".join(changes))
     if signs:
