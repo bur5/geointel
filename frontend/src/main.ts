@@ -528,7 +528,7 @@ function methodPage() {
     <td>${e.data_window ? `${t().window} ${e.data_window[0]}–${e.data_window[1]}` : ''}<br><small>${escape(lang === 'ru' ? e.resolution_ru : e.resolution_en)}</small></td></tr>`).join('');
   return `<section class="page-head"><h1>${t().methodTitle}</h1><p>${t().methodLead}</p></section>
     <section class="section prose"><h2>${t().method}</h2><p>${escape(lang === 'ru' ? snapshot.method.description_ru : snapshot.method.description_en)}</p>
-      <h3>${t().interval}</h3><p>${t().intervalText}</p><h3>${t().calibration}</h3><p>${t().notCalibrated}</p></section>
+      <h3>${t().interval}</h3><p>${t().intervalText}</p><h3>${t().calibration}</h3><p>${t().notCalibrated}</p><h3>${t().protestTitle}</h3><p>${t().protestText}</p></section>
     <section class="section"><div class="section-head"><h2>${t().eventTypes}</h2></div><table class="table"><tbody>${types}</tbody></table></section>
     <section class="section"><div class="section-head"><h2>${t().sources}</h2></div><table class="table"><tbody>${sources}</tbody></table></section>`;
 }
@@ -596,6 +596,8 @@ const SCENARIO_FOCUS: Record<string, [number, number, number]> = {
   russia_nato_war: [22, 56, 2.6], moldova_transnistria: [29, 47, 5], belarus_front: [27, 53, 4],
   serbia_kosovo: [21, 43, 6], venezuela_guyana: [-61, 6, 4], turkey_greece: [27, 38, 4.5],
   sahel_coups: [5, 15, 3], us_guarantee: [10, 50, 1.6],
+  armenia_azerbaijan: [46, 40, 6], israel_hezbollah: [35.5, 33, 7], hormuz_reopening: [54, 26, 4],
+  georgia_crisis: [43.5, 42, 6], iraq_strikes: [44, 33, 4.5],
 };
 
 function drawExtraMaps() {

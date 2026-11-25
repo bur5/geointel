@@ -20,7 +20,10 @@ def test_cline_coups_and_links():
         '<a href="/datafiles/abc12/download">Coup Data 2.2.2.csv</a>'
         '<a href="/datafiles/zz/download">Codebook.pdf</a>'
     )
-    assert coups.cline_csv_links(page) == ["https://databank.illinois.edu/datafiles/abc12/download"]
+    assert coups.cline_csv_links(page) == [
+        "https://databank.illinois.edu/datafiles/abc12/download",
+        "https://aws-databank-alb.library.illinois.edu/datafiles/abc12/download",
+    ]
 
 
 def test_early_parsers():
@@ -61,19 +64,39 @@ def test_early_parsers():
     assert food["YEM"]["change_1m"] == 12.5
 
 
-def test_telegram_page_and_series():
+def test_telegram_page_and_keyword_tally():
     page = (
-        '<div class="tgme_widget_message_wrap x">'
+        '<div class="tgme_widget_message_wrap x" data-post="rybar/120">'
         '<div class="tgme_widget_message_text js-x" dir="auto">'
-        'Эшелон с техникой</div><time datetime="2026-11-24T10:00:00+00:00"></time></div>'
-        '<div class="tgme_widget_message_wrap y"><div class="tgme_widget_message_text" dir="auto">'
+        "Эшелон с техникой у границы с Латвией</div>"
+        '<time datetime="2026-11-24T10:00:00+00:00"></time></div>'
+        '<div class="tgme_widget_message_wrap y" data-post="rybar/119">'
+        '<div class="tgme_widget_message_text" dir="auto">'
         'Погода</div><time datetime="2026-11-24T11:00:00+00:00"></time></div>'
     )
     posts = telegram.parse_page(page)
     assert [p["date"] for p in posts] == ["2026-11-24", "2026-11-24"]
-    assert telegram.count(posts) == {"2026-11-24": {"posts": 2, "hits": 1}}
-    cache = {"rybar": {f"2026-11-{d:02d}": {"posts": 10, "hits": 1} for d in range(1, 25)}}
-    assert telegram.country_series(cache)["UKR"]["2026-11-01"] == 0.1
+    assert telegram.oldest_id(posts) == 119
+    tally = telegram.count(posts + posts, "rybar")  # a post seen twice counts once
+    assert tally["LVA"]["2026-11-24"] == {"n": 1, "military": 1}
+    assert tally["UKR"]["2026-11-24"] == {"n": 1}  # no country named: channel default
+    merged = telegram.merge(
+        {"rybar": {"2026-11-01": {"posts": 3, "hits": 1}}}, {"rybar": tally}, date(2026, 11, 1)
+    )
+    assert merged["rybar"]["LVA"]["2026-11-24"]["military"] == 1  # old format dropped
+
+
+def test_keyword_categories_and_countries():
+    from geointel.risk.sources import keywords
+
+    assert keywords.countries("Nigeria protests") == set()
+    assert keywords.countries("Niger junta mutiny") == {"NER"}
+    assert keywords.countries("малина и грузить") == set()
+    assert keywords.countries("В Мали переворот") == {"MLI"}
+    assert keywords.categories("Mass protests and a general strike") == {"unrest"}
+    assert "emergency" in keywords.categories("Президент ввёл военное положение")
+    days = {"2026-11-01": {"n": 10, "unrest": 2}, "2026-11-02": {"n": 2, "unrest": 2}}
+    assert keywords.share_series(days, "unrest") == {"2026-11-01": 0.2}
 
 
 def test_sentinel_seasonal_baseline():

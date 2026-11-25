@@ -331,3 +331,43 @@ def test_signs_are_not_counted_twice():
     keys = {s["key"] for s in scenarios.scenario_signs(by_key["russia_nato"], signs, None, set())}
     assert keys == {"hybrid"}  # the judgement is pooled already; the war is in the prior
     assert scenarios.scenario_signs(by_key["us_guarantee"], signs, None, set()) == []
+
+
+def test_telegram_digest():
+    from datetime import date
+
+    from geointel.risk import notify
+
+    def scen(p):
+        return {
+            "scenarios": [
+                {"key": "russia_nato", "title_ru": "Нападение", "horizons": {"1y": {"p": p}}}
+            ]
+        }
+
+    signals = {
+        "generated_at": "2026-11-25T05:00:00+00:00",
+        "catalogue": [{"key": "hybrid", "label_ru": "Диверсии"}],
+        "countries": {"EST": {"signs": [{"key": "hybrid", "status": "active", "value_ru": "x"}]}},
+    }
+    history = {"EST": [["2026-11-24", 1.0, []], ["2026-11-25", 1.2, ["hybrid"]]]}
+    text = notify.digest(scen(0.06), scen(0.04), signals, history, date(2026, 11, 25))
+    assert "4,0% → 6,0%" in text and "Эстония: Диверсии — x" in text
+    quiet = notify.digest(scen(0.04), scen(0.04), {"countries": {}}, {}, date(2026, 11, 25))
+    assert quiet is None  # Wednesday, nothing changed
+    assert notify.send("x") is False  # no secrets in tests
+
+
+def test_caucasus_and_middle_east_scenarios():
+    by_key = {s.key: s for s in scenarios.CATALOGUE}
+    for key in (
+        "armenia_azerbaijan",
+        "israel_hezbollah",
+        "hormuz_reopening",
+        "georgia_crisis",
+        "iraq_strikes",
+    ):
+        assert key in by_key, key
+    assert by_key["hormuz_reopening"].polarity == -1
+    assert by_key["georgia_crisis"].risk == "political_crisis"
+    assert len({s.key for s in scenarios.CATALOGUE}) == len(scenarios.CATALOGUE)

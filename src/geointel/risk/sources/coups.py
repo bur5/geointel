@@ -71,7 +71,18 @@ def parse(text: str, reference_year: int, start_year: int = 1990) -> TypeHistory
 
 CLINE_SOURCE = "Cline Center Coup d'État Project"
 CLINE_LANDING = "https://databank.illinois.edu/datasets/IDB-9651987"
-CLINE_LANDINGS = (CLINE_LANDING, "https://doi.org/10.13012/B2IDB-9651987_V10")
+CLINE_LANDINGS = (
+    "https://aws-databank-alb.library.illinois.edu/datasets/IDB-7095878",
+    CLINE_LANDING,
+)
+# Direct links to "Coup data 2.2.2.csv" (version 10, released 17 February 2026, licence CC BY).
+# The main databank page builds its file list with JavaScript, so the links are kept here and
+# the landing pages are only a fallback for newer versions.
+CLINE_FILES = (
+    "https://databank.illinois.edu/datafiles/yfjyv/download",
+    "https://aws-databank-alb.library.illinois.edu/datafiles/yfjyv/download",
+)
+CLINE_LICENCE = "CC BY 4.0 — Cline Center for Advanced Social Research, University of Illinois"
 
 
 def cline_csv_links(html: str) -> list[str]:
@@ -92,6 +103,7 @@ def cline_csv_links(html: str) -> list[str]:
         name = (after.split("href=")[0] or before).lower()
         if ".csv" in name and "coup" in name:
             links.append("https://databank.illinois.edu" + match.group(1))
+            links.append("https://aws-databank-alb.library.illinois.edu" + match.group(1))
     return list(dict.fromkeys(links))
 
 

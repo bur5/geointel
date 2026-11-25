@@ -5,8 +5,16 @@ from collections.abc import Callable, Mapping
 from datetime import date, timedelta
 from pathlib import Path
 
-from geointel.risk.sources import early, telegram
+from geointel.risk.sources import early, keywords, telegram
 from geointel.risk.warning_signs import make_sign
+
+KEYWORD_SIGNS = {
+    "military": "kw_military",
+    "emergency": "kw_emergency",
+    "coup": "kw_coup",
+    "unrest": "kw_unrest",
+    "hybrid": "kw_hybrid",
+}
 
 
 def _load(path: Path) -> dict:
@@ -213,26 +221,33 @@ def build(
             ),
         )
 
-    # Telegram keyword share per country.
+    # Telegram keyword categories per country: share of posts in each category vs the country's
+    # own baseline (90 days kept between runs).
     tg = telegram.merge(
         _load(cache_in / "telegram.json").get("channels", {}),
         raw.get("telegram") or {},
         today - timedelta(days=90),
     )
     _save(cache_out / "telegram.json", {"channels": tg})
-    for code, series in telegram.country_series(tg).items():
-        stats = early.ratio_to_baseline(series, today, recent_days=3, min_base=14)
-        if stats:
+    recent_from = (today - timedelta(days=3)).isoformat()
+    for code, days in telegram.country_tallies(tg).items():
+        for category, sign_key in KEYWORD_SIGNS.items():
+            series = keywords.share_series(days, category)
+            stats = early.ratio_to_baseline(series, today, recent_days=3, min_base=14)
+            if not stats:
+                continue
+            hits = sum(c.get(category, 0) for d, c in days.items() if d >= recent_from)
+            active = stats["z"] >= 2.5 and stats["ratio"] >= 1.3 and hits >= 3
             add(
                 code,
                 make_sign(
-                    "telegram_keywords",
-                    "active" if stats["z"] >= 2.5 and stats["ratio"] >= 1.3 else "normal",
-                    f"доля постов с ключевыми словами {stats['recent'] * 100:.0f}% "
+                    sign_key,
+                    "active" if active else "normal",
+                    f"{hits} постов за 3 дня; доля {stats['recent'] * 100:.0f}% "
                     f"(норма {stats['baseline'] * 100:.0f}%)",
-                    f"share of keyword posts {stats['recent'] * 100:.0f}% "
+                    f"{hits} posts in 3 days; share {stats['recent'] * 100:.0f}% "
                     f"(normal {stats['baseline'] * 100:.0f}%)",
-                    source="Telegram (public channels)",
+                    source="Telegram (public channels, keywords)",
                 ),
             )
     notes["telegram"] = f"{len(tg)} channels"

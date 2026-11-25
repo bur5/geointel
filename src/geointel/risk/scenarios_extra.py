@@ -514,3 +514,296 @@ EXTRA: tuple[Scenario, ...] = (
     SAHEL_COUPS,
     US_GUARANTEE,
 )
+
+ARMENIA_AZERBAIJAN = Scenario(
+    key="armenia_azerbaijan",
+    title_ru="Вооружённое столкновение Армении и Азербайджана",
+    title_en="Armed clash between Armenia and Azerbaijan",
+    event_ru=(
+        "Обмен огнём между армиями Армении и Азербайджана с погибшими или наступление на "
+        "территорию другой стороны."
+    ),
+    event_en=(
+        "An exchange of fire between the Armenian and Azerbaijani armies causing deaths, or an "
+        "advance into the other side's territory."
+    ),
+    polarity=1,
+    expert=(0.04, 0.01, 0.12),
+    expert_basis_ru=(
+        "До 2023 года столкновения шли почти ежегодно, но после Вашингтонских договорённостей "
+        "августа 2025 года граница спокойна, в апреле 2026 года согласованы проекты "
+        "делимитации; Азербайджан ждёт изменения конституции Армении для подписания договора. "
+        "История до 2023 года плохо описывает новую ситуацию, поэтому не используется. "
+        "Оценка GeoIntel: около 4% в год."
+    ),
+    expert_basis_en=(
+        "Clashes happened almost every year until 2023, but since the August 2025 Washington "
+        "accords the border has been quiet; draft delimitation documents were agreed in April "
+        "2026, and Azerbaijan awaits a change to Armenia's constitution before signing the treaty. "
+        "Pre-2023 history describes the new situation poorly and is not used. GeoIntel judgement: "
+        "about 4% a year."
+    ),
+    side_a=_t("AZE"),
+    side_b=_t("ARM"),
+    market_queries=("Armenia Azerbaijan",),
+    market_groups=(("armenia",), ("azerbaijan",), ("war", "clash", "attack", "invade")),
+    market_exclude=("peace deal signed", "football", "eurovision"),
+    use_history=False,
+    milex=_t("ARM AZE"),
+    gpr=_t("ARM AZE"),
+    exposures=(
+        Exposure("party", _t("ARM AZE"), _PARTIES, _PARTIES_EN),
+        Exposure(
+            "frontline",
+            _t("GEO IRN TUR"),
+            "Соседи: транзит через Грузию, граница Ирана с Сюником, союз Турции с Азербайджаном.",
+            "Neighbours: transit via Georgia, Iran's border with Syunik, Turkey's alliance with "
+            "Azerbaijan.",
+        ),
+        Exposure(
+            "economic",
+            _t("RUS USA"),
+            "Россия теряет роль посредника; США продвигают транспортный маршрут TRIPP.",
+            "Russia is losing its mediator role; the US is promoting the TRIPP transit route.",
+        ),
+    ),
+)
+
+ISRAEL_HEZBOLLAH = Scenario(
+    key="israel_hezbollah",
+    title_ru="Возобновление войны Израиля и «Хезболлы»",
+    title_en="Renewed war between Israel and Hezbollah",
+    event_ru=(
+        "«Хезболла» обстреливает территорию Израиля, или Израиль расширяет наземную операцию в "
+        "Ливане за пределы своей нынешней зоны безопасности, или израильские удары за сутки "
+        "убивают в Ливане не меньше 25 человек."
+    ),
+    event_en=(
+        "Hezbollah fires on Israeli territory, or Israel extends its ground operation in Lebanon "
+        "beyond its current security zone, or Israeli strikes kill at least 25 people in Lebanon "
+        "in a day."
+    ),
+    polarity=1,
+    expert=(0.5, 0.3, 0.75),
+    expert_basis_ru=(
+        "После войны марта–апреля 2026 года действует перемирие (с июня), но Израиль продолжает "
+        "удары по «Хезболле», в сентябре прошла волна смертоносных ударов, а «Хезболла» "
+        "соглашение не признаёт. Пока продолжается противостояние США и Ирана, новая вспышка "
+        "вероятна. Оценка GeoIntel: около 50% в год."
+    ),
+    expert_basis_en=(
+        "A truce has held since June after the March–April 2026 war, but Israel keeps striking "
+        "Hezbollah, a wave of deadly strikes came in September, and Hezbollah does not accept the "
+        "deal. While the US–Iran confrontation lasts, a new flare-up is likely. GeoIntel "
+        "judgement: about 50% a year."
+    ),
+    side_a=_t("ISR"),
+    side_b=_t("LBN"),
+    market_queries=("Israel Hezbollah", "Israel Lebanon"),
+    market_groups=(("israel",), ("hezbollah", "lebanon"), ("war", "strike", "invade", "ground")),
+    market_exclude=("ceasefire holds", "election"),
+    use_history=False,
+    gpr=_t("ISR LBN"),
+    exposures=(
+        Exposure("party", _t("ISR LBN"), _PARTIES, _PARTIES_EN),
+        Exposure(
+            "frontline",
+            _t("SYR"),
+            "Соседняя страна и бывший путь снабжения «Хезболлы».",
+            "Neighbouring state and former supply route for Hezbollah.",
+        ),
+        Exposure(
+            "ally",
+            _t("IRN USA"),
+            "Иран поддерживает «Хезболлу»; США — союзник Израиля и посредник перемирия.",
+            "Iran backs Hezbollah; the US is Israel's ally and brokered the truce.",
+        ),
+        Exposure(
+            "economic",
+            _t("CYP JOR EGY"),
+            "Беженцы, авиасообщение, морские пути Восточного Средиземноморья.",
+            "Refugees, air routes, Eastern Mediterranean shipping.",
+        ),
+    ),
+)
+
+HORMUZ_REOPENING = Scenario(
+    key="hormuz_reopening",
+    title_ru="Восстановление судоходства через Ормузский пролив",
+    title_en="Shipping through the Strait of Hormuz returns to normal",
+    event_ru=(
+        "Не меньше 30 дней подряд коммерческие суда проходят через Ормузский пролив без "
+        "нападений, а число проходов не ниже трёх четвертей довоенного (до 28 февраля 2026 года)."
+    ),
+    event_en=(
+        "For at least 30 days in a row commercial ships transit the Strait of Hormuz without "
+        "attacks, at no less than three quarters of the pre-war level (before 28 February 2026)."
+    ),
+    polarity=-1,
+    expert=(0.3, 0.1, 0.6),
+    expert_basis_ru=(
+        "С начала войны 28 февраля 2026 года пролив почти закрыт: Иран ограничивает проход, США "
+        "блокируют иранские порты и проводят суда по южному коридору; нападения на танкеры "
+        "продолжаются и в ноябре 2026 года. Нормализация требует соглашения США и Ирана. "
+        "Оценка GeoIntel: около 30% в год."
+    ),
+    expert_basis_en=(
+        "Since the war began on 28 February 2026 the strait has been almost closed: Iran restricts "
+        "passage, the US blockades Iranian ports and escorts ships through a southern corridor, "
+        "and attacks on tankers continued in November 2026. Normal traffic needs a US–Iran deal. "
+        "GeoIntel judgement: about 30% a year."
+    ),
+    side_a=_t("IRN"),
+    side_b=_t("USA"),
+    market_queries=("Strait of Hormuz", "Hormuz reopen"),
+    market_groups=(("hormuz",), ("reopen", "open", "normal", "resume")),
+    market_exclude=("close", "closed"),
+    use_history=False,
+    gpr=_t("IRN SAU ARE"),
+    war_context=_t("IRN USA ISR"),
+    exposures=(
+        Exposure("party", _t("IRN USA"), _PARTIES, _PARTIES_EN),
+        Exposure(
+            "frontline",
+            _t("OMN ARE SAU QAT KWT BHR IRQ"),
+            "Страны Залива: экспорт нефти и газа через пролив, удары по инфраструктуре.",
+            "Gulf states: oil and gas exports through the strait, strikes on infrastructure.",
+        ),
+        Exposure(
+            "economic",
+            _t("CHN IND JPN KOR PAK"),
+            "Крупнейшие покупатели нефти и газа из Залива.",
+            "Largest buyers of Gulf oil and gas.",
+        ),
+        Exposure(
+            "economic",
+            tuple(EU),
+            "Цены на энергию в ЕС.",
+            "Energy prices in the EU.",
+        ),
+    ),
+)
+
+GEORGIA_CRISIS = Scenario(
+    key="georgia_crisis",
+    title_ru="Острый политический кризис в Грузии",
+    title_en="Acute political crisis in Georgia",
+    event_ru=(
+        "Внеочередная смена правительства или президента, введение чрезвычайного положения, либо "
+        "гибель участников протестов при их разгоне."
+    ),
+    event_en=(
+        "An irregular change of government or president, a state of emergency, or protesters "
+        "killed when protests are dispersed."
+    ),
+    polarity=1,
+    expert=(0.07, 0.03, 0.15),
+    expert_basis_ru=(
+        "С ноября 2024 года в Тбилиси идут ежедневные протесты против «Грузинской мечты»; власти "
+        "ужесточили законы о собраниях, правозащитники насчитывают около 90–120 политзаключённых. "
+        "Протесты к 2026 году ослабли, правительство контролирует силовиков. Оценка GeoIntel: "
+        "около 7% в год."
+    ),
+    expert_basis_en=(
+        "Daily protests against Georgian Dream have run in Tbilisi since November 2024; the "
+        "authorities have tightened assembly laws and rights groups count about 90–120 political "
+        "prisoners. Protests had weakened by 2026 and the government controls the security forces. "
+        "GeoIntel judgement: about 7% a year."
+    ),
+    market_queries=("Georgia protests", "Georgian Dream"),
+    market_groups=(("georgia", "georgian"), ("protest", "resign", "government", "emergency")),
+    market_exclude=("atlanta", "bulldogs", "senate", "governor"),
+    use_history=False,
+    risk="political_crisis",
+    exposures=(
+        Exposure(
+            "party",
+            _t("GEO"),
+            "Страна сценария.",
+            "Scenario country.",
+        ),
+        Exposure(
+            "frontline",
+            _t("RUS ARM AZE TUR"),
+            "Соседи; Россия занимает Абхазию и Южную Осетию.",
+            "Neighbours; Russia occupies Abkhazia and South Ossetia.",
+        ),
+        Exposure(
+            "economic",
+            tuple(EU),
+            "Грузия — кандидат в ЕС; переговоры о вступлении приостановлены её правительством.",
+            "Georgia is an EU candidate; its government suspended accession talks.",
+        ),
+    ),
+)
+
+IRAQ_STRIKES = Scenario(
+    key="iraq_strikes",
+    title_ru="Удары по Ираку в войне вокруг Ирана",
+    title_en="Strikes in Iraq in the war around Iran",
+    event_ru=(
+        "Удары США, Израиля или Саудовской Аравии по территории Ирака с погибшими, либо атаки "
+        "иракских группировок, убившие военных или граждан США."
+    ),
+    event_en=(
+        "Strikes by the US, Israel or Saudi Arabia on Iraqi territory causing deaths, or attacks "
+        "by Iraqi armed groups killing US troops or citizens."
+    ),
+    polarity=1,
+    expert=(0.6, 0.35, 0.85),
+    expert_basis_ru=(
+        "В 2026 году такие удары уже были: по данным CENTCOM, с февраля по апрель группировки в "
+        "Ираке предприняли более 600 попыток атак на американцев, а 28–29 июля США и "
+        "Саудовская Аравия ударили по базам «Хашд аш-Шааби» в семи провинциях. Пока война США и "
+        "Ирана не закончена, повторение вероятно. Оценка GeoIntel: около 60% в год."
+    ),
+    expert_basis_en=(
+        "Such strikes already happened in 2026: CENTCOM counted over 600 attempted militia attacks "
+        "on Americans in Iraq from February to April, and on 28–29 July the US and Saudi Arabia "
+        "struck Popular Mobilisation Forces bases in seven provinces. While the US–Iran war lasts, "
+        "a repeat is likely. GeoIntel judgement: about 60% a year."
+    ),
+    side_a=_t("USA SAU ISR"),
+    side_b=_t("IRQ"),
+    market_queries=("strike Iraq", "Iraq militia"),
+    market_groups=(("iraq",), ("strike", "attack", "militia")),
+    market_exclude=("election", "oil price"),
+    use_history=False,
+    war_context=_t("IRN USA"),
+    exposures=(
+        Exposure("party", _t("IRQ"), "Территория сценария.", "Scenario territory."),
+        Exposure(
+            "party",
+            _t("USA SAU ISR IRN"),
+            "Участники противостояния на территории Ирака.",
+            "Parties to the confrontation on Iraqi soil.",
+        ),
+        Exposure(
+            "frontline",
+            _t("SYR JOR KWT"),
+            "Соседи с базами США или ударами по ним.",
+            "Neighbours hosting US bases or hit by attacks.",
+        ),
+    ),
+    warnings=(
+        Warning(
+            "2026-07-29",
+            "Al Jazeera",
+            "https://aljazeera.com/news/2026/7/29/saudi-arabia-us-carry-out-strikes-on-iran-backed-groups-in-iraq",
+            1,
+            "Совместные удары США и Саудовской Аравии по базам «Хашд аш-Шааби»: по данным "
+            "группировки, не меньше 20 погибших.",
+            "Joint US–Saudi strikes on Popular Mobilisation Forces bases: at least 20 killed, "
+            "according to the group.",
+        ),
+    ),
+)
+
+EXTRA = (
+    *EXTRA,
+    ARMENIA_AZERBAIJAN,
+    ISRAEL_HEZBOLLAH,
+    HORMUZ_REOPENING,
+    GEORGIA_CRISIS,
+    IRAQ_STRIKES,
+)
