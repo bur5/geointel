@@ -119,3 +119,31 @@ def histories(events: list[dict], reference_year: int) -> dict[EventType, TypeHi
             records=records,
         )
     return result
+
+
+def current_alerts(features: Iterable[Mapping], today, days: int = 14) -> dict[str, list[dict]]:
+    """Orange/Red events still running or ended within ``days`` days, per country."""
+    from datetime import date as _date
+
+    result: dict[str, list[dict]] = {}
+    for feature in features:
+        event = normalize(feature)
+        if event is None:
+            continue
+        props = _lower(feature.get("properties") or {})
+        end = str(props.get("todate") or props.get("fromdate") or "")[:10]
+        try:
+            age = (today - _date.fromisoformat(end)).days
+        except ValueError:
+            continue
+        if age > days:
+            continue
+        item = {
+            "hazard": event["hazard"],
+            "name": event["name"],
+            "alert": event["alert"],
+            "date": str(props.get("fromdate") or "")[:10],
+        }
+        for code in event["countries"]:
+            result.setdefault(code, []).append(item)
+    return result

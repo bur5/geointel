@@ -77,7 +77,7 @@ test('scenarios, links graph and migration', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 1000 });
   await page.goto('/#scenarios');
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Сценарии');
-  await expect(page.locator('.scenario-tabs button')).toHaveCount(6);
+  await expect(page.locator('.scenario-tabs button')).toHaveCount(7);
   await page.locator('[data-scenario="russia_nato"]').first().click();
   await expect(page.locator('#scenario-detail h2')).toHaveText('Военное нападение России на страну НАТО');
   await expect(page.locator('.table.comp tbody tr')).not.toHaveCount(0);

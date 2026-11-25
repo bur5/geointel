@@ -4,7 +4,7 @@ import argparse
 import json
 import sys
 from collections.abc import Callable
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 
 from geointel.risk.model import TypeHistory
@@ -26,10 +26,14 @@ def load_histories(
         fcdo,
         fts,
         gdacs,
+        gdelt,
+        metaculus,
         migration,
         ncei_tsunami,
+        newswire,
         outlook,
         polymarket,
+        sentinel,
         trade,
         ucdp_acd,
         usgs,
@@ -70,7 +74,9 @@ def load_histories(
         hazard_events.extend(usgs.events(text))
 
     def gdacs_alerts(path: Path) -> None:
-        events = gdacs.normalize_all(json.loads(path.read_text()).get("features", []))
+        features = json.loads(path.read_text()).get("features", [])
+        extras["hazard_alerts"] = gdacs.current_alerts(features, datetime.now(UTC).date())
+        events = gdacs.normalize_all(features)
         histories.update(gdacs.histories(events, reference_year))
         hazard_events.extend(events)
 
@@ -141,10 +147,30 @@ def load_histories(
         periods = [r.get("period") for r in payload["responses"] if r.get("period")]
         extras["trade_year"] = max(set(periods), key=periods.count) if periods else None
 
+    def events_news(path: Path) -> None:
+        extras["gdelt_new"] = json.loads(path.read_text()).get("days", {})
+
+    def gps(path: Path) -> None:
+        extras["gps_files"] = json.loads(path.read_text()).get("files", {})
+
+    def community(path: Path) -> None:
+        extras["community"] = metaculus.questions(json.loads(path.read_text())["payloads"])
+
+    def radar(path: Path) -> None:
+        payload = json.loads(path.read_text())
+        extras["radar"] = {
+            key: sentinel.series(response) for key, response in payload.get("sites", {}).items()
+        }
+
+    def news(path: Path) -> None:
+        extras["news_new"] = json.loads(path.read_text()).get("entries", [])
+
     def admin_regions(path: Path) -> None:
         from geointel.risk.regions import RegionIndex, annotate
 
-        annotate(hazard_events, RegionIndex.from_bytes(path.read_bytes()))
+        index = RegionIndex.from_bytes(path.read_bytes())
+        extras["region_index"] = index
+        annotate(hazard_events, index)
 
     loaders: list[tuple[str, str, Callable[[Path], None]]] = [
         ("ucdp_acd", ucdp_acd.SOURCE, ucdp),
@@ -166,6 +192,11 @@ def load_histories(
         ("unhcr", migration.UNHCR_SOURCE, displaced),
         ("eurostat", migration.EUROSTAT_SOURCE, asylum),
         ("trade", trade.TRADE_SOURCE, bilateral),
+        ("gdelt", gdelt.SOURCE, events_news),
+        ("gpsjam", "GPSJam.org (ADS-B navigation accuracy)", gps),
+        ("metaculus", metaculus.SOURCE, community),
+        ("sentinel", sentinel.SOURCE, radar),
+        ("newswire", newswire.SOURCE, news),
         ("regions", "Natural Earth admin-1 regions", admin_regions),  # must stay last
     ]
     for key, name, loader in loaders:
@@ -191,6 +222,125 @@ def load_histories(
             }
         )
     return histories, sources, hazard_events
+
+
+def _cache_dirs() -> tuple[Path, Path]:
+    import os
+
+    return (
+        Path(os.environ.get("GEOINTEL_CACHE_DIR", "data/cache")),
+        Path(os.environ.get("GEOINTEL_CACHE_OUT", "data/cache-out")),
+    )
+
+
+def _load(path: Path) -> dict | list:
+    try:
+        return json.loads(path.read_text()) if path.is_file() else {}
+    except ValueError:
+        return {}
+
+
+def build_signal_layer(snapshot: dict, extras: dict, sources: list[dict], now) -> tuple[dict, dict]:
+    """Merge daily caches, compute warning signs per country and inputs for scenarios."""
+    from geointel.risk.scenarios import CATALOGUE
+    from geointel.risk.sources import gdelt, gpsjam, newswire, sentinel
+    from geointel.risk.warning_signs import build_signals
+
+    cache_in, cache_out = _cache_dirs()
+    cache_out.mkdir(parents=True, exist_ok=True)
+    today = now.date()
+    status = {s["key"]: s["status"] for s in sources}
+
+    # GDELT
+    days = gdelt.merge_days(
+        _load(cache_in / "gdelt.json").get("days", {}), extras.get("gdelt_new", {}), today
+    )
+    (cache_out / "gdelt.json").write_text(json.dumps({"days": days}, separators=(",", ":")))
+    gdelt_z = gdelt.zscores(days, today) if days else None
+    pairs = set()
+    for scenario in CATALOGUE:
+        for a in scenario.side_a:
+            for e in scenario.exposures:
+                if e.role in ("party", "frontline"):
+                    pairs |= {(a, c) for c in e.countries if c != a}
+    dyad_trend = gdelt.dyad_trend(days, sorted(pairs), today) if days else {}
+    print(f"[signals] gdelt days={len(days)} countries_with_z={len(gdelt_z or {})}")
+
+    # GPS interference
+    gps_days = _load(cache_in / "gpsjam.json").get("days", {})
+    index = extras.get("region_index")
+    if extras.get("gps_files") and index is not None:
+        try:
+            import h3
+
+            parsed = {
+                day: gpsjam.parse_day(text, index.country_of, h3.cell_to_latlng)
+                for day, text in extras["gps_files"].items()
+            }
+            gps_days = gpsjam.merge_days(gps_days, parsed, today)
+        except Exception as exc:  # noqa: BLE001 - GPS data is optional
+            print(f"[signals] gpsjam parse failed: {type(exc).__name__}: {exc}")
+    (cache_out / "gpsjam.json").write_text(json.dumps({"days": gps_days}, separators=(",", ":")))
+    gps = gpsjam.summary(gps_days, today) if gps_days else None
+    print(f"[signals] gps days={len(gps_days)} countries={len(gps or {})}")
+
+    # Travel advice history
+    history = _load(cache_in / "advisories.json").get("countries", {})
+    stamp = today.isoformat()
+    for country in snapshot["countries"]:
+        us, uk = country.get("advisory") or {}, country.get("advisory_uk") or {}
+        text = str(us.get("summary") or "").lower()
+        departure = "ordered departure" in text or "authorized departure" in text
+        rows = [r for r in history.get(country["iso3"], []) if r[0] != stamp]
+        rows.append([stamp, us.get("level"), uk.get("level"), departure])
+        history[country["iso3"]] = [
+            r for r in rows if (today - date.fromisoformat(r[0])).days <= 180
+        ]
+    (cache_out / "advisories.json").write_text(
+        json.dumps({"countries": history}, separators=(",", ":"))
+    )
+
+    # News-classified signs
+    news = newswire.merge(
+        _load(cache_in / "news.json").get("entries", []),
+        extras.get("news_new", []),
+        (today - timedelta(days=60)).isoformat(),
+    )
+    (cache_out / "news.json").write_text(json.dumps({"entries": news}, ensure_ascii=False))
+
+    # Satellite radar
+    satellite: dict[str, list[dict]] = {}
+    for site in sentinel.SITES:
+        result = sentinel.change(extras.get("radar", {}).get(site.key, []))
+        if result is None:
+            continue
+        for code in (*site.countries, site.actor):
+            satellite.setdefault(code, []).append(
+                {"name_ru": site.name_ru, "name_en": site.name_en, **result}
+            )
+
+    signals = build_signals(
+        snapshot,
+        today=today,
+        gdelt_z=gdelt_z,
+        gps=gps,
+        advisory_history=history,
+        milex=extras.get("milex"),
+        hazard_alerts=extras.get("hazard_alerts"),
+        satellite=satellite,
+        news_entries=news,
+        status=status,
+        generated_at=now,
+    )
+    signals["dyads"] = dyad_trend
+    top = sorted(signals["countries"].items(), key=lambda kv: -kv[1]["max_factor"])[:15]
+    print("[signals] top: " + ", ".join(f"{k} x{v['max_factor']:.2f}" for k, v in top))
+    country_signs = {k: v["signs"] for k, v in signals["countries"].items()}
+    return signals, {
+        "country_signs": country_signs,
+        "dyad_trend": dyad_trend,
+        "community": extras.get("community"),
+    }
 
 
 def _print_summary(snapshot: dict) -> None:
@@ -231,6 +381,7 @@ def main(argv: list[str] | None = None) -> int:
         print(json.dumps(manifest, indent=2))
         return 0
 
+    from geointel.risk import backtest
     from geointel.risk.hazards import build_hazard_details
     from geointel.risk.links import build_links
     from geointel.risk.scenarios import build_scenarios
@@ -253,6 +404,13 @@ def main(argv: list[str] | None = None) -> int:
     (args.out.parent / "hazards.json").write_text(
         json.dumps(details, ensure_ascii=False, separators=(",", ":"))
     )
+    signals, scenario_inputs = build_signal_layer(snapshot, extras, sources, now)
+    (args.out.parent / "signals.json").write_text(
+        json.dumps(signals, ensure_ascii=False, separators=(",", ":"))
+    )
+    (args.out.parent / "backtest.json").write_text(
+        json.dumps(backtest.run(), ensure_ascii=False, separators=(",", ":"))
+    )
     scenarios = build_scenarios(
         dyads=extras.get("dyads"),
         last_conflict_year=extras.get("ucdp_last_year"),
@@ -261,6 +419,7 @@ def main(argv: list[str] | None = None) -> int:
         milex=extras.get("milex", {}),
         gpr=extras.get("gpr", {}),
         generated_at=now,
+        **scenario_inputs,
     )
     for item in scenarios["scenarios"]:
         horizons = " ".join(f"{h}={v['p']:.3f}" for h, v in item["horizons"].items())

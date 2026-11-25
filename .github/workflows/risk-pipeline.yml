@@ -27,7 +27,7 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 80
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -41,15 +41,26 @@ jobs:
           mkdir -p data
           if git fetch --depth=1 origin risk-data 2>/dev/null; then
             git show FETCH_HEAD:latest/risk.json > data/previous.json 2>/dev/null || rm -f data/previous.json
-            git show FETCH_HEAD:cache/trade.json > data/trade-cache.json 2>/dev/null || rm -f data/trade-cache.json
+            mkdir -p data/cache
+            for f in $(git ls-tree --name-only FETCH_HEAD cache/ 2>/dev/null); do
+              git show "FETCH_HEAD:$f" > "data/$f"
+            done
           fi
 
       - name: Fetch public datasets
         env:
-          GEOINTEL_TRADE_CACHE: data/trade-cache.json
+          GEOINTEL_CACHE_DIR: data/cache
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          COMTRADE_API_KEY: ${{ secrets.COMTRADE_API_KEY }}
+          METACULUS_API_TOKEN: ${{ secrets.METACULUS_API_TOKEN }}
+          CDSE_CLIENT_ID: ${{ secrets.CDSE_CLIENT_ID }}
+          CDSE_CLIENT_SECRET: ${{ secrets.CDSE_CLIENT_SECRET }}
         run: python -m geointel.risk fetch --raw-dir data/raw
 
       - name: Build snapshot
+        env:
+          GEOINTEL_CACHE_DIR: data/cache
+          GEOINTEL_CACHE_OUT: data/cache-out
         run: |
           prev=""
           [ -f data/previous.json ] && prev="--previous data/previous.json"
@@ -63,6 +74,8 @@ jobs:
             data/site/hazards.json
             data/site/scenarios.json
             data/site/links.json
+            data/site/signals.json
+            data/site/backtest.json
             data/raw/manifest.json
 
       - name: Publish to risk-data branch
@@ -82,6 +95,9 @@ jobs:
           fi
           mkdir -p latest history cache
           [ -f ../data/raw/trade.json ] && cp ../data/raw/trade.json cache/trade.json
+          cp ../data/cache-out/*.json cache/ 2>/dev/null || true
+          cp ../data/site/signals.json latest/signals.json
+          cp ../data/site/backtest.json latest/backtest.json
           cp ../data/site/risk.json latest/risk.json
           cp ../data/site/hazards.json latest/hazards.json
           cp ../data/site/scenarios.json latest/scenarios.json
@@ -119,6 +135,8 @@ jobs:
           cp ../snapshot/site/hazards.json public/data/hazards.json
           cp ../snapshot/site/scenarios.json public/data/scenarios.json
           cp ../snapshot/site/links.json public/data/links.json
+          cp ../snapshot/site/signals.json public/data/signals.json
+          cp ../snapshot/site/backtest.json public/data/backtest.json
           npm run build
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3

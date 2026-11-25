@@ -61,6 +61,30 @@ class RegionIndex:
             )
             self.by_country[iso3].append(((min(xs), min(ys), max(xs), max(ys)), rings, names))
 
+    def country_of(self, lat: float, lon: float) -> str | None:
+        """Country (ISO3) whose admin-1 polygon contains the point, if any."""
+        if not hasattr(self, "_bounds"):
+            self._bounds = {
+                code: (
+                    min(f[0][0] for f in feats),
+                    min(f[0][1] for f in feats),
+                    max(f[0][2] for f in feats),
+                    max(f[0][3] for f in feats),
+                )
+                for code, feats in self.by_country.items()
+            }
+        for code, (x0, y0, x1, y1) in self._bounds.items():
+            if not (x0 <= lon <= x1 and y0 <= lat <= y1):
+                continue
+            for (fx0, fy0, fx1, fy1), rings, _names in self.by_country[code]:
+                if (
+                    fx0 <= lon <= fx1
+                    and fy0 <= lat <= fy1
+                    and any(_inside(lon, lat, r) for r in rings)
+                ):
+                    return code
+        return None
+
     @classmethod
     def from_bytes(cls, payload: bytes) -> "RegionIndex":
         return cls(json.loads(payload))

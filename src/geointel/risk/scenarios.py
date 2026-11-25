@@ -14,7 +14,7 @@ Nothing here is calibrated yet and every scenario says so.
 
 import math
 from collections.abc import Iterable, Mapping
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import UTC, date, datetime
 
 from geointel.risk.betamath import beta_ppf
@@ -53,6 +53,18 @@ class Warning:
 
 
 @dataclass(frozen=True)
+class Assessment:
+    """A published official judgement, mapped to a probability range by its wording."""
+
+    date: str
+    source: str
+    url: str
+    phrase: str  # key of warning_signs.ESTIMATIVE
+    years: float  # the period the judgement refers to
+    quote_en: str
+
+
+@dataclass(frozen=True)
 class Scenario:
     key: str
     title_ru: str
@@ -72,6 +84,9 @@ class Scenario:
     market_inverse: tuple[tuple[str, ...], ...] = ()
     # Words that mark a closer fit to the scenario definition; such markets are preferred.
     market_prefer: tuple[str, ...] = ()
+    metaculus_queries: tuple[str, ...] = ()
+    assessments: tuple[Assessment, ...] = ()
+    use_history: bool = True  # off where the dyad's past says nothing about this event type
     milex: tuple[str, ...] = ()
     gpr: tuple[str, ...] = ()
     war_context: tuple[str, ...] = ()  # countries whose ongoing interstate war raises risk
@@ -261,6 +276,18 @@ CATALOGUE: tuple[Scenario, ...] = (
         ),
         market_exclude=("ceasefire", "peace", "join", "summit", "meet ", "visit"),
         market_prefer=("invade", "invasion"),
+        metaculus_queries=("Russia NATO", "Russia attack NATO", "Russia Baltic"),
+        assessments=(
+            Assessment(
+                "2026-09-24",
+                "Danish Defence Intelligence Service",
+                "https://euronews.com/2026/09/24/denmark-says-russian-invasion-of-nato-country-highly-unlikely-but-cannot-be-ruled-out",
+                "low",
+                1.0,
+                "There is a low but growing risk that Russia will launch a limited military "
+                "attack against one or several NATO countries bordering Russia",
+            ),
+        ),
         milex=_t("RUS POL EST LVA LTU DEU FIN"),
         gpr=_t("RUS POL DEU FIN"),
         war_context=_t("RUS UKR"),
@@ -668,6 +695,49 @@ CATALOGUE: tuple[Scenario, ...] = (
 )
 
 
+def _large_war() -> Scenario:
+    limited = CATALOGUE[0]
+    return replace(
+        limited,
+        key="russia_nato_war",
+        title_ru="Большая война России с НАТО",
+        title_en="Large-scale war between Russia and NATO",
+        event_ru=(
+            "Боевые действия между вооружёнными силами России и нескольких государств НАТО, "
+            "идущие дольше семи дней, или военный ответ альянса по статье 5 на нападение России."
+        ),
+        event_en=(
+            "Fighting between the armed forces of Russia and several NATO states lasting more "
+            "than seven days, or an Article 5 military response to a Russian attack."
+        ),
+        expert=(0.007, 0.002, 0.025),
+        expert_basis_ru=(
+            "Ограниченное нападение может перерасти в большую войну лишь в части случаев; "
+            "разведки не видят подготовки к вторжению и считают, что для региональной войны "
+            "России нужны годы. Оценка GeoIntel: около 0,7% в год, диапазон 0,2–2,5%."
+        ),
+        expert_basis_en=(
+            "Only some limited attacks would escalate into a large war; intelligence services "
+            "see no preparation for an invasion and judge that Russia needs years to be ready "
+            "for a regional war. GeoIntel judgement: about 0.7% a year, range 0.2–2.5%."
+        ),
+        market_prefer=("war", "invade"),
+        use_history=False,
+        assessments=(
+            Assessment(
+                "2026-09-24",
+                "Danish Defence Intelligence Service",
+                "https://euronews.com/2026/09/24/denmark-says-russian-invasion-of-nato-country-highly-unlikely-but-cannot-be-ruled-out",
+                "highly unlikely",
+                3.0,
+                "an outright invasion was highly unlikely but possible",
+            ),
+        ),
+    )
+
+
+CATALOGUE = (CATALOGUE[0], _large_war(), *CATALOGUE[1:])
+
 # --------------------------------------------------------------------------------------
 # Components
 
@@ -823,103 +893,257 @@ def _warning_date(value: str) -> date:
     return date.fromisoformat(value if len(value) > 7 else f"{value}-01")
 
 
-def indicators(
+def watched_countries(scenario: Scenario) -> set[str]:
+    core = {c for e in scenario.exposures if e.role in ("party", "frontline") for c in e.countries}
+    return core | set(scenario.milex) | set(scenario.gpr)
+
+
+def scenario_signs(
+    scenario: Scenario,
+    country_signs: Mapping[str, list[dict]],
+    dyad_trend: Mapping[str, dict] | None,
+    active_interstate: set[str],
+) -> list[dict]:
+    """Active interstate signs in the scenario's parties and front-line countries."""
+    from geointel.risk.warning_signs import INTERSTATE, SPEC
+
+    found: list[dict] = []
+    for code in sorted(watched_countries(scenario)):
+        for sign in country_signs.get(code, []):
+            spec = SPEC.get(sign["key"])
+            if sign.get("status") != "active" or spec is None or INTERSTATE not in spec.applies:
+                continue
+            if (
+                sign.get("actor")
+                and scenario.side_a
+                and sign["actor"]
+                not in (
+                    *scenario.side_a,
+                    *scenario.side_b,
+                )
+            ):
+                continue
+            found.append({**sign, "country": code})
+    for pair, trend in (dyad_trend or {}).items():
+        a, b = pair.split("-")
+        if (
+            (a in scenario.side_a or b in scenario.side_a)
+            and trend["ratio"] >= 2
+            and trend["recent"] >= 10
+        ):
+            found.append(
+                {
+                    "key": "gdelt_external",
+                    "group": "events",
+                    "status": "active",
+                    "lr": SPEC["gdelt_external"].lr,
+                    "value_ru": f"{a}–{b}: {trend['recent']} событий за 30 дней (норма "
+                    f"{trend['expected']})",
+                    "value_en": f"{a}–{b}: {trend['recent']} events in 30 days (normal "
+                    f"{trend['expected']})",
+                    "source": "GDELT",
+                    "country": b,
+                }
+            )
+    at_war = [c for c in scenario.war_context if c in active_interstate]
+    if at_war:
+        found.append(
+            {
+                "key": "ongoing_war",
+                "group": "intel",
+                "status": "active",
+                "lr": SPEC["ongoing_war"].lr,
+                "value_ru": "идёт межгосударственная война: " + ", ".join(at_war),
+                "value_en": "interstate war under way: " + ", ".join(at_war),
+                "source": "UCDP/PRIO",
+                "country": at_war[0],
+            }
+        )
+    return found
+
+
+def structural_signs(
     scenario: Scenario,
     milex: Mapping[str, dict],
     gpr: Mapping[str, dict],
-    active_interstate: set[str],
-    near: dict | None,
-    today: date,
-) -> list[dict]:
-    """Escalation (+1) / de-escalation (-1) signals with their evidence."""
-    signals: list[dict] = []
-    rising = [
-        (c, milex[c]) for c in scenario.milex if c in milex and milex[c].get("change5") is not None
+) -> dict[str, list[dict]]:
+    """Minimal per-country signs when the full signal layer is not available."""
+    from geointel.risk.warning_signs import SPEC
+
+    result: dict[str, list[dict]] = {}
+    for code in scenario.milex:
+        m = milex.get(code) or {}
+        if m.get("change5") is not None and m["change5"] >= 1:
+            result.setdefault(code, []).append(
+                {
+                    "key": "milex_rise",
+                    "group": "economy_prep",
+                    "status": "active",
+                    "lr": SPEC["milex_rise"].lr,
+                    "source": "SIPRI",
+                    "value_ru": f"{code} {m['value']:.1f}% ({m['change5']:+.1f})",
+                    "value_en": f"{code} {m['value']:.1f}% ({m['change5']:+.1f})",
+                }
+            )
+    for code in scenario.gpr:
+        r = (gpr.get(code) or {}).get("ratio_12m")
+        if r and r >= 1.5:
+            result.setdefault(code, []).append(
+                {
+                    "key": "gpr_high",
+                    "group": "intel",
+                    "status": "active",
+                    "lr": SPEC["gpr_high"].lr,
+                    "source": "GPR",
+                    "value_ru": f"{code} ×{r:.2f}",
+                    "value_en": f"{code} ×{r:.2f}",
+                }
+            )
+    return result
+
+
+def near_term_indicator(near: dict | None) -> dict | None:
+    if near is None:
+        return None
+    change = near.get("month_change")
+    if near.get("inverse") and change is not None:
+        change = -change
+    trend = "" if change is None else f"; {change * 100:+.1f} pp / 30d"
+    direction = 0 if change is None else 1 if change > 0.03 else -1 if change < -0.03 else 0
+    value = (
+        f"{near['p'] * 100:.1f}% → {near['end']}{trend}. "
+        f"{'NOT: ' if near.get('inverse') else ''}{near['question'][:120]}"
+    )
+    return {
+        "key": "market_trend",
+        "group": "market",
+        "direction": direction,
+        "lr": 1.0,
+        "label_ru": "Рынок прогнозов: ближайший вопрос (не входит в расчёт)",
+        "label_en": "Prediction market: nearest question (not in the calculation)",
+        "value_ru": value,
+        "value_en": value,
+        "value": value,
+        "source": "Polymarket",
+        "countries": [],
+    }
+
+
+def indicator_list(signs: list[dict], near: dict | None) -> list[dict]:
+    """One row per sign key, listing the countries where it is active."""
+    from geointel.risk.warning_signs import SPEC
+
+    rows: dict[str, dict] = {}
+    for sign in signs:
+        spec = SPEC[sign["key"]]
+        row = rows.setdefault(
+            sign["key"],
+            {
+                "key": sign["key"],
+                "group": spec.group,
+                "direction": 1 if spec.lr > 1 else -1,
+                "lr": round(spec.lr ** sign.get("strength", 1.0), 3),
+                "label_ru": spec.label_ru,
+                "label_en": spec.label_en,
+                "value_ru": sign.get("value_ru", ""),
+                "value_en": sign.get("value_en", ""),
+                "value": sign.get("value_en", ""),
+                "source": sign.get("source", ""),
+                "url": sign.get("url"),
+                "countries": [],
+            },
+        )
+        lr = spec.lr ** sign.get("strength", 1.0)
+        if abs(math.log(lr)) > abs(math.log(row["lr"])):
+            row.update(
+                lr=round(lr, 3),
+                value_ru=sign.get("value_ru", ""),
+                value_en=sign.get("value_en", ""),
+                url=sign.get("url"),
+            )
+        if sign.get("country") and sign["country"] not in row["countries"]:
+            row["countries"].append(sign["country"])
+    result = sorted(rows.values(), key=lambda r: -abs(math.log(r["lr"])))
+    market = near_term_indicator(near)
+    return result + ([market] if market else [])
+
+
+def scenario_factor(signs: list[dict], polarity: int) -> dict:
+    from geointel.risk.warning_signs import INTERSTATE, combine
+
+    combined = combine(signs, INTERSTATE)
+    factor = combined["factor"]
+    if polarity < 0:  # escalation makes a ceasefire less likely, and vice versa
+        factor = min(max(1 / factor, 0.5), 2.0)
+    return {**combined, "factor": round(factor, 3)}
+
+
+def official_component(scenario: Scenario, today: date) -> dict | None:
+    from geointel.risk.warning_signs import ESTIMATIVE
+
+    usable = [
+        a
+        for a in scenario.assessments
+        if a.phrase in ESTIMATIVE and (today - _warning_date(a.date)).days <= 400
     ]
-    if rising:
-        mean_change = sum(m["change5"] for _, m in rising) / len(rising)
-        detail = ", ".join(f"{c} {m['value']:.1f}% ({m['change5']:+.1f})" for c, m in rising)
-        signals.append(
-            {
-                "key": "milex",
-                "direction": 1 if mean_change > 0.4 else -1 if mean_change < -0.3 else 0,
-                "label_ru": "Военные расходы, % ВВП (изменение за 5 лет, п. п.)",
-                "label_en": "Military spending, % of GDP (5-year change, pp)",
-                "value": detail,
-                "source": "SIPRI via OWID",
-            }
-        )
-    ratios = [(c, gpr[c]["ratio_12m"]) for c in scenario.gpr if gpr.get(c, {}).get("ratio_12m")]
-    if ratios:
-        mean_ratio = sum(r for _, r in ratios) / len(ratios)
-        signals.append(
-            {
-                "key": "gpr",
-                "direction": 1 if mean_ratio > 1.25 else -1 if mean_ratio < 0.8 else 0,
-                "label_ru": "Индекс геополитического риска: последние 12 мес. к среднему за 5 лет",
-                "label_en": "Geopolitical risk index: last 12 months vs 5-year mean",
-                "value": ", ".join(f"{c} ×{r:.2f}" for c, r in ratios),
-                "source": "Caldara & Iacoviello GPR",
-            }
-        )
-    at_war = [c for c in scenario.war_context if c in active_interstate]
-    if scenario.war_context:
-        signals.append(
-            {
-                "key": "war",
-                "direction": 1 if at_war else -1,
-                "label_ru": "Идущая межгосударственная война с участием сторон",
-                "label_en": "Ongoing interstate war involving the parties",
-                "value": ", ".join(at_war) if at_war else "—",
-                "source": "UCDP/PRIO",
-            }
-        )
-    recent = [
-        w for w in scenario.warnings if (today - _warning_date(w.date)).days <= 365 and w.direction
+    if not usable:
+        return None
+    latest = max(usable, key=lambda a: a.date)
+    low, high = ESTIMATIVE[latest.phrase]
+    mid = math.sqrt(low * high)
+    to_annual = lambda p: _p_to_hazard(p, latest.years)  # noqa: E731
+    return {
+        "kind": "official",
+        "annual": round(to_annual(mid), 4),
+        "low": round(to_annual(low), 4),
+        "high": round(to_annual(high), 4),
+        "weight": 1.0,
+        "detail_ru": (
+            f"{latest.source}, {latest.date}: «{latest.quote_en}». Формулировка «{latest.phrase}» "
+            f"по шкале GeoIntel = {low * 100:.0f}–{high * 100:.0f}% за {latest.years:g} г."
+        ),
+        "detail_en": (
+            f'{latest.source}, {latest.date}: "{latest.quote_en}". The phrase '
+            f'"{latest.phrase}" on the GeoIntel scale = {low * 100:.0f}–{high * 100:.0f}% '
+            f"over {latest.years:g} year(s)."
+        ),
+        "url": latest.url,
+    }
+
+
+def community_component(
+    scenario: Scenario, questions: list[dict], today: date
+) -> tuple[dict | None, list[dict]]:
+    found = [
+        q
+        for q in questions
+        if polymarket.matches(q["question"], scenario.market_groups, scenario.market_exclude)
     ]
-    if recent:
-        net = sum(w.direction for w in recent)
-        signals.append(
-            {
-                "key": "warnings",
-                "direction": 1 if net >= 2 else -1 if net <= -2 else 0,
-                "label_ru": "Официальные предупреждения за 12 месяцев",
-                "label_en": "Official warnings in the last 12 months",
-                "value": str(len(recent)),
-                "source": "GeoIntel curated list",
-            }
-        )
-    if near is not None:
-        change = near.get("month_change")
-        if near.get("inverse") and change is not None:
-            change = -change
-        trend = "" if change is None else f"; {change * 100:+.1f} pp / 30d"
-        direction = 0 if change is None else 1 if change > 0.03 else -1 if change < -0.03 else 0
-        signals.append(
-            {
-                "key": "market_trend",
-                "direction": direction,
-                "label_ru": "Рынок прогнозов: ближайший вопрос",
-                "label_en": "Prediction market: nearest question",
-                "value": (
-                    f"{near['p'] * 100:.1f}% → {near['end']}{trend}. "
-                    f"{'NOT: ' if near.get('inverse') else ''}{near['question'][:120]}"
-                ),
-                "source": "Polymarket",
-            }
-        )
-    return signals
-
-
-def indicator_factor(signals: list[dict], polarity: int) -> float:
-    """Bounded odds multiplier: escalation signals raise escalation scenarios and lower
-    de-escalation ones. Market trend is excluded (the market already counts once)."""
-    net = sum(s["direction"] for s in signals if s["key"] != "market_trend")
-    return round(min(max(math.exp(0.12 * net * polarity), 0.65), 1.6), 3)
-
-
-# --------------------------------------------------------------------------------------
-# Pooling
+    usable = [q for q in found if _days(q, today) >= MIN_MARKET_DAYS and q["forecasters"] >= 20]
+    if not usable:
+        return None, found
+    best = max(usable, key=lambda q: (_fit(scenario, q), q["forecasters"]))
+    days = _days(best, today)
+    hazard = _p_to_hazard(best["p"], days / 365.25)
+    return (
+        {
+            "kind": "community",
+            "annual": round(hazard, 4),
+            "low": round(min(hazard * 0.6, 0.999), 4),
+            "high": round(min(hazard * 1.6, 0.999), 4),
+            "weight": 1.5 * min(1.0, days / 365),
+            "detail_ru": (
+                f"Metaculus: «{best['question']}» — {best['p'] * 100:.1f}% к {best['end']}, "
+                f"{best['forecasters']} прогнозистов. Пересчитано в годовую вероятность."
+            ),
+            "detail_en": (
+                f'Metaculus: "{best["question"]}" at {best["p"] * 100:.1f}% by {best["end"]}, '
+                f"{best['forecasters']} forecasters. Converted to an annual probability."
+            ),
+            "url": best["url"],
+        },
+        found,
+    )
 
 
 def pool(components: list[dict], factor: float) -> dict:
@@ -956,13 +1180,16 @@ def build_scenarios(
     gpr: Mapping[str, dict],
     generated_at: datetime | None = None,
     catalogue: tuple[Scenario, ...] = CATALOGUE,
+    country_signs: Mapping[str, list[dict]] | None = None,
+    dyad_trend: Mapping[str, dict] | None = None,
+    community: list[dict] | None = None,
 ) -> dict:
     now = generated_at or datetime.now(UTC)
     today = now.date()
     result = []
     for scenario in catalogue:
         components = [expert_component(scenario)]
-        if dyads is not None and last_conflict_year:
+        if dyads is not None and last_conflict_year and scenario.use_history:
             history = history_component(scenario, dyads, last_conflict_year)
             if history:
                 components.insert(0, history)
@@ -970,9 +1197,21 @@ def build_scenarios(
         market = market_component(candidates, today, scenario)
         if market:
             components.append(market)
+        official = official_component(scenario, today)
+        if official:
+            components.append(official)
+        found_community: list[dict] = []
+        if community is not None:
+            comp, found_community = community_component(scenario, community, today)
+            if comp:
+                components.append(comp)
         near = near_term_market(scenario, candidates, today)
-        signals = indicators(scenario, milex, gpr, active_interstate, near, today)
-        factor = indicator_factor(signals, scenario.polarity)
+        per_country = (
+            country_signs if country_signs is not None else structural_signs(scenario, milex, gpr)
+        )
+        signs = scenario_signs(scenario, per_country, dyad_trend, active_interstate)
+        factor_info = scenario_factor(signs, scenario.polarity)
+        factor = factor_info["factor"]
         pooled = pool(components, factor)
         affected: list[dict] = []
         seen: set[str] = set()
@@ -999,8 +1238,18 @@ def build_scenarios(
                 "polarity": scenario.polarity,
                 **pooled,
                 "indicator_factor": factor,
+                "sign_groups": factor_info["groups"],
+                "sign_combo": factor_info["combo"],
                 "components": [{k: v for k, v in c.items() if k != "market"} for c in components],
-                "indicators": signals,
+                "indicators": indicator_list(signs, near),
+                "community_candidates": found_community[:6],
+                "community_status": (
+                    "unavailable"
+                    if community is None
+                    else "matched"
+                    if any(c["kind"] == "community" for c in components)
+                    else "no_match"
+                ),
                 "warnings": [
                     {
                         "date": w.date,
