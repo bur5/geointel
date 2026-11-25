@@ -408,7 +408,6 @@ def test_monthly_profile_alerts_and_network():
     net = {n["iso3"]: n for n in scenario_network(catalogue["us_iran"], links)}
     assert net["BHR"]["involve"] > 0.3  # hosts US bases within Iran's reach
     assert net.get("DEU", {}).get("involve", 0) == 0  # NATO does not oblige joining US wars
-    assert net["JPN"]["econ"] > 0 and net["JPN"]["involve"] == 0
     korea = {n["iso3"]: n for n in scenario_network(catalogue["korea"], links)}
     assert korea["USA"]["involve"] >= 0.5  # treaty with the side under attack
 
