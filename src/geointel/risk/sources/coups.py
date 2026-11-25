@@ -71,6 +71,7 @@ def parse(text: str, reference_year: int, start_year: int = 1990) -> TypeHistory
 
 CLINE_SOURCE = "Cline Center Coup d'État Project"
 CLINE_LANDING = "https://databank.illinois.edu/datasets/IDB-9651987"
+CLINE_LANDINGS = (CLINE_LANDING, "https://doi.org/10.13012/B2IDB-9651987_V10")
 
 
 def cline_csv_links(html: str) -> list[str]:
@@ -78,7 +79,12 @@ def cline_csv_links(html: str) -> list[str]:
     import re
 
     links = []
-    matches = list(re.finditer(r'href="(/datafiles/[A-Za-z0-9]+/download)"', html))
+    matches = list(
+        re.finditer(
+            r"href=[\"'](?:https?://databank\.illinois\.edu)?(/datafiles/[A-Za-z0-9_-]+/download)",
+            html,
+        )
+    )
     for i, match in enumerate(matches):
         # the file name sits between this link and the next one (or just before it)
         before = html[matches[i - 1].end() if i else max(0, match.start() - 400) : match.start()]

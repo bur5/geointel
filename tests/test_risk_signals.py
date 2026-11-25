@@ -206,7 +206,8 @@ def test_newswire_validation_and_metaculus_and_sentinel():
         ]
     }
     change = sentinel.change(sentinel.series(response))
-    assert change["active"] and change["ratio"] == 2.1
+    # without the same season a year earlier a rise cannot be told apart from snow or harvest
+    assert change["ratio"] == 2.1 and change["seasonal_ratio"] is None and not change["active"]
 
 
 def test_backtest_rises_before_the_invasion():

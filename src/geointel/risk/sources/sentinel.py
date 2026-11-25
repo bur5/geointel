@@ -123,10 +123,17 @@ def change(points: list[tuple[str, float]], seasonal_days: int = 365) -> dict | 
     if ratio is None:
         return None
     seasonal = now / (sum(season) / len(season)) if season else None
-    active = ratio >= 1.5 and (seasonal is None or seasonal >= 1.4)
+    # A jump of more than 5x in a fortnight is far more often an artefact (partial coverage,
+    # wet snow, a different orbit) than a real build-up, so it is flagged instead of counted.
+    suspect = ratio > 5 or ratio < 0.2
+    consistent = all(v >= 1.3 * median for v in recent)
+    active = (
+        ratio >= 1.5 and seasonal is not None and seasonal >= 1.4 and consistent and not suspect
+    )
     return {
         "ratio": round(ratio, 2),
         "seasonal_ratio": round(seasonal, 2) if seasonal else None,
         "active": active,
+        "suspect": suspect,
         "last": points[-1][0],
     }

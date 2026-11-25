@@ -548,10 +548,27 @@ def main(argv: list[str] | None = None) -> int:
     bt_cmd = sub.add_parser("backtest-real", help="replay archived data through the signals")
     bt_cmd.add_argument("--out", type=Path, default=Path("data/site/backtest-real.json"))
     bt_cmd.add_argument("--cases", default="")
+    acc_cmd = sub.add_parser("accuracy", help="score past scenario forecasts")
+    acc_cmd.add_argument("--history-dir", type=Path, default=Path("data/history"))
+    acc_cmd.add_argument("--today", type=Path, default=Path("data/site/scenarios.json"))
+    acc_cmd.add_argument("--out", type=Path, default=Path("data/site/accuracy.json"))
     args = parser.parse_args(argv)
 
     if args.command == "backtest-real":
         return run_backtest_real(args.out, [c for c in args.cases.split(",") if c])
+
+    if args.command == "accuracy":
+        from geointel.risk import accuracy
+
+        today = datetime.now(UTC).date()
+        history = accuracy.load_history(args.history_dir)
+        if args.today.is_file():
+            history[today.isoformat()] = json.loads(args.today.read_text(encoding="utf-8"))
+        result = accuracy.build(history, today)
+        args.out.parent.mkdir(parents=True, exist_ok=True)
+        args.out.write_text(json.dumps(result, ensure_ascii=False), encoding="utf-8")
+        print(f"[accuracy] days={result['history_days']} status={result['status']}")
+        return 0
 
     if args.command == "fetch":
         from geointel.risk.fetch import fetch_all

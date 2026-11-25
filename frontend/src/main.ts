@@ -1,13 +1,14 @@
 import './style.css';
-import { band, changesSince, loadBacktest, loadRealBacktest, loadHazards, loadLinks, loadScenarios, loadSignals, loadSnapshot, percent, readVisit, writeVisit } from './data';
+import { band, changesSince, loadAccuracy, loadBacktest, loadRealBacktest, loadHazards, loadLinks, loadScenarios, loadSignals, loadSnapshot, percent, readVisit, writeVisit } from './data';
 import type {
-  BacktestFile, RealBacktestFile, Change, CountryEntry, EventTypeEntry, HazardDetails, HazardSummary, HorizonKey, Lang, LinksFile, Probability, Risk,
+  AccuracyFile, BacktestFile, RealBacktestFile, Change, CountryEntry, EventTypeEntry, HazardDetails, HazardSummary, HorizonKey, Lang, LinksFile, Probability, Risk,
   ScenarioFile, SignalsFile,
   Snapshot, VisitMemory,
 } from './data';
 import { countryScenarios, linksSection, migrationClass, migrationPage, migrationSection, roleClass, scenariosPage, vt } from './views';
 import type { ViewContext } from './views';
-import { backtestSection, countrySignals, factorClass, realBacktestSection, signalsPage, st } from './signalsView';
+import { countrySignals, factorClass, signalsPage, st } from './signalsView';
+import { accuracyPage } from './accuracyView';
 import type { ChainEvent } from './chains';
 import { dictionaries } from './i18n';
 import { drawCountryMap, drawMap, neighboursOf } from './map';
@@ -20,6 +21,7 @@ const pages = [
   ['overview', 'navOverview'],
   ['scenarios', 'navScenarios'],
   ['signals', 'navSignals'],
+  ['accuracy', 'navAccuracy'],
   ['country', 'navCountry'],
   ['migration', 'navMigration'],
   ['changes', 'navChanges'],
@@ -48,6 +50,7 @@ let linksData: LinksFile | undefined;
 let signalsData: SignalsFile | undefined;
 let backtestData: BacktestFile | undefined;
 let realBacktestData: RealBacktestFile | undefined;
+let accuracyData: AccuracyFile | undefined;
 let btCase = stored('geointel.btcase') ?? 'ukraine_2022';
 let currentScenario = stored('geointel.scenario') ?? 'russia_nato';
 let chainEvent: ChainEvent = (stored('geointel.chain') as ChainEvent | null) ?? 'conflict';
@@ -532,7 +535,8 @@ function body(page: Page) {
   if (loadError) return notice(t().loadError, `<button class="button" data-retry>${t().retry}</button>`, 'alert');
   if (!snapshot) return `<div class="loading" role="status">${t().loading}</div>`;
   if (page === 'country') return countryPage();
-  if (page === 'scenarios') return scenariosPage(viewContext(), scenariosData, currentScenario, horizonLabels()) + backtestSection(viewContext(), backtestData) + realBacktestSection(viewContext(), realBacktestData, btCase);
+  if (page === 'scenarios') return scenariosPage(viewContext(), scenariosData, currentScenario, horizonLabels());
+  if (page === 'accuracy') return accuracyPage(viewContext(), accuracyData, backtestData, realBacktestData, btCase);
   if (page === 'signals') return signalsPage(viewContext(), signalsData);
   if (page === 'migration') return migrationPage(viewContext(), linksData, migMode);
   if (page === 'changes') return changesPage();
@@ -586,6 +590,9 @@ function render() {
 const SCENARIO_FOCUS: Record<string, [number, number, number]> = {
   russia_nato: [22, 56, 3], ukraine_ceasefire: [25, 50, 2.6], china_taiwan: [122, 26, 2.6],
   iran_strikes: [48, 28, 2.6], india_pakistan: [74, 28, 3], korea: [128, 37, 3.2],
+  russia_nato_war: [22, 56, 2.6], moldova_transnistria: [29, 47, 5], belarus_front: [27, 53, 4],
+  serbia_kosovo: [21, 43, 6], venezuela_guyana: [-61, 6, 4], turkey_greece: [27, 38, 4.5],
+  sahel_coups: [5, 15, 3], us_guarantee: [10, 50, 1.6],
 };
 
 function drawExtraMaps() {
@@ -713,8 +720,9 @@ async function start() {
     void loadScenarios().then((data) => { scenariosData = data; if (['scenarios', 'country'].includes(currentPage())) render(); });
     void loadLinks().then((data) => { linksData = data; if (['migration', 'country'].includes(currentPage())) render(); });
     void loadSignals().then((data) => { signalsData = data; if (['signals', 'country'].includes(currentPage())) render(); });
-    void loadBacktest().then((data) => { backtestData = data; if (currentPage() === 'scenarios') render(); });
-    void loadRealBacktest().then((data) => { realBacktestData = data; if (currentPage() === 'scenarios') render(); });
+    void loadBacktest().then((data) => { backtestData = data; if (currentPage() === 'accuracy') render(); });
+    void loadRealBacktest().then((data) => { realBacktestData = data; if (currentPage() === 'accuracy') render(); });
+    void loadAccuracy().then((data) => { accuracyData = data; if (currentPage() === 'accuracy') render(); });
     if (!isView(eventType) && !typeEntry(eventType)?.available) eventType = snapshot.event_types.find((e) => e.available)?.key ?? eventType;
     if (!byIso().has(selected)) selected = snapshot.countries[0]?.iso3 ?? '';
   } catch {

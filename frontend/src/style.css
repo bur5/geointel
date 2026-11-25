@@ -368,6 +368,8 @@ details p { margin-top: 6px; color: var(--ink-2); font-size: 13px; max-width: 80
 .scenario-head { display: grid; gap: 6px; max-width: 80ch; }
 .scenario-head h2 { font-size: 26px; }
 .scenario-cols { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 28px; }
+.tree .tree-bar { display: inline-block; height: 0.7em; margin-right: 8px; background: currentColor; opacity: 0.35; vertical-align: middle; min-width: 2px; max-width: 60%; }
+.tree caption { text-align: left; font-weight: 600; padding-bottom: 6px; }
 .sub-section { display: grid; gap: 10px; align-content: start; }
 .sub-section h3 { font-size: 17px; }
 .table-wrap { overflow-x: auto; }

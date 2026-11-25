@@ -7,6 +7,7 @@ const scenarios = readFileSync(new URL('./fixture-scenarios.json', import.meta.u
 const links = readFileSync(new URL('./fixture-links.json', import.meta.url), 'utf8');
 const signals = readFileSync(new URL('./fixture-signals.json', import.meta.url), 'utf8');
 const backtest = readFileSync(new URL('./fixture-backtest.json', import.meta.url), 'utf8');
+const accuracy = readFileSync(new URL('./fixture-accuracy.json', import.meta.url), 'utf8');
 const shots = process.env.GEOINTEL_SCREENSHOTS;
 const shoot = async (page: import('@playwright/test').Page, name: string) => {
   if (!shots) return;
@@ -21,6 +22,7 @@ test.beforeEach(async ({ page }) => {
   await page.route('**/data/links.json', (route) => route.fulfill({ body: links, contentType: 'application/json' }));
   await page.route('**/data/signals.json', (route) => route.fulfill({ body: signals, contentType: 'application/json' }));
   await page.route('**/data/backtest.json', (route) => route.fulfill({ body: backtest, contentType: 'application/json' }));
+  await page.route('**/data/accuracy.json', (route) => route.fulfill({ body: accuracy, contentType: 'application/json' }));
 });
 
 test('overview renders live snapshot with map and ranking', async ({ page }) => {
@@ -88,6 +90,7 @@ test('scenarios, links graph and migration', async ({ page }) => {
   await expect(page.locator('.indicators li')).not.toHaveCount(0);
   await expect(page.locator('#scenario-map path.country.role-party').first()).toBeVisible();
   await expect(page.locator('.role-group')).toHaveCount(4);
+  await expect(page.locator('#scenario-tree tbody tr')).not.toHaveCount(0);
   await shoot(page, 'scenarios');
   await page.locator('[data-scenario="china_taiwan"]').first().click();
   await expect(page.locator('.table.comp')).toContainText('Polymarket');
@@ -131,8 +134,10 @@ test('warning signs: signals page, country section and backtest', async ({ page 
   await expect(page.locator('#country-signals .sig').first()).toBeVisible();
   await expect(page.locator('#country-signals .adjusted li').first()).toBeVisible();
   await shoot(page, 'country-ukraine-signals');
-  await page.goto('/#scenarios');
+  await page.goto('/#accuracy');
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Насколько мы точны');
   await expect(page.locator('.bt-chart path.bt-month')).toBeVisible();
-  await shoot(page, 'scenarios-backtest');
+  await expect(page.locator('svg.spark').first()).toBeVisible();
+  await shoot(page, 'accuracy');
   expect(errors).toEqual([]);
 });

@@ -226,3 +226,81 @@ def test_short_markets_are_signals_and_inverse_markets_flip():
     assert iran["market_candidates"][0]["inverse"] and iran["market_candidates"][0]["p"] == 0.3
     trend = next(i for i in iran["indicators"] if i["key"] == "market_trend")
     assert trend["direction"] == 1 and trend["value"].startswith("30.0%")
+
+
+def test_scenario_tree_rises_over_time_and_branches_sum_to_one():
+    from geointel.risk import scenario_tree
+
+    result = scenario_tree.simulate("russia_nato", 0.03, 0.25, 0.1)
+    yearly = [y["annual"] for y in result["yearly"]]
+    assert yearly[-1] > yearly[0]  # capability rebuilds after a ceasefire
+    assert abs(sum(b["weight"] for b in result["branches"]) - 1) < 1e-3
+    assert result["p1y"] < result["p5y"] < result["p10y"] < 1
+    firm = {b["ukraine"]: b for b in result["branches"] if b["us"] == "us_firm"}
+    weak = {b["ukraine"]: b for b in result["branches"] if b["us"] == "us_weak"}
+    assert weak["cease_early"]["p10y"] > firm["cease_early"]["p10y"]
+
+
+def test_new_scenarios_and_combined_official_judgements():
+    result = scenarios.build_scenarios(
+        dyads=None,
+        last_conflict_year=None,
+        active_interstate=set(),
+        markets=None,
+        milex={},
+        gpr={},
+        generated_at=NOW,
+    )
+    by_key = {s["key"]: s for s in result["scenarios"]}
+    for key in (
+        "moldova_transnistria",
+        "belarus_front",
+        "serbia_kosovo",
+        "venezuela_guyana",
+        "turkey_greece",
+        "sahel_coups",
+        "us_guarantee",
+    ):
+        assert key in by_key, key
+    official = next(c for c in by_key["russia_nato"]["components"] if c["kind"] == "official")
+    assert len(official["sources"]) == 2 and official["low"] < official["annual"] < official["high"]
+    assert "tree" in by_key["russia_nato"] and "tree" in by_key["russia_nato_war"]
+
+
+def test_accuracy_scores_forecasts_after_thirty_days():
+    from datetime import date
+
+    from geointel.risk import accuracy
+
+    day = {
+        "scenarios": [
+            {"key": "k", "title_ru": "К", "horizons": {"1m": {"p": 0.1}, "1y": {"p": 0.5}}}
+        ]
+    }
+    early = accuracy.build({"2026-11-01": day}, date(2026, 11, 20))
+    assert early["status"] == "collecting" and early["first_score_on"] == "2026-12-01"
+    later = accuracy.build({"2026-11-01": day, "2026-11-20": day}, date(2026, 12, 2))
+    assert later["status"] == "scoring" and later["overall"]["n"] == 1
+    assert later["summary"]["k"]["brier"] == 0.01 and len(later["series"]["k"]) == 2
+
+
+def test_metaculus_uses_history_when_latest_is_missing():
+    from geointel.risk.sources import metaculus
+
+    payload = {
+        "results": [
+            {
+                "id": 9,
+                "title": "Will X happen?",
+                "question": {
+                    "type": "binary",
+                    "scheduled_close_time": "2027-06-01T00:00:00Z",
+                    "aggregations": {
+                        "recency_weighted": {"latest": None, "history": [{"centers": [0.3]}]}
+                    },
+                },
+            }
+        ]
+    }
+    assert metaculus.questions([payload])[0]["p"] == 0.3
+    assert metaculus.diagnose(payload).startswith("ok=1")

@@ -19,17 +19,73 @@ def search_params(query: str) -> dict[str, str]:
     }
 
 
+def _value(entry: Mapping | None) -> float | None:
+    if not isinstance(entry, Mapping):
+        return None
+    for key in ("centers", "means", "forecast_values"):
+        values = entry.get(key)
+        if isinstance(values, int | float):
+            values = [values]
+        if isinstance(values, list) and values:
+            value = values[-1] if key == "forecast_values" else values[0]
+            if isinstance(value, int | float) and 0 <= value <= 1:
+                return float(value)
+    return None
+
+
 def _probability(question: Mapping) -> float | None:
+    """Community probability: the latest aggregate, else the last point of its history."""
     aggregations = question.get("aggregations") or {}
     for method in ("recency_weighted", "unweighted", "metaculus_prediction"):
-        latest = (aggregations.get(method) or {}).get("latest") or {}
-        for key in ("centers", "means", "forecast_values"):
-            values = latest.get(key)
-            if isinstance(values, list) and values:
-                value = values[-1] if key == "forecast_values" else values[0]
-                if isinstance(value, int | float) and 0 <= value <= 1:
-                    return float(value)
+        agg = aggregations.get(method) or {}
+        if not isinstance(agg, Mapping):
+            continue
+        value = _value(agg.get("latest"))
+        if value is None:
+            history = agg.get("history") or []
+            if isinstance(history, list) and history:
+                value = _value(history[-1])
+        if value is not None:
+            return value
     return None
+
+
+def _end(post: Mapping, question: Mapping) -> str:
+    for source in (question, post):
+        for key in ("scheduled_resolve_time", "scheduled_close_time", "actual_close_time"):
+            value = source.get(key)
+            if isinstance(value, str) and len(value) >= 10:
+                return value
+    return ""
+
+
+def diagnose(payload: Mapping) -> str:
+    """One line describing why posts in a response were or were not used."""
+    reasons = {"ok": 0, "type": 0, "no_p": 0, "no_end": 0}
+    sample = ""
+    for post in payload.get("results") or []:
+        question = post.get("question") or {}
+        if question.get("type") not in (None, "binary"):
+            reasons["type"] += 1
+            continue
+        if _probability(question) is None:
+            reasons["no_p"] += 1
+            if not sample:
+                agg = (question.get("aggregations") or {}).get("recency_weighted") or {}
+                latest = agg.get("latest") if isinstance(agg, Mapping) else None
+                history = agg.get("history") if isinstance(agg, Mapping) else None
+                sample = (
+                    f" sample: agg_keys={sorted(agg) if isinstance(agg, Mapping) else type(agg)} "
+                    f"latest={type(latest).__name__}:"
+                    f"{sorted(latest) if isinstance(latest, Mapping) else latest!r:.80} "
+                    f"history_len={len(history) if isinstance(history, list) else history!r:.20}"
+                )
+            continue
+        if not _end(post, question):
+            reasons["no_end"] += 1
+            continue
+        reasons["ok"] += 1
+    return " ".join(f"{k}={v}" for k, v in reasons.items()) + sample
 
 
 def questions(payloads: Iterable[Mapping]) -> list[dict]:
@@ -43,9 +99,7 @@ def questions(payloads: Iterable[Mapping]) -> list[dict]:
                 continue
             pid = post.get("id")
             p = _probability(question)
-            end = str(
-                question.get("scheduled_resolve_time") or post.get("scheduled_resolve_time") or ""
-            )
+            end = _end(post, question)
             if pid in seen or p is None or len(end) < 10:
                 continue
             seen.add(pid)
