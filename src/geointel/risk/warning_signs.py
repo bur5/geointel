@@ -890,6 +890,19 @@ JOURNAL: tuple[Entry, ...] = tuple(
             None,
         ),
         _e(
+            "2026-11-11",
+            "ARE",
+            "hybrid",
+            "Танкер DOMINICA PROSPERITY поражён неизвестным снарядом в 14 морских милях от "
+            "Рас-эль-Хаймы и загорелся; нападения на суда в Ормузском проливе продолжаются.",
+            "The tanker DOMINICA PROSPERITY was hit by an unknown projectile 14 nautical miles "
+            "off Ras al Khaimah and caught fire; attacks on ships in the Strait of Hormuz go on.",
+            "United Against Nuclear Iran (shipping update)",
+            "https://www.unitedagainstnucleariran.com/node/46600",
+            "IRN",
+            "hormuz_reopening",
+        ),
+        _e(
             "2026-04-08",
             "IRN",
             "deescalation",

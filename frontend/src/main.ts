@@ -596,6 +596,8 @@ const SCENARIO_FOCUS: Record<string, [number, number, number]> = {
   russia_nato_war: [22, 56, 2.6], moldova_transnistria: [29, 47, 5], belarus_front: [27, 53, 4],
   serbia_kosovo: [21, 43, 6], venezuela_guyana: [-61, 6, 4], turkey_greece: [27, 38, 4.5],
   sahel_coups: [5, 15, 3], us_guarantee: [10, 50, 1.6],
+  armenia_azerbaijan: [46, 40, 6], israel_hezbollah: [35.5, 33, 7], hormuz_reopening: [54, 26, 4],
+  georgia_crisis: [43.5, 42, 6], iraq_strikes: [44, 33, 4.5],
 };
 
 function drawExtraMaps() {
