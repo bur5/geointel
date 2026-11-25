@@ -528,7 +528,7 @@ function methodPage() {
     <td>${e.data_window ? `${t().window} ${e.data_window[0]}–${e.data_window[1]}` : ''}<br><small>${escape(lang === 'ru' ? e.resolution_ru : e.resolution_en)}</small></td></tr>`).join('');
   return `<section class="page-head"><h1>${t().methodTitle}</h1><p>${t().methodLead}</p></section>
     <section class="section prose"><h2>${t().method}</h2><p>${escape(lang === 'ru' ? snapshot.method.description_ru : snapshot.method.description_en)}</p>
-      <h3>${t().interval}</h3><p>${t().intervalText}</p><h3>${t().calibration}</h3><p>${t().notCalibrated}</p></section>
+      <h3>${t().interval}</h3><p>${t().intervalText}</p><h3>${t().calibration}</h3><p>${t().notCalibrated}</p><h3>${t().protestTitle}</h3><p>${t().protestText}</p></section>
     <section class="section"><div class="section-head"><h2>${t().eventTypes}</h2></div><table class="table"><tbody>${types}</tbody></table></section>
     <section class="section"><div class="section-head"><h2>${t().sources}</h2></div><table class="table"><tbody>${sources}</tbody></table></section>`;
 }
