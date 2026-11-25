@@ -213,5 +213,9 @@ def apply_network(scenarios: dict, catalogue: Iterable[Scenario], links: Mapping
     by_key = {s.key: s for s in catalogue}
     for item in scenarios.get("scenarios", []):
         scenario = by_key.get(item["key"])
-        if scenario is not None:
-            item["network"] = scenario_network(scenario, countries)
+        if scenario is None:
+            continue
+        network = scenario_network(scenario, countries)
+        if scenario.polarity < 0:  # a de-escalation draws no one into fighting
+            network = [{**n, "involve": 0.0} for n in network if n["econ"] > 0]
+        item["network"] = network
