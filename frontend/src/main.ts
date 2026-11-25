@@ -13,7 +13,8 @@ import { lensesPage, surveyAnswer } from './lensesView';
 import type { ChainEvent } from './chains';
 import { dictionaries } from './i18n';
 import { drawCountryMap, drawMap, neighboursOf } from './map';
-import { businessVerdict, levelLabel, spillover, travelVerdict } from './insights';
+import { businessVerdict, levelLabel, relocationHorizon, relocationLevelLabel, relocationNote, relocationVerdict, spillover, travelVerdict } from './insights';
+import { alertCard } from './alerts';
 import { BLOCS, REGIONS, groupName, groupNote, groupsOf } from './groups';
 import type { Group } from './groups';
 import type { Level, Verdict } from './insights';
@@ -377,6 +378,22 @@ function verdictCard(title: string, kind: 'travel' | 'business', v: Verdict, ext
     <ul>${v.reasons.map((r) => `<li>${escape(r)}</li>`).join('')}</ul>${extra}</article>`;
 }
 
+function countryAlert(country: CountryEntry) {
+  const entry = signalsData?.countries[country.iso3];
+  if (!entry) return '';
+  const risk = entry.alert?.risk ? labelOf(entry.alert.risk) : '';
+  return alertCard(entry.alert, lang, (p) => percent(p, lang), escape, risk ? `${t().alertBy}: ${risk}` : '');
+}
+
+function relocationCard(country: CountryEntry) {
+  const scen = (scenariosData?.scenarios ?? []).flatMap((s) => s.affected.filter((a) => a.iso3 === country.iso3)
+    .map((a) => ({ title: lang === 'ru' ? s.title_ru : s.title_en, role: a.role, horizons: s.horizons as Record<string, { p: number }> })));
+  const parts = relocationVerdict(country, scen, labelOf, lang);
+  return `<article class="verdict relocation"><h3>${t().forRelocation}</h3>${parts.map((p) => `<div class="reloc-part"><h4 class="sub">${escape(relocationHorizon(p.horizon, lang))}</h4>
+    <span class="level level-${levelClass(p.level)}"><b>${p.level}</b>${escape(relocationLevelLabel(p.level, lang))}</span><ul>${p.reasons.map((r) => `<li>${escape(r)}</li>`).join('')}</ul></div>`).join('')}
+    <p class="muted-text small">${escape(relocationNote(lang))}</p></article>`;
+}
+
 function implications(country: CountryEntry) {
   const travel = travelOf(country);
   const advisory = country.advisory;
@@ -389,7 +406,8 @@ function implications(country: CountryEntry) {
     ${advisory?.summary ? `<details><summary>${t().officialText}</summary><p lang="en">${escape(advisory.summary)}</p></details>` : ''}`;
   const lines = spillover(country, neighbourCountries(country), (c) => countryName(c), lang);
   return `<section class="section"><div class="section-head"><h2>${t().implicationsTitle}</h2><p>${t().implicationsLead}</p></div>
-    <div class="verdicts">${verdictCard(t().forTravel, 'travel', travel, travelExtra)}${verdictCard(t().forBusiness, 'business', businessOf(country))}
+    ${countryAlert(country)}
+    <div class="verdicts">${verdictCard(t().forTravel, 'travel', travel, travelExtra)}${verdictCard(t().forBusiness, 'business', businessOf(country))}${relocationCard(country)}
       <article class="verdict"><h3>${t().forOthers}</h3><ul>${lines.map((l) => `<li>${escape(l)}</li>`).join('')}</ul>
       ${groupsOf(country.iso3).filter((g) => g.kind === 'bloc').length ? `<h4 class="sub">${t().memberOf}</h4><p class="muted-text">${groupsOf(country.iso3).filter((g) => g.kind === 'bloc').map((g) => escape(groupName(g, lang)) + (groupNote(g, lang) ? ` — ${escape(groupNote(g, lang)!)}` : '')).join('<br>')}</p>` : ''}</article></div></section>
     ${contextSection(country)}`;

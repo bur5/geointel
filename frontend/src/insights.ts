@@ -202,3 +202,83 @@ export function spillover(
   if (!lines.length) lines.push(t.noSpillover);
   return lines;
 }
+
+// --------------------------------------------------------------------------------------
+// Relocation: for people moving for a few months, for 1–5 years, or for longer.
+
+export interface RelocationScenario { title: string; role: string; horizons: Record<string, { p: number }> }
+export interface RelocationPart { horizon: 'short' | 'mid' | 'long'; level: Level; reasons: string[] }
+
+const R = {
+  ru: {
+    levels: ['', 'Подходит для переезда', 'Можно, с планом Б', 'Серьёзные риски', 'Не рекомендуется'],
+    horizon: { short: 'На несколько месяцев (до года)', mid: 'На 1–5 лет', long: 'На 5 лет и больше' },
+    activeWar: 'Сейчас в стране идёт вооружённый конфликт.',
+    activeHumanitarian: 'Действует гуманитарный план ООН: перебои с услугами и безопасностью.',
+    risk: (name: string, p: string, h: string) => `${name}: ${p} ${h}.`,
+    within: { short: 'в течение года', mid: 'за 5 лет', long: 'за 10 лет' },
+    scenario: (title: string, role: string, p: string, h: string) => `Сценарий «${title}» (${role}): ${p} ${h}.`,
+    roles: { party: 'страна — сторона', frontline: 'страна на передовой', ally: 'союзник сторон', economic: 'экономическая связь' } as Record<string, string>,
+    calm: 'Существенных рисков на этом горизонте по имеющимся данным не видно.',
+    note: 'Долгий срок — это не только войны: учитываются перевороты, политические и экономические кризисы и стихийные бедствия. Для визы, налогов и стоимости жизни нужны отдельные источники.',
+  },
+  en: {
+    levels: ['', 'Suitable for a move', 'Possible, with a plan B', 'Serious risks', 'Not advised'],
+    horizon: { short: 'For a few months (up to a year)', mid: 'For 1–5 years', long: 'For 5 years or more' },
+    activeWar: 'An armed conflict is under way in the country.',
+    activeHumanitarian: 'A UN humanitarian plan is active: disrupted services and security.',
+    risk: (name: string, p: string, h: string) => `${name}: ${p} ${h}.`,
+    within: { short: 'within a year', mid: 'within 5 years', long: 'within 10 years' },
+    scenario: (title: string, role: string, p: string, h: string) => `Scenario "${title}" (${role}): ${p} ${h}.`,
+    roles: { party: 'the country is a party', frontline: 'front-line country', ally: 'ally of the parties', economic: 'economic link' } as Record<string, string>,
+    calm: 'No significant risks at this horizon in the available data.',
+    note: 'A long stay is not only about war: coups, political and economic crises and natural hazards are included. Visas, taxes and living costs need separate sources.',
+  },
+};
+
+const RELOCATION_RISKS: [string, number[]][] = [
+  // risk type, thresholds for levels 2 / 3 / 4 at the given horizon
+  ['interstate_conflict', [0.05, 0.15, 0.4]],
+  ['internal_armed_conflict', [0.05, 0.2, 0.5]],
+  ['coup_attempt', [0.05, 0.2, 0.5]],
+  ['political_crisis', [0.1, 0.3, 0.6]],
+  ['economic_crisis', [0.1, 0.3, 0.6]],
+  ['major_earthquake', [0.3, 0.7, 1.1]],
+  ['tropical_cyclone', [0.5, 0.9, 1.1]],
+];
+const HORIZON_KEY = { short: '1y', mid: '5y', long: '10y' } as const;
+
+export const relocationLevelLabel = (level: Level, lang: Lang) => R[lang].levels[level];
+export const relocationNote = (lang: Lang) => R[lang].note;
+export const relocationHorizon = (h: 'short' | 'mid' | 'long', lang: Lang) => R[lang].horizon[h];
+
+export function relocationVerdict(
+  country: CountryEntry, scenarios: RelocationScenario[], label: (key: string) => string, lang: Lang,
+): RelocationPart[] {
+  const t = R[lang];
+  return (['short', 'mid', 'long'] as const).map((horizon) => {
+    const hk = HORIZON_KEY[horizon];
+    const reasons: string[] = [];
+    let level: Level = 1;
+    const raise = (to: Level) => { level = Math.max(level, to) as Level; };
+    if (country.risks.internal_armed_conflict?.active) { reasons.push(t.activeWar); raise(horizon === 'long' ? 3 : 4); }
+    if (country.risks.humanitarian_crisis?.active) { reasons.push(t.activeHumanitarian); raise(3); }
+    for (const [key, limits] of RELOCATION_RISKS) {
+      const risk = country.risks[key];
+      if (!risk || risk.active) continue;
+      const p = risk.horizons[hk]?.p;
+      if (p === undefined) continue;
+      const lvl = (limits.filter((x) => p >= x).length + 1) as Level;
+      if (lvl > 1) { raise(lvl); reasons.push(t.risk(label(key), percent(p, lang), t.within[horizon])); }
+    }
+    for (const s of scenarios) {
+      if (!['party', 'frontline'].includes(s.role)) continue;
+      const p = s.horizons[hk]?.p;
+      if (p === undefined || p < 0.05) continue;
+      raise(p >= 0.3 ? 3 : 2);
+      reasons.push(t.scenario(s.title, t.roles[s.role] ?? s.role, percent(p, lang), t.within[horizon]));
+    }
+    if (!reasons.length) reasons.push(t.calm);
+    return { horizon, level, reasons: reasons.slice(0, 6) };
+  });
+}

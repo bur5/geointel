@@ -45,6 +45,18 @@ class Assessment:
 
 
 @dataclass(frozen=True)
+class KeyDate:
+    """A known date or window that raises (or lowers) the scenario's risk in that month."""
+
+    start: str  # YYYY-MM-DD
+    end: str
+    multiplier: float
+    label_ru: str
+    label_en: str
+    url: str
+
+
+@dataclass(frozen=True)
 class Scenario:
     key: str
     title_ru: str
@@ -78,6 +90,9 @@ class Scenario:
     use_signs: bool = True
     # Sign keys whose evidence the expert prior already includes (not counted again).
     prior_includes: tuple[str, ...] = ()
+    key_dates: tuple[KeyDate, ...] = ()
+    # Ground operations are harder in the spring and autumn mud season (Eastern Europe).
+    mud_season: bool = False
 
 
 def _t(codes: str) -> tuple[str, ...]:

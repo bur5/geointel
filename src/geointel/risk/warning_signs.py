@@ -1259,7 +1259,45 @@ def country_entry(country: Mapping, signs: list[dict]) -> dict:
         "adjusted": adjusted,
         "active": len(active),
         "max_factor": max((a["factor"] for a in adjusted.values()), default=1.0),
+        "alert": country_alert(adjusted),
     }
+
+
+# --------------------------------------------------------------------------------------
+# Alert levels: how far the next month is above the usual level, and how high it is
+
+ALERT_LEVELS = ("green", "yellow", "orange", "red")
+ALERT_RISKS = (INTERSTATE, INTERNAL, COUP, PROTEST, POLITICAL)
+
+
+def alert_level(p1m: float, ratio: float, final_signs: bool) -> str:
+    """green: as usual; yellow: 1.5x the usual level or >=3% within a month; orange: 3x or
+    >=10%; red: >=20% within a month and last-stage signs (evacuations, closures, field
+    hospitals, mobilisation) are present."""
+    if p1m >= 0.2 and final_signs:
+        return "red"
+    if ratio >= 3 or p1m >= 0.1:
+        return "orange"
+    if ratio >= 1.5 or p1m >= 0.03:
+        return "yellow"
+    return "green"
+
+
+def country_alert(adjusted: Mapping[str, Mapping]) -> dict:
+    best = {"level": "green", "risk": None, "p1m": None, "ratio": 1.0}
+    for risk in ALERT_RISKS:
+        item = adjusted.get(risk)
+        month = (item or {}).get("horizons", {}).get("1m")
+        if not month:
+            continue
+        p1m = month["p"]
+        final = bool({"final", "personnel", "logistics"} & set(item.get("groups", [])))
+        level = alert_level(p1m, item["factor"], final)
+        if ALERT_LEVELS.index(level) > ALERT_LEVELS.index(best["level"]) or (
+            level == best["level"] and best["risk"] is not None and p1m > (best["p1m"] or 0)
+        ):
+            best = {"level": level, "risk": risk, "p1m": p1m, "ratio": item["factor"]}
+    return best
 
 
 PERSISTENCE_STRENGTH = 1.25

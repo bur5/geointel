@@ -1,5 +1,6 @@
 // Scenario, links and migration views (rendered into the shell built by main.ts).
 import { band } from './data';
+import { alertCard } from './alerts';
 import type { HorizonKey, Lang, LinksFile, Probability, Scenario, ScenarioFile, ScenarioRole } from './data';
 import { CHAIN_EVENTS, effect, formatPeople, linksOf } from './chains';
 import type { ChainEvent, CountryLink, LinkKind } from './chains';
@@ -247,11 +248,14 @@ export function scenarioDetail(ctx: ViewContext, s: Scenario, horizonLabels: Rec
   const candidates = s.market_candidates.length ? `<details><summary>${d.candidates}</summary><ul class="candidates">${s.market_candidates.map((m) =>
     `<li><a href="https://polymarket.com/event/${esc(m.slug)}" rel="noreferrer" lang="en">${esc(m.question)}</a> — ${m.inverse ? d.inverse + ' ' : ''}${ctx.pct(m.p)}, ${esc(m.end)}</li>`).join('')}</ul></details>` : '';
   const tree = s.tree ? treeSection(ctx, s) : '';
+  const alert = s.alert ? alertCard(s.alert, lang, ctx.pct, esc) : '';
+  const extra = ladderSection(ctx, s) + profileSection(ctx, s) + networkSection(ctx, s);
   return `<article class="scenario" id="scenario-detail">
     <div class="scenario-head"><h2>${esc(title(s, lang))}</h2>
       <p class="muted-text">${d.confidenceLabel}: ${d.confidence[s.confidence]}.${s.polarity < 0 ? ' ' + d.deescalation : ''}</p>
       <details open><summary>${d.definition}</summary><p>${esc(lang === 'ru' ? s.event_ru : s.event_en)}</p></details></div>
     <div class="horizon-grid">${horizons}</div>
+    ${alert}
     <div class="scenario-cols">
       <section class="sub-section"><h3>${d.componentsTitle}</h3><p class="muted-text">${d.componentsLead}</p>
         <div class="table-wrap"><table class="table comp"><thead><tr><th>${d.colSource}</th><th>${d.colAnnual}</th><th>${d.colRange}</th><th>${d.colWeight}</th></tr></thead>
@@ -260,7 +264,7 @@ export function scenarioDetail(ctx: ViewContext, s: Scenario, horizonLabels: Rec
       <section class="sub-section"><h3>${d.indicatorsTitle}</h3><p class="muted-text">${d.indicatorsLead}</p><ul class="indicators">${indicators}</ul>${s.sign_combo ? `<p class="muted-text small">${d.combo}</p>` : ''}
         ${warnings ? `<h3>${d.warningsTitle}</h3><ul class="warnings">${warnings}</ul>` : ''}</section>
     </div>
-    ${tree}
+    ${tree}${extra}
     <section class="sub-section"><h3>${d.affectedTitle}</h3><p class="muted-text">${d.affectedLead}</p>
       <div class="affected-layout"><div class="map-stage scenario-map" id="scenario-map"><svg viewBox="0 0 900 440" role="img" tabindex="0" aria-label="${esc(d.affectedTitle)}"><g></g></svg>
         <div class="tooltip" hidden></div>
@@ -269,6 +273,46 @@ export function scenarioDetail(ctx: ViewContext, s: Scenario, horizonLabels: Rec
       <div class="roles">${affected}</div></div></section>
     <p class="caveat">${d.uncalibrated}</p>
   </article>`;
+}
+
+const LADDER = {
+  ru: { title: 'Стадия подготовки', lead: 'Нападению обычно предшествуют стадии. Чем выше стадия, тем ближе событие.', stages: ['Признаков подготовки нет', 'Войска, техника, риторика, кибератаки', 'Мобилизация, логистика, отмена отпусков', 'Последние признаки: эвакуация посольств, закрытие неба, госпитали'] },
+  en: { title: 'Stage of preparation', lead: 'An attack is usually preceded by stages. The higher the stage, the closer the event.', stages: ['No signs of preparation', 'Troops, equipment, rhetoric, cyberattacks', 'Mobilisation, logistics, leave cancelled', 'Last signs: embassy evacuations, airspace closures, hospitals'] },
+};
+const PROFILE = {
+  ru: { title: 'Риск по месяцам', lead: 'Риск не делится поровну по месяцам: сегодняшние признаки сильнее всего говорят о ближайших неделях, а известные даты (решения судов, окончание перемирий, распутица) поднимают или опускают отдельные месяцы.', month: 'Месяц', p: 'Вероятность', why: 'Почему' },
+  en: { title: 'Risk by month', lead: "Risk is not split evenly across months: today's signs say most about the coming weeks, and known dates (court rulings, truce deadlines, mud season) raise or lower particular months.", month: 'Month', p: 'Probability', why: 'Why' },
+};
+const NETWORK = {
+  ru: { title: 'Кого ещё затронет: сеть связей', lead: 'Если сценарий произойдёт: вероятность военного участия других стран (по договорам об обороне, базам на их территории и положению на передовой) и экономический удар (торговля со сторонами, энергия; второй круг — торговля со странами, которых сильно задело). Правило GeoIntel, а не прогноз решений правительств.', country: 'Страна', involve: 'Военное участие', econ: 'Экономический удар', why: 'Почему', ring2: 'второй круг' },
+  en: { title: 'Who else is affected: the network', lead: "If the scenario happens: the chance of other countries' military involvement (defence treaties, bases on their soil, front-line position) and the economic hit (trade with the parties, energy; second ring: trade with countries hit hard). A GeoIntel rule of thumb, not a forecast of governments' decisions.", country: 'Country', involve: 'Military involvement', econ: 'Economic hit', why: 'Why', ring2: 'second ring' },
+};
+
+function ladderSection(ctx: ViewContext, s: Scenario) {
+  if (s.stage === undefined || s.polarity < 0) return '';
+  const d = LADDER[ctx.lang];
+  return `<section class="sub-section"><h3>${d.title}</h3><p class="muted-text">${d.lead}</p>
+    <ol class="ladder">${d.stages.map((label, i) => `<li class="${i === s.stage ? 'current' : i < (s.stage ?? 0) ? 'passed' : ''}">${ctx.esc(label)}</li>`).join('')}</ol></section>`;
+}
+
+function profileSection(ctx: ViewContext, s: Scenario) {
+  if (!s.profile?.length) return '';
+  const d = PROFILE[ctx.lang];
+  const top = Math.max(...s.profile.map((r) => r.p), 1e-6);
+  const rows = s.profile.map((r) => `<tr><th scope="row">${ctx.esc(r.month)}</th><td><span class="tree-bar" style="width:${Math.round((r.p / top) * 100)}%"></span>${ctx.pct(r.p)}</td>
+    <td class="muted-text">${ctx.esc((ctx.lang === 'ru' ? r.why_ru : r.why_en).join('; '))}</td></tr>`).join('');
+  return `<section class="sub-section tree" id="scenario-profile"><h3>${d.title}</h3><p class="muted-text">${d.lead}</p>
+    <div class="table-wrap"><table class="table"><thead><tr><th>${d.month}</th><th>${d.p}</th><th>${d.why}</th></tr></thead><tbody>${rows}</tbody></table></div></section>`;
+}
+
+function networkSection(ctx: ViewContext, s: Scenario) {
+  if (!s.network?.length) return '';
+  const d = NETWORK[ctx.lang];
+  const rows = s.network.slice(0, 20).map((n) => `<tr><th scope="row"><button type="button" class="link" data-select="${n.iso3}">${ctx.esc(ctx.name(n.iso3))}</button>${n.ring === 2 ? ` <span class="muted-text small">(${d.ring2})</span>` : ''}</th>
+    <td class="numcell">${n.involve ? ctx.pct(n.involve) : '—'}</td><td class="numcell">${n.econ ? ctx.pct(n.econ) : '—'}</td>
+    <td class="muted-text small">${ctx.esc((ctx.lang === 'ru' ? n.why_ru : n.why_en).join(' · '))}</td></tr>`).join('');
+  return `<section class="sub-section" id="scenario-network"><h3>${d.title}</h3><p class="muted-text">${d.lead}</p>
+    <div class="table-wrap"><table class="table"><thead><tr><th>${d.country}</th><th>${d.involve}</th><th>${d.econ}</th><th>${d.why}</th></tr></thead><tbody>${rows}</tbody></table></div></section>`;
 }
 
 function treeSection(ctx: ViewContext, s: Scenario) {

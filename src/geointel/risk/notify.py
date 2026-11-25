@@ -50,6 +50,24 @@ def scenario_changes(today: Mapping, previous: Mapping | None) -> list[str]:
     return lines
 
 
+LEVEL_RU = {"green": "фон", "yellow": "повышенный", "orange": "высокий", "red": "ТРЕВОГА"}
+ORDER = ("green", "yellow", "orange", "red")
+
+
+def alert_changes(today: Mapping, previous: Mapping | None) -> list[str]:
+    before = {s["key"]: s.get("alert") for s in (previous or {}).get("scenarios", [])}
+    lines = []
+    for s in today.get("scenarios", []):
+        now, was = s.get("alert"), before.get(s["key"])
+        if not now or not was or now["level"] == was["level"]:
+            continue
+        arrow = "▲" if ORDER.index(now["level"]) > ORDER.index(was["level"]) else "▼"
+        lines.append(
+            f"{arrow} {s['title_ru']}: {LEVEL_RU[was['level']]} → {LEVEL_RU[now['level']]}"
+        )
+    return lines
+
+
 def new_signs(
     signals: Mapping, history: Mapping[str, list], catalogue: Mapping[str, Mapping]
 ) -> list[str]:
@@ -84,14 +102,14 @@ def digest(
     today: date,
 ) -> str | None:
     catalogue = {c["key"]: c for c in signals.get("catalogue", [])}
-    changes = scenario_changes(scenarios, previous)
+    changes = alert_changes(scenarios, previous) + scenario_changes(scenarios, previous)
     signs = new_signs(signals, history, catalogue)
     weekly = today.weekday() == 0
     if not changes and not signs and not weekly:
         return None
     parts = [f"GeoIntel, {today.strftime('%d.%m.%Y')}"]
     if changes:
-        parts.append("Изменились вероятности:\n" + "\n".join(changes))
+        parts.append("Изменились уровни тревоги и вероятности:\n" + "\n".join(changes))
     if signs:
         parts.append("Новые признаки:\n" + "\n".join(signs[:15]))
     if weekly:
