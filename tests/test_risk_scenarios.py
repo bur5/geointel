@@ -356,3 +356,18 @@ def test_telegram_digest():
     quiet = notify.digest(scen(0.04), scen(0.04), {"countries": {}}, {}, date(2026, 11, 25))
     assert quiet is None  # Wednesday, nothing changed
     assert notify.send("x") is False  # no secrets in tests
+
+
+def test_caucasus_and_middle_east_scenarios():
+    by_key = {s.key: s for s in scenarios.CATALOGUE}
+    for key in (
+        "armenia_azerbaijan",
+        "israel_hezbollah",
+        "hormuz_reopening",
+        "georgia_crisis",
+        "iraq_strikes",
+    ):
+        assert key in by_key, key
+    assert by_key["hormuz_reopening"].polarity == -1
+    assert by_key["georgia_crisis"].risk == "political_crisis"
+    assert len({s.key for s in scenarios.CATALOGUE}) == len(scenarios.CATALOGUE)

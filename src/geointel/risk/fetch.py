@@ -250,6 +250,16 @@ def _coups(client: httpx.Client, fallback: list[str]) -> tuple[bytes, str, str]:
     """Cline Center Coup d'État Project (Illinois Data Bank), else Powell & Thyne."""
     from geointel.risk.sources import coups
 
+    for link in coups.CLINE_FILES:
+        try:
+            payload = client.get(link, headers=_BROWSER, follow_redirects=True, timeout=90)
+            payload.raise_for_status()
+            if b"year" in payload.content[:2000].lower():
+                print(f"[coups] Cline Center file {link}: {len(payload.content)} bytes")
+                return payload.content, link, "Cline Center v2.2.2"
+            print(f"[coups] {link}: not a CSV ({payload.content[:80]!r})")
+        except Exception as exc:  # noqa: BLE001 - try the next link
+            print(f"[coups] {link} failed: {type(exc).__name__}: {str(exc)[:160]}")
     for landing in coups.CLINE_LANDINGS:
         try:
             response = client.get(landing, headers=_BROWSER, follow_redirects=True, timeout=60)
@@ -654,18 +664,31 @@ def _telegram(client: httpx.Client, _year: int) -> tuple[bytes, str, str]:
 
     channels: dict[str, dict] = {}
     failures = []
+    total = 0
     for channel in telegram.CHANNELS:
         try:
-            page = _get(client, telegram.URL.format(channel=channel), retries=1).text
-            posts = telegram.parse_page(page)
+            url = telegram.URL.format(channel=channel)
+            posts = telegram.parse_page(_get(client, url, retries=1).text)
             if not posts:
                 failures.append(f"{channel}: no posts")
                 continue
-            channels[channel] = telegram.count(posts)
+            # The preview shows ~20 posts per page; page back until yesterday is covered.
+            yesterday = (datetime.now(UTC).date() - timedelta(days=1)).isoformat()
+            for _ in range(6):
+                before = telegram.oldest_id(posts)
+                if not before or min(p["date"] for p in posts) < yesterday:
+                    break
+                time.sleep(1.5)
+                more = telegram.parse_page(_get(client, f"{url}?before={before}", retries=1).text)
+                if not more:
+                    break
+                posts.extend(more)
+            channels[channel] = telegram.count(posts, channel)
+            total += len(posts)
         except Exception as exc:  # noqa: BLE001 - a missing channel is not fatal
             failures.append(f"{channel}: {type(exc).__name__}")
         time.sleep(2)
-    print(f"[telegram] ok={sorted(channels)} failed={failures}")
+    print(f"[telegram] posts={total} ok={sorted(channels)} failed={failures}")
     if not channels:
         raise RuntimeError("; ".join(failures[:5]))
     return (
