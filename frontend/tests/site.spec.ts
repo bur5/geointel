@@ -60,7 +60,7 @@ test('country, changes, assistant and method pages; language switch', async ({ p
   await page.locator('[data-field="country"]').selectOption('JPN');
   await expect(page.locator('.hazard-card').first()).toBeVisible();
   await expect(page.locator('.country-map circle').first()).toBeVisible();
-  await expect(page.locator('.verdict')).toHaveCount(3);
+  await expect(page.locator('.verdict')).toHaveCount(4);
   await expect(page.locator('.ctx')).not.toHaveCount(0);
   await shoot(page, 'country-japan');
   await page.locator('[data-field="country"]').selectOption('USA');
