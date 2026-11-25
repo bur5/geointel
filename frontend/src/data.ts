@@ -233,3 +233,11 @@ export interface BacktestFile {
 }
 export const loadSignals = cachedJson<SignalsFile>('signals.json');
 export const loadBacktest = cachedJson<BacktestFile>('backtest.json');
+
+export interface RealCase {
+  key: string; title_ru: string; title_en: string; event_date: string; risk: string; target: string;
+  base_annual: number; monthly: boolean; points: BacktestPoint[]; lead_days: number; elevated_weeks: number;
+  max_factor: number; brier: number | null; brier_base: number | null; radar: boolean;
+}
+export interface RealBacktestFile { schema: string; generated_at: string; lr: Record<string, number>; cases: RealCase[] }
+export const loadRealBacktest = cachedJson<RealBacktestFile>('backtest-real.json');

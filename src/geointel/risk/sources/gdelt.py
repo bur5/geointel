@@ -58,38 +58,63 @@ def read_export(payload: bytes) -> str:
     return payload.decode("utf-8", errors="replace")
 
 
+def _new_day() -> tuple[dict, dict]:
+    return defaultdict(lambda: dict.fromkeys(CATEGORIES, 0)), defaultdict(int)
+
+
+def _add(row: list[str], counts: dict, dyads: dict, watch, universe) -> None:
+    cols = _columns(len(row))
+    if cols is None or row[cols["root_flag"]] != "1":
+        return
+    root = row[cols["root"]]
+    a1, a2 = row[cols["a1"]], row[cols["a2"]]
+    a1 = a1 if a1 in universe else ""
+    a2 = a2 if a2 in universe else ""
+    place = _place_country(row[cols["geo_name"]]) or a1
+    if place:
+        c = counts[place]
+        c["all"] += 1
+        if root == "14":
+            c["protest"] += 1
+        elif root in ("18", "19", "20") and not (a1 and a2 and a1 != a2):
+            c["armed"] += 1
+        elif root == "17":
+            c["repression"] += 1
+    if a1 and a2 and a1 != a2 and root in HOSTILE_ROOTS:
+        for code in (a1, a2):
+            if code != place:
+                counts[code]["all"] += 1
+            counts[code]["external"] += 1
+        if watch is None or (a1, a2) in watch:
+            dyads[f"{a1}>{a2}"] += 1
+
+
+def _pack(counts: dict, dyads: dict) -> dict:
+    return {"countries": {k: dict(v) for k, v in counts.items()}, "dyads": dict(dyads)}
+
+
 def aggregate(texts: Iterable[str], watch: set[tuple[str, str]] | None = None) -> dict:
     """Counts per country and category for one day, plus hostile counts for watched dyads."""
     universe = universe_codes()
-    counts: dict[str, dict[str, int]] = defaultdict(lambda: dict.fromkeys(CATEGORIES, 0))
-    dyads: dict[str, int] = defaultdict(int)
+    counts, dyads = _new_day()
     for text in texts:
         for row in csv.reader(io.StringIO(text), delimiter="\t"):
-            cols = _columns(len(row))
-            if cols is None or row[cols["root_flag"]] != "1":
-                continue
-            root = row[cols["root"]]
-            a1, a2 = row[cols["a1"]], row[cols["a2"]]
-            a1 = a1 if a1 in universe else ""
-            a2 = a2 if a2 in universe else ""
-            place = _place_country(row[cols["geo_name"]]) or a1
-            if place:
-                c = counts[place]
-                c["all"] += 1
-                if root == "14":
-                    c["protest"] += 1
-                elif root in ("18", "19", "20") and not (a1 and a2 and a1 != a2):
-                    c["armed"] += 1
-                elif root == "17":
-                    c["repression"] += 1
-            if a1 and a2 and a1 != a2 and root in HOSTILE_ROOTS:
-                for code in (a1, a2):
-                    if code != place:
-                        counts[code]["all"] += 1
-                    counts[code]["external"] += 1
-                if watch is None or (a1, a2) in watch:
-                    dyads[f"{a1}>{a2}"] += 1
-    return {"countries": {k: dict(v) for k, v in counts.items()}, "dyads": dict(dyads)}
+            _add(row, counts, dyads, watch, universe)
+    return _pack(counts, dyads)
+
+
+def aggregate_by_day(lines: Iterable[str], watch: set[tuple[str, str]] | None) -> dict[str, dict]:
+    """Like ``aggregate`` but split by the event date (column 1, YYYYMMDD); streams lines."""
+    universe = universe_codes()
+    days: dict[str, tuple[dict, dict]] = {}
+    for row in csv.reader(lines, delimiter="\t"):
+        if len(row) < 2 or len(row[1]) != 8:
+            continue
+        day = f"{row[1][:4]}-{row[1][4:6]}-{row[1][6:]}"
+        if day not in days:
+            days[day] = _new_day()
+        _add(row, *days[day], watch, universe)
+    return {day: _pack(*pair) for day, pair in days.items()}
 
 
 def merge_days(cache: Mapping[str, dict], new: Mapping[str, dict], today: date) -> dict:

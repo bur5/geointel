@@ -1,13 +1,13 @@
 import './style.css';
-import { band, changesSince, loadBacktest, loadHazards, loadLinks, loadScenarios, loadSignals, loadSnapshot, percent, readVisit, writeVisit } from './data';
+import { band, changesSince, loadBacktest, loadRealBacktest, loadHazards, loadLinks, loadScenarios, loadSignals, loadSnapshot, percent, readVisit, writeVisit } from './data';
 import type {
-  BacktestFile, Change, CountryEntry, EventTypeEntry, HazardDetails, HazardSummary, HorizonKey, Lang, LinksFile, Probability, Risk,
+  BacktestFile, RealBacktestFile, Change, CountryEntry, EventTypeEntry, HazardDetails, HazardSummary, HorizonKey, Lang, LinksFile, Probability, Risk,
   ScenarioFile, SignalsFile,
   Snapshot, VisitMemory,
 } from './data';
 import { countryScenarios, linksSection, migrationClass, migrationPage, migrationSection, roleClass, scenariosPage, vt } from './views';
 import type { ViewContext } from './views';
-import { backtestSection, countrySignals, factorClass, signalsPage, st } from './signalsView';
+import { backtestSection, countrySignals, factorClass, realBacktestSection, signalsPage, st } from './signalsView';
 import type { ChainEvent } from './chains';
 import { dictionaries } from './i18n';
 import { drawCountryMap, drawMap, neighboursOf } from './map';
@@ -47,6 +47,8 @@ let scenariosData: ScenarioFile | undefined;
 let linksData: LinksFile | undefined;
 let signalsData: SignalsFile | undefined;
 let backtestData: BacktestFile | undefined;
+let realBacktestData: RealBacktestFile | undefined;
+let btCase = stored('geointel.btcase') ?? 'ukraine_2022';
 let currentScenario = stored('geointel.scenario') ?? 'russia_nato';
 let chainEvent: ChainEvent = (stored('geointel.chain') as ChainEvent | null) ?? 'conflict';
 let migMode: 'hosted' | 'abroad' = stored('geointel.migmode') === 'abroad' ? 'abroad' : 'hosted';
@@ -530,7 +532,7 @@ function body(page: Page) {
   if (loadError) return notice(t().loadError, `<button class="button" data-retry>${t().retry}</button>`, 'alert');
   if (!snapshot) return `<div class="loading" role="status">${t().loading}</div>`;
   if (page === 'country') return countryPage();
-  if (page === 'scenarios') return scenariosPage(viewContext(), scenariosData, currentScenario, horizonLabels()) + backtestSection(viewContext(), backtestData);
+  if (page === 'scenarios') return scenariosPage(viewContext(), scenariosData, currentScenario, horizonLabels()) + backtestSection(viewContext(), backtestData) + realBacktestSection(viewContext(), realBacktestData, btCase);
   if (page === 'signals') return signalsPage(viewContext(), signalsData);
   if (page === 'migration') return migrationPage(viewContext(), linksData, migMode);
   if (page === 'changes') return changesPage();
@@ -663,6 +665,8 @@ root.addEventListener('click', (event) => {
     if (node) node.innerHTML = linksSection(viewContext(), selected, chainEvent, neighbourCodes(selected), linksData);
     return;
   }
+  const bt = target.closest<HTMLElement>('[data-btcase]')?.dataset.btcase;
+  if (bt) { btCase = bt; store('geointel.btcase', bt); render(); return; }
   const mode = target.closest<HTMLElement>('[data-migmode]')?.dataset.migmode as typeof migMode | undefined;
   if (mode) { migMode = mode; store('geointel.migmode', mode); render(); return; }
   const lensKey = target.closest<HTMLElement>('[data-lens]')?.dataset.lens as typeof lens | undefined;
@@ -710,6 +714,7 @@ async function start() {
     void loadLinks().then((data) => { linksData = data; if (['migration', 'country'].includes(currentPage())) render(); });
     void loadSignals().then((data) => { signalsData = data; if (['signals', 'country'].includes(currentPage())) render(); });
     void loadBacktest().then((data) => { backtestData = data; if (currentPage() === 'scenarios') render(); });
+    void loadRealBacktest().then((data) => { realBacktestData = data; if (currentPage() === 'scenarios') render(); });
     if (!isView(eventType) && !typeEntry(eventType)?.available) eventType = snapshot.event_types.find((e) => e.available)?.key ?? eventType;
     if (!byIso().has(selected)) selected = snapshot.countries[0]?.iso3 ?? '';
   } catch {

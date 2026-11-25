@@ -407,6 +407,115 @@ def build_signal_layer(snapshot: dict, extras: dict, sources: list[dict], now) -
     }
 
 
+def run_backtest_real(out: Path, only: list[str]) -> int:
+    import os
+    import time
+
+    import httpx
+
+    from geointel.risk import backtest_real
+    from geointel.risk.sources import gdelt, sentinel
+
+    cases = [c for c in backtest_real.CASES if not only or c.key in only]
+    cache: dict[str, dict] = {}
+    results = []
+    watch_all = {
+        pair for c in cases if c.actor for pair in ((c.actor, c.target), (c.target, c.actor))
+    }
+    with httpx.Client(timeout=180, follow_redirects=True) as client:
+        token = None
+        cid, secret = os.environ.get("CDSE_CLIENT_ID"), os.environ.get("CDSE_CLIENT_SECRET")
+        if cid and secret:
+            try:
+                response = client.post(
+                    sentinel.TOKEN_URL,
+                    data={
+                        "grant_type": "client_credentials",
+                        "client_id": cid,
+                        "client_secret": secret,
+                    },
+                )
+                response.raise_for_status()
+                token = response.json()["access_token"]
+            except Exception as exc:  # noqa: BLE001 - radar is optional
+                print(f"[backtest] Copernicus token failed: {type(exc).__name__}")
+        for case in cases:
+            started = time.monotonic()
+            days: dict[str, dict] = {}
+            if case.monthly:
+                for month in backtest_real.months_needed(case):
+                    key = f"m{month}"
+                    if key not in cache:
+                        try:
+                            payload = client.get(backtest_real.V1_MONTHLY.format(month=month))
+                            payload.raise_for_status()
+                            cache[key] = _monthly_days(payload.content, watch_all)
+                        except Exception as exc:  # noqa: BLE001 - a missing month is skipped
+                            print(f"[backtest] {month}: {type(exc).__name__}")
+                            cache[key] = {}
+                    days.update(cache[key])
+            else:
+                for day in backtest_real.days_needed(case):
+                    key = day.isoformat()
+                    if key not in cache:
+                        try:
+                            url = gdelt.V1_DAILY.format(day=day.strftime("%Y%m%d"))
+                            payload = client.get(url)
+                            payload.raise_for_status()
+                            text = gdelt.read_export(payload.content)
+                            cache[key] = gdelt.aggregate([text], watch_all)
+                        except Exception as exc:  # noqa: BLE001 - a missing day is skipped
+                            print(f"[backtest] {key}: {type(exc).__name__}")
+                            cache[key] = {}
+                    if cache[key]:
+                        days[key] = cache[key]
+            radar = None
+            if token and case.sites:
+                radar = {}
+                event = date.fromisoformat(case.event)
+                for site in sentinel.SITES:
+                    if site.key not in case.sites:
+                        continue
+                    try:
+                        response = client.post(
+                            sentinel.STATS_URL,
+                            json=sentinel.request(site, event, days=800),
+                            headers={"Authorization": f"Bearer {token}"},
+                        )
+                        response.raise_for_status()
+                        radar[site.key] = sentinel.series(response.json())
+                    except Exception as exc:  # noqa: BLE001 - one site failing is fine
+                        print(f"[backtest] radar {site.key}: {type(exc).__name__}: {exc}")
+            result = backtest_real.evaluate(case, days, radar)
+            results.append(result)
+            peak = max(result["points"], key=lambda p: p["factor"]) if result["points"] else {}
+            print(
+                f"[backtest] {case.key}: days={len(days)} lead={result['lead_days']}d "
+                f"max_factor={result['max_factor']} brier={result['brier']} "
+                f"(base {result['brier_base']}) peak={peak.get('date')} "
+                f"{time.monotonic() - started:.0f}s"
+            )
+            for p in result["points"][-8:]:
+                print(f"[backtest]   {p['date']} x{p['factor']} p1m={p['p1m']} {p['signs']}")
+    out.parent.mkdir(parents=True, exist_ok=True)
+    report = backtest_real.report(results, datetime.now(UTC).isoformat())
+    out.write_text(json.dumps(report, ensure_ascii=False, separators=(",", ":")))
+    return 0
+
+
+def _monthly_days(payload: bytes, watch: set) -> dict[str, dict]:
+    """Stream a zipped GDELT monthly file into per-day aggregates."""
+    import io
+    import zipfile
+
+    from geointel.risk.sources import gdelt
+
+    with zipfile.ZipFile(io.BytesIO(payload)) as archive:
+        with archive.open(archive.namelist()[0]) as handle:
+            lines = io.TextIOWrapper(handle, encoding="utf-8", errors="replace")
+            return gdelt.aggregate_by_day(lines, watch)
+
+
 def _print_summary(snapshot: dict) -> None:
     for entry in snapshot["event_types"]:
         if not entry["available"]:
@@ -436,7 +545,13 @@ def main(argv: list[str] | None = None) -> int:
     build_cmd.add_argument("--out", type=Path, default=Path("data/site/risk.json"))
     build_cmd.add_argument("--previous", type=Path, default=None)
     build_cmd.add_argument("--min-available-types", type=int, default=1)
+    bt_cmd = sub.add_parser("backtest-real", help="replay archived data through the signals")
+    bt_cmd.add_argument("--out", type=Path, default=Path("data/site/backtest-real.json"))
+    bt_cmd.add_argument("--cases", default="")
     args = parser.parse_args(argv)
+
+    if args.command == "backtest-real":
+        return run_backtest_real(args.out, [c for c in args.cases.split(",") if c])
 
     if args.command == "fetch":
         from geointel.risk.fetch import fetch_all

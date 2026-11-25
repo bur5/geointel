@@ -479,6 +479,8 @@ td.up, td.down { margin-left: 0; }
 .bt-grid { stroke: var(--line); stroke-width: 1; }
 .bt-axis { font-size: 11px; fill: var(--muted); }
 .bt-mark { stroke: #c4ccd6; stroke-dasharray: 2 3; }
+.bt-event { stroke: var(--r-critical); stroke-width: 2; }
+.bt-facts { margin: 10px 0; display: grid; gap: 4px; }
 .bt-year { fill: none; stroke: var(--r-high); stroke-width: 2.2; }
 .bt-month { fill: none; stroke: var(--ink); stroke-width: 2.2; }
 .legend-key i.bt-year-key { background: var(--r-high); height: 4px; }

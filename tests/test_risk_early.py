@@ -134,3 +134,32 @@ def test_early_signals_build_and_persistence(tmp_path):
         boosted["adjusted"]["economic_crisis"]["factor"]
         > entry["adjusted"]["economic_crisis"]["factor"]
     )
+
+
+def test_backtest_real_evaluate_on_synthetic_days():
+    from geointel.risk import backtest_real
+
+    case = backtest_real.Case(
+        "x", "x", "x", "2022-02-24", "2021-12-01", "UKR", "RUS", "interstate_conflict", 0.05
+    )
+    days = {}
+    for d in backtest_real.days_needed(case):
+        hot = d >= date(2022, 1, 20)
+        days[d.isoformat()] = {
+            "countries": {
+                "UKR": {
+                    "all": 100,
+                    "external": 30 if hot else 5 + d.day % 3,
+                    "protest": 2,
+                    "armed": 1,
+                    "repression": 1,
+                }
+            },
+            "dyads": {"RUS>UKR": 20 if hot else 2},
+        }
+    result = backtest_real.evaluate(case, days)
+    early_points = [p for p in result["points"] if p["date"] < "2022-01-15"]
+    late_points = [p for p in result["points"] if p["date"] >= "2022-02-01"]
+    assert all(p["factor"] == 1.0 for p in early_points)
+    assert all("gdelt_external" in p["signs"] for p in late_points)
+    assert result["lead_days"] > 0 and result["brier"] is not None
