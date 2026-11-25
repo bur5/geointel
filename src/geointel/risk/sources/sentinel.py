@@ -54,7 +54,7 @@ function evaluatePixel(s) { return {vv: [s.VV], dataMask: [s.dataMask]}; }
 """
 
 
-def request(site: Site, today: date, days: int = 120, half: float = 0.05) -> dict:
+def request(site: Site, today: date, days: int = 420, half: float = 0.05) -> dict:
     return {
         "input": {
             "bounds": {
@@ -103,14 +103,30 @@ def series(response: Mapping) -> list[tuple[str, float]]:
     return sorted(points)
 
 
-def change(points: list[tuple[str, float]]) -> dict | None:
-    """Mean of the last two intervals vs the median of the earlier ones."""
+def change(points: list[tuple[str, float]], seasonal_days: int = 365) -> dict | None:
+    """Last two intervals vs the site's recent median and vs the same weeks a year earlier.
+
+    A rise counts only when it beats both: the recent median (sudden change) and last year's
+    level for the same season (snow, harvest and leaf cover change radar returns every year).
+    """
     if len(points) < 8:
         return None
     recent = [v for _, v in points[-2:]]
-    earlier = sorted(v for _, v in points[:-2])
+    now = sum(recent) / len(recent)
+    earlier = sorted(v for _, v in points[-17:-2])
     median = earlier[len(earlier) // 2]
-    ratio = (sum(recent) / len(recent)) / median if median else None
+    last_day = date.fromisoformat(points[-1][0])
+    season = [
+        v for d, v in points if abs((last_day - date.fromisoformat(d)).days - seasonal_days) <= 21
+    ]
+    ratio = now / median if median else None
     if ratio is None:
         return None
-    return {"ratio": round(ratio, 2), "active": ratio >= 1.5, "last": points[-1][0]}
+    seasonal = now / (sum(season) / len(season)) if season else None
+    active = ratio >= 1.5 and (seasonal is None or seasonal >= 1.4)
+    return {
+        "ratio": round(ratio, 2),
+        "seasonal_ratio": round(seasonal, 2) if seasonal else None,
+        "active": active,
+        "last": points[-1][0],
+    }

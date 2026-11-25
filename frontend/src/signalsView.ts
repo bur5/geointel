@@ -39,7 +39,14 @@ const ru = {
     fcdo: 'Рекомендации МИД Великобритании', elections: 'Выборы (Wikidata)', imf: 'Прогноз МВФ', milex: 'Военные расходы (SIPRI)',
     gpr: 'Индекс геополитического риска', newswire: 'Разбор новостей языковой моделью (ключ Claude API)',
     sentinel: 'Спутники Sentinel-1 (ключ Copernicus)', metaculus: 'Metaculus (токен)', markets: 'Polymarket',
+    ioda: 'Отключения интернета (IODA)', firms: 'Пожары со спутников (NASA FIRMS)', military: 'Военные самолёты (airplanes.live)',
+    zakupki: 'Госзакупки России (zakupki.gov.ru)', media: 'Русскоязычные СМИ: мобилизация и военное положение (GDELT)',
+    fx: 'Курсы валют (ExchangeRate-API)', food: 'Цены на продовольствие (ВПП ООН)', telegram: 'Публичные Telegram-каналы',
+    coups: 'Перевороты (Cline Center)',
   } as Record<string, string>,
+  persistent: 'держится 2 недели — вес × 1,25',
+  trendTitle: 'Как менялась сила признаков (90 дней)',
+  fxCredit: 'Курсы валют: <a href="https://www.exchangerate-api.com" rel="noreferrer">Rates By Exchange Rate API</a>.',
   btTitle: 'Проверка на истории: вторжение в Украину 2022',
   btLead: 'Тот же набор признаков и коэффициентов, применённый к открытым сообщениям 2021–2022 годов. Линии — вероятность нападения в течение месяца и года на каждую дату.',
   btCaveat: 'Важно: признаки и коэффициенты записаны в 2026 году, когда исход уже известен. Это проверка того, что метод ведёт себя разумно, а не доказательство, что мы бы предсказали. Апрель 2021 года — ложная тревога: тогда наращивание войск не закончилось вторжением.',
@@ -85,7 +92,14 @@ const en: Dict = {
     fcdo: 'UK travel advice', elections: 'Elections (Wikidata)', imf: 'IMF outlook', milex: 'Military spending (SIPRI)',
     gpr: 'Geopolitical risk index', newswire: 'News classified by a language model (Claude API key)',
     sentinel: 'Sentinel-1 satellites (Copernicus key)', metaculus: 'Metaculus (token)', markets: 'Polymarket',
+    ioda: 'Internet outages (IODA)', firms: 'Satellite fires (NASA FIRMS)', military: 'Military aircraft (airplanes.live)',
+    zakupki: 'Russian public procurement (zakupki.gov.ru)', media: 'Russian-language media: mobilisation and martial law (GDELT)',
+    fx: 'Exchange rates (ExchangeRate-API)', food: 'Food prices (WFP)', telegram: 'Public Telegram channels',
+    coups: 'Coups (Cline Center)',
   },
+  persistent: 'lasting two weeks, weight × 1.25',
+  trendTitle: 'How the strength of signs changed (90 days)',
+  fxCredit: 'Exchange rates: <a href="https://www.exchangerate-api.com" rel="noreferrer">Rates By Exchange Rate API</a>.',
   btTitle: 'Backtest: the 2022 invasion of Ukraine',
   btLead: 'The same signs and factors applied to public reports from 2021–2022. Lines show the probability of an attack within a month and within a year on each date.',
   btCaveat: 'Important: the signs and factors were written in 2026, with the outcome known. This checks that the method behaves sensibly; it does not prove we would have predicted it. April 2021 is a false alarm: that build-up did not end in an invasion.',
@@ -96,6 +110,14 @@ const en: Dict = {
 };
 const dicts: Record<Lang, Dict> = { ru, en };
 export const st = (lang: Lang) => dicts[lang];
+
+type CountrySignalsEx = SignalsFile['countries'][string] & { trend?: { series?: [string, number][] } };
+
+function trendLine(values: number[]) {
+  const max = Math.max(...values, 1.5), min = Math.min(...values, 1);
+  const pts = values.map((v, i) => `${((i / (values.length - 1)) * 240).toFixed(1)},${(38 - ((v - min) / (max - min || 1)) * 34).toFixed(1)}`).join(' ');
+  return `<svg class="spark" viewBox="0 0 240 40" aria-hidden="true"><polyline points="${pts}"/></svg>`;
+}
 
 const num = (v: number, lang: Lang, d = 1) => v.toFixed(d).replace('.', lang === 'ru' ? ',' : '.');
 const fx = (v: number, lang: Lang) => (v >= 10 ? v.toFixed(0) : num(v, lang, v >= 2 ? 1 : 2));
@@ -111,7 +133,7 @@ function signRow(ctx: ViewContext, sign: Sign, spec: SignSpec | undefined, group
   return `<li class="sig ${lr >= 1 ? 'up' : 'down'}"><span class="sig-lr">×${fx(lr, ctx.lang)}</span>
     <div><strong>${ctx.esc(label)}</strong> <span class="muted-text small">${ctx.esc(group)}</span>
     <p>${ctx.esc(ctx.lang === 'ru' ? sign.value_ru : sign.value_en)}</p>
-    <p class="muted-text small">${sign.date ? ctx.esc(sign.date) + ' · ' : ''}${ctx.esc(sign.source ?? '')}${sign.reports ? ' · ' + d.reports(sign.reports) : ''}${weak ? ' · ' + d.weak : ''}${sign.url ? ` · <a href="${ctx.esc(sign.url)}" rel="noreferrer">${d.source}</a>` : ''}</p></div></li>`;
+    <p class="muted-text small">${sign.date ? ctx.esc(sign.date) + ' · ' : ''}${ctx.esc(sign.source ?? '')}${sign.reports ? ' · ' + d.reports(sign.reports) : ''}${(sign as Sign & { persistent?: boolean }).persistent ? ' · ' + d.persistent : ''}${weak ? ' · ' + d.weak : ''}${sign.url ? ` · <a href="${ctx.esc(sign.url)}" rel="noreferrer">${d.source}</a>` : ''}</p></div></li>`;
 }
 
 export function countrySignals(ctx: ViewContext, data: SignalsFile | undefined, country: CountryEntry | undefined) {
@@ -137,8 +159,10 @@ export function countrySignals(ctx: ViewContext, data: SignalsFile | undefined, 
     return `<li>${ctx.esc(spec ? (ctx.lang === 'ru' ? spec.label_ru : spec.label_en) : s.key)}: <span class="muted-text">${ctx.esc(ctx.lang === 'ru' ? s.value_ru : s.value_en)}</span></li>`;
   }).join('')}</ul>`;
   const combo = Object.values(entry.adjusted).some((a) => a.combo);
+  const series = (entry as CountrySignalsEx).trend?.series ?? [];
+  const trend = series.length >= 3 ? `<h3 class="sub">${d.trendTitle}</h3>${trendLine(series.map((p) => p[1]))}` : '';
   return head + `<div class="signals-layout">
-    <div>${risks ? `<ul class="adjusted">${risks}</ul>` : `<p class="muted-text">${d.none}</p>`}${combo ? `<p class="muted-text small">${d.combo}</p>` : ''}</div>
+    <div>${risks ? `<ul class="adjusted">${risks}</ul>` : `<p class="muted-text">${d.none}</p>`}${combo ? `<p class="muted-text small">${d.combo}</p>` : ''}${trend}</div>
     <div>${active.length ? `<ul class="sig-list">${active.sort((a, b) => Math.abs(Math.log(b.lr)) - Math.abs(Math.log(a.lr))).map((s) => signRow(ctx, s, specs.get(s.key), data.groups)).join('')}</ul>` : ''}
       ${normal.length ? `<details><summary>${d.normalTitle(normal.length)}</summary>${plain(normal)}</details>` : ''}
       ${noData.length ? `<details><summary>${d.noDataTitle(noData.length)}</summary>${plain(noData)}</details>` : ''}</div></div>`;
@@ -164,7 +188,7 @@ export function signalsPage(ctx: ViewContext, data: SignalsFile | undefined) {
         <div class="ramp">${steps.map(([cls, label]) => `<span class="${cls}"><i></i><small>×${label.replace(',', ctx.lang === 'ru' ? ',' : '.')}</small></span>`).join('')}</div></div></div></section>
     <aside class="brief"><h3 class="aside-title">${d.top}</h3><ul class="mig-list">${top.map(([code, c]) =>
       `<li><button type="button" class="link" data-select="${code}">${ctx.esc(ctx.name(code))}</button><span><b class="${factorClass(c.max_factor)}-text">×${fx(c.max_factor, ctx.lang)}</b> · ${d.activeSigns(c.active)}</span></li>`).join('')}</ul>
-      <h3 class="aside-title">${d.sourcesTitle}</h3><ul class="plain small src-status">${sources}</ul></aside></div>
+      <h3 class="aside-title">${d.sourcesTitle}</h3><ul class="plain small src-status">${sources}</ul><p class="muted-text small">${d.fxCredit}</p></aside></div>
     <section class="section"><div class="section-head"><h2>${d.catalogueTitle}</h2><p>${d.catalogueLead}</p></div>
       <div class="table-wrap"><table class="table"><thead><tr><th>${d.colSign}</th><th>${d.colGroup}</th><th>${d.colLr}</th><th>${d.colApplies}</th><th>${d.colKind}</th></tr></thead><tbody>${rows}</tbody></table></div></section>`;
 }

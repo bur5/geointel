@@ -66,7 +66,7 @@ def load_histories(
 
     def coup(path: Path) -> None:
         text = path.read_bytes().decode("utf-8", errors="replace")
-        histories[EventType.COUP_ATTEMPT] = coups.parse(text, reference_year)
+        histories[EventType.COUP_ATTEMPT] = coups.parse_any(text, reference_year)
 
     def quakes(path: Path) -> None:
         text = path.read_text()
@@ -162,6 +162,27 @@ def load_histories(
             key: sentinel.series(response) for key, response in payload.get("sites", {}).items()
         }
 
+    def early_raw(key: str, kind: str = "json") -> Callable[[Path], None]:
+        def load(path: Path) -> None:
+            from geointel.risk.sources import early as early_src
+
+            raw = extras.setdefault("early_raw", {})
+            if kind == "food":
+                raw[key] = early_src.food_prices(path.read_text(errors="replace"))
+                return
+            payload = json.loads(path.read_text())
+            raw[key] = {
+                "ioda": lambda p: p.get("countries", {}),
+                "firms": lambda p: p.get("days", {}),
+                "military": lambda p: p.get("counts", {}),
+                "zakupki": lambda p: p.get("weeks", {}),
+                "media": lambda p: p.get("series", {}),
+                "fx": lambda p: p.get("days", {}),
+                "telegram": lambda p: p.get("channels", {}),
+            }[key](payload)
+
+        return load
+
     def news(path: Path) -> None:
         extras["news_new"] = json.loads(path.read_text()).get("entries", [])
 
@@ -174,7 +195,7 @@ def load_histories(
 
     loaders: list[tuple[str, str, Callable[[Path], None]]] = [
         ("ucdp_acd", ucdp_acd.SOURCE, ucdp),
-        ("coups", coups.SOURCE, coup),
+        ("coups", coups.CLINE_SOURCE + " / Powell & Thyne", coup),
         ("usgs", usgs.SOURCE, quakes),
         ("gdacs", gdacs.SOURCE, gdacs_alerts),
         ("tsunami", ncei_tsunami.SOURCE, tsunamis),
@@ -197,6 +218,14 @@ def load_histories(
         ("metaculus", metaculus.SOURCE, community),
         ("sentinel", sentinel.SOURCE, radar),
         ("newswire", newswire.SOURCE, news),
+        ("ioda", "IODA internet outages (Georgia Tech)", early_raw("ioda")),
+        ("firms", "NASA FIRMS fire detections (VIIRS)", early_raw("firms")),
+        ("military", "airplanes.live military aircraft (ADS-B)", early_raw("military")),
+        ("zakupki", "zakupki.gov.ru public procurement", early_raw("zakupki")),
+        ("media", "GDELT DOC Russian-language media volume", early_raw("media")),
+        ("fx", "ExchangeRate-API daily rates", early_raw("fx")),
+        ("food", "WFP Global Market Monitor (HDX)", early_raw("food", "food")),
+        ("telegram", "Public Telegram channels", early_raw("telegram")),
         ("regions", "Natural Earth admin-1 regions", admin_regions),  # must stay last
     ]
     for key, name, loader in loaders:
@@ -320,6 +349,24 @@ def build_signal_layer(snapshot: dict, extras: dict, sources: list[dict], now) -
                 {"name_ru": site.name_ru, "name_en": site.name_en, **result}
             )
 
+    from geointel.risk import early_signals
+    from geointel.risk.warning_signs import apply_persistence
+
+    conflict = {
+        c["iso3"]
+        for c in snapshot["countries"]
+        for key in ("internal_armed_conflict", "interstate_conflict")
+        if (c["risks"].get(key) or {}).get("active")
+    }
+    extra, notes = early_signals.build(
+        raw=extras.get("early_raw", {}),
+        cache_in=cache_in,
+        cache_out=cache_out,
+        today=today,
+        locate=index.country_of if index is not None else None,
+        conflict_countries=conflict,
+    )
+    print(f"[signals] early sources: {notes}")
     signals = build_signals(
         snapshot,
         today=today,
@@ -330,9 +377,22 @@ def build_signal_layer(snapshot: dict, extras: dict, sources: list[dict], now) -
         hazard_alerts=extras.get("hazard_alerts"),
         satellite=satellite,
         news_entries=news,
+        extra_signs=extra,
         status=status,
         generated_at=now,
     )
+    trends = early_signals.persistence(
+        cache_in / "signals_history.json",
+        cache_out / "signals_history.json",
+        signals["countries"],
+        today,
+    )
+    by_iso = {c["iso3"]: c for c in snapshot["countries"]}
+    for code, entry in list(signals["countries"].items()):
+        persistent = set((trends.get(code) or {}).get("persistent", []))
+        if persistent:
+            signals["countries"][code] = apply_persistence(by_iso[code], entry, persistent)
+        signals["countries"][code]["trend"] = trends.get(code, {})
     signals["dyads"] = dyad_trend
     top = sorted(signals["countries"].items(), key=lambda kv: -kv[1]["max_factor"])[:15]
     print("[signals] top: " + ", ".join(f"{k} x{v['max_factor']:.2f}" for k, v in top))

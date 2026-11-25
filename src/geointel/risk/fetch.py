@@ -4,6 +4,8 @@ Every source is fetched independently; a failure is recorded in ``manifest.json`
 only that source's event types unavailable.
 """
 
+import csv
+import io
 import json
 import os
 import time
@@ -16,6 +18,7 @@ import httpx
 from geointel.risk import regions
 from geointel.risk.sources import (
     advisories,
+    early,
     elections,
     exposure,
     fcdo,
@@ -237,6 +240,21 @@ def _regions(client: httpx.Client, _year: int) -> tuple[bytes, str, str]:
     return _get(client, regions.URL).content, regions.URL, "ne_10m_admin_1"
 
 
+def _coups(client: httpx.Client, fallback: list[str]) -> tuple[bytes, str, str]:
+    """Cline Center Coup d'État Project (Illinois Data Bank), else Powell & Thyne."""
+    from geointel.risk.sources import coups
+
+    try:
+        page = _get(client, coups.CLINE_LANDING, retries=1).text
+        for link in coups.cline_csv_links(page):
+            payload = _get(client, link, retries=1).content
+            if b"year" in payload[:2000].lower():
+                return payload, link, "Cline Center"
+    except Exception as exc:  # noqa: BLE001 - fall back to Powell & Thyne
+        print(f"[coups] Cline Center failed: {type(exc).__name__}: {str(exc)[:200]}")
+    return _download_first(client, [(u, "live") for u in fallback])
+
+
 def cache_dir() -> Path:
     """State carried between daily runs (published to the risk-data branch under cache/)."""
     return Path(os.environ.get("GEOINTEL_CACHE_DIR", "data/cache"))
@@ -431,6 +449,161 @@ def _newswire(client: httpx.Client, _year: int) -> tuple[bytes, str, str]:
     )
 
 
+def _ioda(client: httpx.Client, _year: int) -> tuple[bytes, str, str]:
+    today = datetime.now(UTC).date()
+    errors = []
+    for url in early.IODA_URLS:
+        try:
+            response = client.get(url, params=early.ioda_params(today), timeout=90)
+            response.raise_for_status()
+            body = response.json()
+            found = early.ioda_countries(body)
+            sample = body.get("data")
+            print(f"[ioda] {url} type={type(sample).__name__} countries={len(found)}")
+            if isinstance(sample, list) and sample:
+                print(f"[ioda] sample keys={sorted(sample[0])[:12]}")
+            if found:
+                return json.dumps({"countries": found}).encode(), url, f"{len(found)} countries"
+        except Exception as exc:  # noqa: BLE001 - try the next route
+            errors.append(f"{url}: {type(exc).__name__}: {str(exc)[:160]}")
+    raise RuntimeError("; ".join(errors) or "IODA returned no countries")
+
+
+def _firms(client: httpx.Client, _year: int) -> tuple[bytes, str, str]:
+    key = os.environ.get("FIRMS_MAP_KEY")
+    if not key:
+        raise RuntimeError("not configured (FIRMS_MAP_KEY secret missing)")
+    today = datetime.now(UTC).date()
+    cached = _read_cache("firms.json").get("days", {})
+    wanted = [today - timedelta(days=i) for i in range(1, 46)]
+    days: dict[str, dict] = {}
+    for day in [d for d in wanted if d.isoformat() not in cached][:12]:
+        response = client.get(early.FIRMS_URL.format(key=key, day=day.isoformat()), timeout=180)
+        response.raise_for_status()
+        cells: dict[str, int] = {}
+        for row in csv.DictReader(io.StringIO(response.text)):
+            try:
+                lat, lon = float(row["latitude"]), float(row["longitude"])
+            except (KeyError, ValueError):
+                continue
+            if str(row.get("confidence", "")).lower() in ("l", "low"):
+                continue
+            cell = f"{round(lat * 4) / 4},{round(lon * 4) / 4}"
+            cells[cell] = cells.get(cell, 0) + 1
+        days[day.isoformat()] = cells
+        time.sleep(1)
+    return (
+        json.dumps({"days": days}).encode(),
+        "https://firms.modaps.eosdis.nasa.gov/api/area/",
+        f"{len(days)} new days",
+    )
+
+
+def _military(client: httpx.Client, _year: int) -> tuple[bytes, str, str]:
+    snapshots = []
+    for i in range(3):
+        try:
+            response = client.get(early.MIL_URL, timeout=60)
+            response.raise_for_status()
+            snapshots.append(response.json())
+        except Exception as exc:  # noqa: BLE001 - one failed snapshot is not fatal
+            print(f"[military] snapshot {i}: {type(exc).__name__}")
+        if i < 2:
+            time.sleep(60)
+    if not snapshots:
+        raise RuntimeError("no airplanes.live snapshots")
+    counts = early.military_counts(snapshots)
+    print(f"[military] {counts}")
+    payload = {"counts": counts, "aircraft": sum(len(s.get("ac") or []) for s in snapshots)}
+    return json.dumps(payload).encode(), early.MIL_URL, f"{payload['aircraft']} positions"
+
+
+def _zakupki(client: httpx.Client, _year: int) -> tuple[bytes, str, str]:
+    today = datetime.now(UTC).date()
+    cached = _read_cache("zakupki.json").get("weeks", {})
+    weeks = early.weekly_windows(today, 26)
+    result: dict[str, dict[str, int]] = {}
+    headers = {
+        "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/124 Safari/537.36"
+    }
+    for start, end in weeks:
+        key = start.isoformat()
+        if key in cached and start < weeks[1][0]:
+            continue
+        counts: dict[str, int] = {}
+        for name, term in early.ZAKUPKI_TERMS.items():
+            response = client.get(
+                early.ZAKUPKI_URL,
+                params=early.zakupki_params(term, start, end),
+                headers=headers,
+                timeout=60,
+            )
+            response.raise_for_status()
+            total = early.zakupki_total(response.text)
+            if total is None:
+                raise RuntimeError("could not read the result count (page layout changed?)")
+            counts[name] = total
+            time.sleep(1.5)
+        result[key] = counts
+    return json.dumps({"weeks": result}).encode(), early.ZAKUPKI_URL, f"{len(result)} weeks"
+
+
+def _media(client: httpx.Client, _year: int) -> tuple[bytes, str, str]:
+    series = {}
+    for key, query in early.DOC_QUERIES.items():
+        response = client.get(early.DOC_URL, params=early.doc_timeline_params(query), timeout=90)
+        response.raise_for_status()
+        series[key] = early.doc_timeline(response.json())
+        time.sleep(6)
+    return (
+        json.dumps({"series": series}).encode(),
+        early.DOC_URL,
+        f"{sum(map(len, series.values()))} points",
+    )
+
+
+def _fx(client: httpx.Client, _year: int) -> tuple[bytes, str, str]:
+    rates = early.fx_rates(_get(client, early.FX_URL).json())
+    if not rates:
+        raise RuntimeError("no exchange rates")
+    day = datetime.now(UTC).date().isoformat()
+    return json.dumps({"days": {day: rates}}).encode(), early.FX_URL, f"{len(rates)} currencies"
+
+
+def _food(client: httpx.Client, _year: int) -> tuple[bytes, str, str]:
+    url = early.hdx_csv_url(_get(client, early.HDX_PACKAGE).json())
+    if not url:
+        raise RuntimeError("no CSV in the HDX package")
+    text = _get(client, url).text
+    return text.encode(), url, f"{len(text)} bytes"
+
+
+def _telegram(client: httpx.Client, _year: int) -> tuple[bytes, str, str]:
+    from geointel.risk.sources import telegram
+
+    channels: dict[str, dict] = {}
+    failures = []
+    for channel in telegram.CHANNELS:
+        try:
+            page = _get(client, telegram.URL.format(channel=channel), retries=1).text
+            posts = telegram.parse_page(page)
+            if not posts:
+                failures.append(f"{channel}: no posts")
+                continue
+            channels[channel] = telegram.count(posts)
+        except Exception as exc:  # noqa: BLE001 - a missing channel is not fatal
+            failures.append(f"{channel}: {type(exc).__name__}")
+        time.sleep(2)
+    print(f"[telegram] ok={sorted(channels)} failed={failures}")
+    if not channels:
+        raise RuntimeError("; ".join(failures[:5]))
+    return (
+        json.dumps({"channels": channels}).encode(),
+        "https://t.me/s/",
+        f"{len(channels)} channels",
+    )
+
+
 def _milex(client: httpx.Client, _year: int) -> tuple[bytes, str, str]:
     return _download_first(client, [(outlook.owid_url(slug), slug) for slug in trade.MILEX_SLUGS])
 
@@ -608,7 +781,7 @@ def fetch_all(raw_dir: Path, reference_year: int | None = None) -> dict:
     coups_urls = [u for u in (os.environ.get("GEOINTEL_COUPS_URL"),) if u] or list(COUPS_URLS)
     jobs: dict[str, tuple[str, Callable[[httpx.Client], tuple[bytes, str, str]]]] = {
         "ucdp_acd": ("ucdp_acd.bin", lambda c: _download_first(c, ucdp_acd_urls())),
-        "coups": ("coups.txt", lambda c: _download_first(c, [(u, "live") for u in coups_urls])),
+        "coups": ("coups.txt", lambda c: _coups(c, coups_urls)),
         "usgs": ("usgs.csv", lambda c: _download_first(c, [(usgs.query_url(), "live")])),
         "gdacs": ("gdacs.json", lambda c: _gdacs(c, year)),
         "tsunami": ("tsunami.json", lambda c: _ncei(c, year)),
@@ -631,6 +804,14 @@ def fetch_all(raw_dir: Path, reference_year: int | None = None) -> dict:
         "metaculus": ("metaculus.json", lambda c: _metaculus(c, year)),
         "sentinel": ("sentinel.json", lambda c: _sentinel(c, year)),
         "newswire": ("newswire.json", lambda c: _newswire(c, year)),
+        "ioda": ("ioda.json", lambda c: _ioda(c, year)),
+        "firms": ("firms.json", lambda c: _firms(c, year)),
+        "military": ("military.json", lambda c: _military(c, year)),
+        "zakupki": ("zakupki.json", lambda c: _zakupki(c, year)),
+        "media": ("media.json", lambda c: _media(c, year)),
+        "fx": ("fx.json", lambda c: _fx(c, year)),
+        "food": ("food.csv", lambda c: _food(c, year)),
+        "telegram": ("telegram.json", lambda c: _telegram(c, year)),
         "regions": ("regions.geojson", lambda c: _regions(c, year)),
     }
     only = {k for k in os.environ.get("GEOINTEL_SOURCES", "").split(",") if k}

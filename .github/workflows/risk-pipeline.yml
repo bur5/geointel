@@ -55,6 +55,7 @@ jobs:
           METACULUS_API_TOKEN: ${{ secrets.METACULUS_API_TOKEN }}
           CDSE_CLIENT_ID: ${{ secrets.CDSE_CLIENT_ID }}
           CDSE_CLIENT_SECRET: ${{ secrets.CDSE_CLIENT_SECRET }}
+          FIRMS_MAP_KEY: ${{ secrets.FIRMS_MAP_KEY }}
         run: python -m geointel.risk fetch --raw-dir data/raw
 
       - name: Build snapshot
