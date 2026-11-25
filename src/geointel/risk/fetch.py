@@ -250,6 +250,16 @@ def _coups(client: httpx.Client, fallback: list[str]) -> tuple[bytes, str, str]:
     """Cline Center Coup d'État Project (Illinois Data Bank), else Powell & Thyne."""
     from geointel.risk.sources import coups
 
+    for link in coups.CLINE_FILES:
+        try:
+            payload = client.get(link, headers=_BROWSER, follow_redirects=True, timeout=90)
+            payload.raise_for_status()
+            if b"year" in payload.content[:2000].lower():
+                print(f"[coups] Cline Center file {link}: {len(payload.content)} bytes")
+                return payload.content, link, "Cline Center v2.2.2"
+            print(f"[coups] {link}: not a CSV ({payload.content[:80]!r})")
+        except Exception as exc:  # noqa: BLE001 - try the next link
+            print(f"[coups] {link} failed: {type(exc).__name__}: {str(exc)[:160]}")
     for landing in coups.CLINE_LANDINGS:
         try:
             response = client.get(landing, headers=_BROWSER, follow_redirects=True, timeout=60)

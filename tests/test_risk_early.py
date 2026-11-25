@@ -20,7 +20,10 @@ def test_cline_coups_and_links():
         '<a href="/datafiles/abc12/download">Coup Data 2.2.2.csv</a>'
         '<a href="/datafiles/zz/download">Codebook.pdf</a>'
     )
-    assert coups.cline_csv_links(page) == ["https://databank.illinois.edu/datafiles/abc12/download"]
+    assert coups.cline_csv_links(page) == [
+        "https://databank.illinois.edu/datafiles/abc12/download",
+        "https://aws-databank-alb.library.illinois.edu/datafiles/abc12/download",
+    ]
 
 
 def test_early_parsers():
