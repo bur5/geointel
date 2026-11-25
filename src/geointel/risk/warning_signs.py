@@ -697,7 +697,9 @@ def automated_signs(
         recent = [h for h, a in zip(history, age, strict=True) if a <= 30]
         older = [h for h, a in zip(history, age, strict=True) if 30 < a <= 120]
         raised = bool(recent and older) and max(map(level, recent)) > max(map(level, older))
-        departure = any(h[3] for h in recent)
+        # Only a new departure order counts: some embassies have been on reduced staff for
+        # years (e.g. Minsk), which says nothing about a coming change.
+        departure = bool(older) and any(h[3] for h in recent) and not any(h[3] for h in older)
         signs.append(
             _sign(
                 "advisory_raised",
