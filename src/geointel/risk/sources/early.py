@@ -25,6 +25,7 @@ IODA_URLS = (
 )
 FIRMS_URL = "https://firms.modaps.eosdis.nasa.gov/api/area/csv/{key}/VIIRS_SNPP_NRT/world/1/{day}"
 MIL_URL = "https://api.airplanes.live/v2/mil"
+MIL_URLS = (MIL_URL, "https://api.adsb.lol/v2/mil")
 ZAKUPKI_URL = "https://zakupki.gov.ru/epz/order/extendedsearch/results.html"
 DOC_URL = "https://api.gdeltproject.org/api/v2/doc/doc"
 FX_URL = "https://open.er-api.com/v6/latest/USD"
@@ -39,9 +40,11 @@ ZAKUPKI_TERMS = {
 }
 
 # Russian-language media volume on legal and manpower steps towards war.
+# GDELT DOC searches the machine translation into English, so terms are English even for
+# Russian-language sources.
 DOC_QUERIES = {
-    "mobilization": '(мобилизация OR "призыв резервистов" OR "военные сборы") sourcelang:russian',
-    "martial_law": '("военное положение" OR "режим КТО" OR "указ о призыве") sourcelang:russian',
+    "mobilization": "(mobilization OR mobilisation OR reservists) sourcelang:russian",
+    "martial_law": '("martial law" OR "counter-terrorist operation") sourcelang:russian',
 }
 
 

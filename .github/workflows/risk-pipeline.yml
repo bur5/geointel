@@ -45,6 +45,10 @@ jobs:
             for f in $(git ls-tree --name-only FETCH_HEAD cache/ 2>/dev/null); do
               git show "FETCH_HEAD:$f" > "data/$f"
             done
+            mkdir -p data/history
+            for f in $(git ls-tree --name-only FETCH_HEAD history/ 2>/dev/null | grep -- '-scenarios.json$' | tail -400); do
+              git show "FETCH_HEAD:$f" > "data/$f"
+            done
           fi
 
       - name: Fetch public datasets
@@ -66,6 +70,7 @@ jobs:
           prev=""
           [ -f data/previous.json ] && prev="--previous data/previous.json"
           python -m geointel.risk build --raw-dir data/raw --out data/site/risk.json $prev
+          python -m geointel.risk accuracy --history-dir data/history --today data/site/scenarios.json --out data/site/accuracy.json
 
       - uses: actions/upload-artifact@v4
         with:
@@ -77,6 +82,7 @@ jobs:
             data/site/links.json
             data/site/signals.json
             data/site/backtest.json
+            data/site/accuracy.json
             data/raw/manifest.json
 
       - name: Publish to risk-data branch
@@ -99,6 +105,7 @@ jobs:
           cp ../data/cache-out/*.json cache/ 2>/dev/null || true
           cp ../data/site/signals.json latest/signals.json
           cp ../data/site/backtest.json latest/backtest.json
+          cp ../data/site/accuracy.json latest/accuracy.json
           cp ../data/site/risk.json latest/risk.json
           cp ../data/site/hazards.json latest/hazards.json
           cp ../data/site/scenarios.json latest/scenarios.json
@@ -138,6 +145,7 @@ jobs:
           cp ../snapshot/site/links.json public/data/links.json
           cp ../snapshot/site/signals.json public/data/signals.json
           cp ../snapshot/site/backtest.json public/data/backtest.json
+          cp ../snapshot/site/accuracy.json public/data/accuracy.json
           if git fetch --depth=1 origin risk-data 2>/dev/null; then
             git show FETCH_HEAD:latest/backtest-real.json > public/data/backtest-real.json 2>/dev/null || rm -f public/data/backtest-real.json
           fi

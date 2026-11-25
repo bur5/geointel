@@ -617,6 +617,253 @@ JOURNAL: tuple[Entry, ...] = tuple(
             0.5,
         ),
     ]
+    + [
+        _e(
+            "2025-12",
+            c,
+            "posture",
+            "В Беларуси размещён российский ракетный комплекс «Орешник» (подтверждено в Кремле).",
+            "Russia's Oreshnik missile system is deployed in Belarus (confirmed by the Kremlin).",
+            "Atlantic Council",
+            "https://www.atlanticcouncil.org/blogs/ukrainealert/belarus-hosts-nuclear-capable-russian-missiles-despite-talk-of-us-thaw/",
+            "RUS",
+            "belarus_front",
+            0.5,
+        )
+        for c in ("POL", "LTU", "LVA")
+    ]
+    + [
+        _e(
+            "2026-03-13",
+            c,
+            "rhetoric",
+            "Лукашенко пригрозил применить «Орешник», если Украина, Польша, Литва или Латвия "
+            "будут «вмешиваться».",
+            "Lukashenko threatened to use the Oreshnik if Ukraine, Poland, Lithuania or Latvia "
+            "'interfere'.",
+            "Kyiv Post (citing BelTA)",
+            "https://www.kyivpost.com/amp/post/71898",
+            "BLR",
+            "belarus_front",
+        )
+        for c in ("POL", "LTU", "LVA")
+    ]
+    + [
+        _e(
+            "2025-09-10",
+            "POL",
+            "hybrid",
+            "Около 19 нарушений воздушного пространства Польши российскими дронами во время "
+            "удара по Украине; несколько сбиты, Польша запросила консультации по статье 4 НАТО.",
+            "About 19 violations of Polish airspace by Russian drones during a strike on "
+            "Ukraine; several shot down, Poland requested NATO Article 4 consultations.",
+            "NPR",
+            "https://www.npr.org/2025/09/10/nx-s1-5537110/nato-shoots-down-russian-drones-over-poland",
+            "RUS",
+            "russia_nato",
+        ),
+        _e(
+            "2025-09-19",
+            "EST",
+            "hybrid",
+            "Три российских МиГ-31 12 минут находились в воздушном пространстве Эстонии у "
+            "острова Вайндлоо; Эстония запросила консультации по статье 4.",
+            "Three Russian MiG-31s spent 12 minutes in Estonian airspace near Vaindloo Island; "
+            "Estonia requested Article 4 consultations.",
+            "ERR News",
+            "https://news.err.ee/1609806488/estonia-requests-nato-article-4-discussions-following-russian-airspace-violations",
+            "RUS",
+            "russia_nato",
+        ),
+        _e(
+            "2025-10-27",
+            "LTU",
+            "hybrid",
+            "После серии запусков воздушных шаров с контрабандой из Беларуси, закрывавших "
+            "аэропорт Вильнюса, Литва закрыла границу с Беларусью, назвав это гибридной атакой.",
+            "After repeated contraband balloons from Belarus shut Vilnius airport, Lithuania "
+            "closed its border with Belarus, calling it a hybrid attack.",
+            "LRT",
+            "https://www.lrt.lt/en/news-in-english/19/2727131/lithuania-to-close-border-with-belarus-over-smuggling-balloon-threat-with-some-exemptions",
+            "BLR",
+            "belarus_front",
+        ),
+        _e(
+            "2025-12-17",
+            "EST",
+            "hybrid",
+            "Трое российских пограничников на судне на воздушной подушке пересекли линию "
+            "контроля на реке Нарве у Васкнарвы; Эстония вызвала временного поверенного России.",
+            "Three Russian border guards on a hovercraft crossed the control line on the Narva "
+            "River at Vasknarva; Estonia summoned Russia's chargé d'affaires.",
+            "Euronews",
+            "https://www.euronews.com/2025/12/18/russian-border-guards-briefly-cross-into-estonian-territory-foreign-ministry-says",
+            "RUS",
+            "russia_nato",
+        ),
+        _e(
+            "2025-12-31",
+            "FIN",
+            "hybrid",
+            "Повреждён кабель Хельсинки–Таллин; Финляндия задержала судно Fitburg, шедшее из "
+            "России. Причастность государства не доказана.",
+            "The Helsinki–Tallinn cable was damaged; Finland seized the Fitburg, sailing from "
+            "Russia. State involvement is not proven.",
+            "Polskie Radio",
+            "https://www.polskieradio.pl/395/7785/artykul/3628595,finland-seizes-cargo-ship-over-damage-to-undersea-cable-linking-helsinki-and-tallinn",
+            None,
+            "russia_nato",
+            0.5,
+        ),
+        _e(
+            "2026-11-15",
+            "EST",
+            "hybrid",
+            "Эстония сообщила о предотвращённом поджоге завода дронов Threod по заказу ГРУ и "
+            "закрывает все автомобильные пункты пропуска на границе с Россией с 1 декабря.",
+            "Estonia said it foiled a GRU-ordered arson attack on the drone maker Threod and is "
+            "closing all road crossings with Russia from 1 December.",
+            "Euronews",
+            "https://www.euronews.com/2026/11/16/estonia-to-close-russia-border-after-sabotage-bid-on-drone-maker-foreign-minister-says",
+            "RUS",
+            "russia_nato",
+        ),
+        _e(
+            "2026-03-06",
+            "LTU",
+            "intel_warning",
+            "Разведки Литвы: бригады России у границ НАТО разворачиваются в дивизии; при "
+            "снятии санкций Россия может быть готова к широкому конфликту с НАТО через ~6 лет.",
+            "Lithuanian intelligence: Russian brigades near NATO borders are being expanded into "
+            "divisions; with sanctions lifted Russia could be ready for a wide conflict with NATO "
+            "in about 6 years.",
+            "State Security Department of Lithuania",
+            "https://www.vsd.lt/en/reports/introduction/",
+            "RUS",
+            "russia_nato",
+            0.5,
+        ),
+        _e(
+            "2026-01-26",
+            "LVA",
+            "intel_warning",
+            "Бюро защиты Сатверсме Латвии: прямой военной угрозы сейчас нет, но признаки "
+            "указывают на долгосрочные планы России.",
+            "Latvia's SAB: no direct military threat now, but signs point to long-term Russian "
+            "plans.",
+            "Constitution Protection Bureau of Latvia",
+            "https://www.sab.gov.lv/files/uploads/2026/01/SABs-annual-report_2025_ENG.pdf",
+            "RUS",
+            "russia_nato",
+            0.5,
+        ),
+        _e(
+            "2026-02-17",
+            "SWE",
+            "intel_warning",
+            "Военная разведка Швеции: Россия — главная военная угроза Швеции и НАТО, готова "
+            "больше рисковать вблизи Швеции.",
+            "Swedish military intelligence: Russia is the main military threat to Sweden and "
+            "NATO and is willing to take greater risks near Sweden.",
+            "MUST (reported by Ukrainska Pravda)",
+            "https://www.pravda.com.ua/eng/news/2026/02/18/8021541",
+            "RUS",
+            "russia_nato",
+            0.5,
+        ),
+        _e(
+            "2026-10-05",
+            "DEU",
+            "intel_warning",
+            "Глава BND: Германия под угрозой втягивания в силовой конфликт с Россией; возможны "
+            "военные действия низкой интенсивности в Прибалтике.",
+            "BND chief: Germany risks being drawn into a violent conflict with Russia; "
+            "low-intensity military activity in the Baltic states is possible.",
+            "CP24 (Reuters)",
+            "https://www.cp24.com/news/world/2026/10/05/germany-at-risk-of-violent-conflict-with-russia-intelligence-chief-says/",
+            "RUS",
+            "russia_nato",
+            0.5,
+        ),
+        _e(
+            "2026-05-15",
+            "MDA",
+            "legal",
+            "Указ Путина об упрощённом российском гражданстве для жителей Приднестровья.",
+            "Putin's decree on fast-track Russian citizenship for Transnistria residents.",
+            "Kyiv Post",
+            "https://www.kyivpost.com/topic/transnistria",
+            "RUS",
+            "moldova_transnistria",
+            0.5,
+        ),
+        _e(
+            "2026-08-18",
+            "GRC",
+            "hybrid",
+            "25 нарушений воздушного пространства Греции и учебный воздушный бой над Эгейским "
+            "морем после объявления Турцией двух «морских парков».",
+            "25 violations of Greek airspace and a mock dogfight over the Aegean after Turkey "
+            "announced two 'marine parks'.",
+            "Proto Thema",
+            "https://en.protothema.gr/2026/08/18/turkey-provokes-greece-25-violations-of-greek-airspace-and-mock-dogfight-over-the-aegean/",
+            "TUR",
+            "turkey_greece",
+            0.5,
+        ),
+        _e(
+            "2026-08-30",
+            "NER",
+            "elite_split",
+            "Мятеж на базе 101 в Ниамее подавлен при участии российских сил; власти назвали "
+            "его попыткой переворота.",
+            "A mutiny at Base 101 in Niamey was put down with Russian help; the authorities "
+            "called it a coup attempt.",
+            "Al Jazeera",
+            "https://www.aljazeera.com/amp/news/2026/8/30/nigers-military-led-government-says-it-contained-mutiny-what-next",
+            None,
+            "sahel_coups",
+        ),
+        _e(
+            "2026-01",
+            "BFA",
+            "elite_split",
+            "Власти Буркина-Фасо заявили о раскрытом заговоре; Того выдало бывшего лидера хунты "
+            "Дамибу как предполагаемого организатора.",
+            "Burkina Faso's authorities said they foiled a plot; Togo handed over former junta "
+            "leader Damiba as its alleged mastermind.",
+            "Modern Ghana",
+            "https://www.modernghana.com/news/1531704/the-guard-versus-the-trenches-what-the-niamey.amp",
+            None,
+            "sahel_coups",
+        ),
+        _e(
+            "2026-08-24",
+            "SAU",
+            "hybrid",
+            "Хуситы, объявившие 20 июля морскую блокаду Саудовской Аравии, атаковали "
+            "саудовский танкер у Янбу; 12 августа при их атаке на судно погибли шесть человек.",
+            "The Houthis, who declared a naval blockade of Saudi Arabia on 20 July, hit a Saudi "
+            "tanker off Yanbu; their 12 August attack on a ship killed six.",
+            "Euronews",
+            "https://euronews.com/2026/08/24/houthis-claim-strike-on-saudi-tanker-in-latest-red-sea-escalation",
+            None,
+            None,
+        ),
+        _e(
+            "2026-04-08",
+            "IRN",
+            "deescalation",
+            "После 40 дней войны США и Иран при посредничестве Пакистана согласовали "
+            "двухнедельное прекращение огня; позже оно продлено.",
+            "After 40 days of war the US and Iran agreed a two-week ceasefire brokered by "
+            "Pakistan; it was later extended.",
+            "Dawn",
+            "https://www.dawn.com/news/1989782",
+            None,
+            "iran_strikes",
+        ),
+    ]
 )
 
 

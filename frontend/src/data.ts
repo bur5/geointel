@@ -157,7 +157,7 @@ export function loadHazards(): Promise<HazardDetails | undefined> {
 }
 
 export interface ScenarioComponent {
-  kind: 'history' | 'expert' | 'market' | 'official' | 'community'; annual: number; low: number; high: number; weight: number;
+  kind: 'history' | 'expert' | 'market' | 'official' | 'community' | 'panel'; annual: number; low: number; high: number; weight: number;
   detail_ru: string; detail_en: string; url: string | null;
 }
 export interface ScenarioIndicator {
@@ -176,6 +176,13 @@ export interface Scenario {
   sign_groups?: string[]; sign_combo?: boolean;
   community_status?: 'matched' | 'no_match' | 'unavailable';
   community_candidates?: { question: string; p: number; end: string; forecasters: number; url: string }[];
+  tree?: ScenarioTree;
+}
+export interface ScenarioTree {
+  inputs: { annual_now: number; ceasefire_annual: number; us_weak_annual: number };
+  yearly: { year: number; cumulative: number; annual: number }[];
+  branches: { ukraine: 'war' | 'cease_early' | 'cease_late'; us: 'us_firm' | 'us_weak'; weight: number; p5y: number; p10y: number }[];
+  basis_ru: string; basis_en: string;
 }
 export interface ScenarioFile { schema: string; generated_at: string; scenarios: Scenario[] }
 
@@ -241,3 +248,12 @@ export interface RealCase {
 }
 export interface RealBacktestFile { schema: string; generated_at: string; lr: Record<string, number>; cases: RealCase[] }
 export const loadRealBacktest = cachedJson<RealBacktestFile>('backtest-real.json');
+export interface AccuracyFile {
+  schema: string; generated_at: string; first_day: string | null; history_days: number; window_days: number;
+  status: 'collecting' | 'scoring'; first_score_on: string | null; days_collected: number; resolutions_checked: string;
+  titles: Record<string, { title_ru?: string; title_en?: string }>;
+  series: Record<string, { date: string; p1m: number; p1y: number }[]>;
+  summary: Record<string, { n: number; events: number; brier: number; mean_p: number }>;
+  overall: { n: number; events: number; brier: number } | null;
+}
+export const loadAccuracy = cachedJson<AccuracyFile>('accuracy.json');

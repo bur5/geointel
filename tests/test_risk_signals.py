@@ -140,7 +140,7 @@ def test_build_signals_for_a_country():
         "posture",
         "intel_warning",
     } <= active
-    news_sign = next(s for s in lva["signs"] if s["key"] == "posture")
+    news_sign = next(s for s in lva["signs"] if s["key"] == "posture" and s.get("reports"))
     assert news_sign["strength"] == 1.0 and news_sign["reports"] == 2
     adjusted = lva["adjusted"]["interstate_conflict"]
     assert adjusted["factor"] > 3 and adjusted["horizons"]["1y"]["p"] > 0.03
@@ -206,7 +206,8 @@ def test_newswire_validation_and_metaculus_and_sentinel():
         ]
     }
     change = sentinel.change(sentinel.series(response))
-    assert change["active"] and change["ratio"] == 2.1
+    # without the same season a year earlier a rise cannot be told apart from snow or harvest
+    assert change["ratio"] == 2.1 and change["seasonal_ratio"] is None and not change["active"]
 
 
 def test_backtest_rises_before_the_invasion():

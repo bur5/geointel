@@ -14,89 +14,24 @@ Nothing here is calibrated yet and every scenario says so.
 
 import math
 from collections.abc import Iterable, Mapping
-from dataclasses import dataclass, field, replace
+from dataclasses import replace
 from datetime import UTC, date, datetime
 
 from geointel.risk.betamath import beta_ppf
+from geointel.risk.scenario_types import (  # noqa: F401
+    EU,
+    HORIZON_YEARS,
+    NATO,
+    Assessment,
+    Exposure,
+    Scenario,
+    Warning,
+    _t,
+)
+from geointel.risk.scenarios_extra import EXTRA
 from geointel.risk.sources import polymarket
 
 SCHEMA = "geointel-scenarios-v1"
-
-NATO = (
-    "ALB BEL BGR CAN HRV CZE DNK EST FIN FRA DEU GRC HUN ISL ITA LVA LTU LUX MNE NLD MKD NOR "
-    "POL PRT ROU SVK SVN ESP SWE TUR GBR USA"
-).split()
-EU = (
-    "AUT BEL BGR HRV CYP CZE DNK EST FIN FRA DEU GRC HUN IRL ITA LVA LTU LUX MLT NLD POL PRT "
-    "ROU SVK SVN ESP SWE"
-).split()
-
-HORIZON_YEARS = {"1m": 1 / 12, "1y": 1.0, "5y": 5.0, "10y": 10.0}
-
-
-@dataclass(frozen=True)
-class Exposure:
-    role: str  # party | frontline | ally | economic
-    countries: tuple[str, ...]
-    reason_ru: str
-    reason_en: str
-
-
-@dataclass(frozen=True)
-class Warning:
-    date: str
-    source: str
-    url: str
-    direction: int  # +1 escalation, -1 de-escalation, 0 mixed
-    summary_ru: str
-    summary_en: str
-
-
-@dataclass(frozen=True)
-class Assessment:
-    """A published official judgement, mapped to a probability range by its wording."""
-
-    date: str
-    source: str
-    url: str
-    phrase: str  # key of warning_signs.ESTIMATIVE
-    years: float  # the period the judgement refers to
-    quote_en: str
-
-
-@dataclass(frozen=True)
-class Scenario:
-    key: str
-    title_ru: str
-    title_en: str
-    event_ru: str
-    event_en: str
-    polarity: int  # +1: the event is an escalation; -1: the event is a de-escalation
-    expert: tuple[float, float, float]  # annual hazard (mid, low, high)
-    expert_basis_ru: str
-    expert_basis_en: str
-    side_a: tuple[str, ...] = ()
-    side_b: tuple[str, ...] = ()
-    market_queries: tuple[str, ...] = ()
-    market_groups: tuple[tuple[str, ...], ...] = ()
-    market_exclude: tuple[str, ...] = ()
-    # Markets whose "Yes" is the opposite of the scenario (e.g. "ceasefire holds").
-    market_inverse: tuple[tuple[str, ...], ...] = ()
-    # Words that mark a closer fit to the scenario definition; such markets are preferred.
-    market_prefer: tuple[str, ...] = ()
-    metaculus_queries: tuple[str, ...] = ()
-    assessments: tuple[Assessment, ...] = ()
-    use_history: bool = True  # off where the dyad's past says nothing about this event type
-    milex: tuple[str, ...] = ()
-    gpr: tuple[str, ...] = ()
-    war_context: tuple[str, ...] = ()  # countries whose ongoing interstate war raises risk
-    exposures: tuple[Exposure, ...] = ()
-    warnings: tuple[Warning, ...] = field(default_factory=tuple)
-
-
-def _t(codes: str) -> tuple[str, ...]:
-    return tuple(codes.split())
-
 
 _BALTIC_FRONT = (
     Exposure(
@@ -287,12 +222,109 @@ CATALOGUE: tuple[Scenario, ...] = (
                 "There is a low but growing risk that Russia will launch a limited military "
                 "attack against one or several NATO countries bordering Russia",
             ),
+            Assessment(
+                "2026-02-10",
+                "Estonian Foreign Intelligence Service",
+                "https://www.valisluureamet.ee/doc/raport/2026-en.pdf",
+                "highly unlikely",
+                1.0,
+                "Russia has no intention of militarily attacking Estonia or any other NATO state",
+            ),
         ),
         milex=_t("RUS POL EST LVA LTU DEU FIN"),
         gpr=_t("RUS POL DEU FIN"),
         war_context=_t("RUS UKR"),
         exposures=_BALTIC_FRONT,
         warnings=(
+            Warning(
+                "2026-10-05",
+                "Martin Jäger, President of the German BND (reported by CP24/Reuters)",
+                "https://www.cp24.com/news/world/2026/10/05/germany-at-risk-of-violent-conflict-with-russia-intelligence-chief-says/",
+                1,
+                "Глава BND: признаков скорого крупного нападения России на НАТО нет, но возможны "
+                "военные действия низкой интенсивности, прежде всего в Прибалтике; Германия под "
+                "угрозой втягивания в силовой конфликт с Россией.",
+                "BND chief: no sign of an imminent large-scale Russian attack on NATO, but "
+                "low-intensity military activity is possible, especially in the Baltic states; "
+                "Germany risks being drawn into a violent conflict with Russia.",
+            ),
+            Warning(
+                "2026-03-06",
+                "Lithuanian State Security Department and Defence Intelligence (National Threat "
+                "Assessment 2026)",
+                "https://www.vsd.lt/en/reports/introduction/",
+                1,
+                "Разведки Литвы: пока основные силы России заняты в Украине, её возможности "
+                "напасть на НАТО ограничены; если война продолжится, Россия может быть готова к "
+                "ограниченному конфликту в регионе через 6–10 лет, а при снятии санкций — к "
+                "широкому конфликту с НАТО примерно через 6 лет. Бригады у границ НАТО "
+                "разворачиваются в дивизии.",
+                "Lithuanian intelligence: while Russia's main forces are tied up in Ukraine its "
+                "ability to attack NATO is limited; if the war continues Russia could be ready "
+                "for a limited conflict in the region in 6–10 years, and if sanctions are lifted "
+                "for a wide-scale conflict with NATO in about 6 years. Brigades near NATO's "
+                "borders are being expanded into divisions.",
+            ),
+            Warning(
+                "2026-02-17",
+                "Swedish Military Intelligence and Security Service (MUST), annual review",
+                "https://www.pravda.com.ua/eng/news/2026/02/18/8021541",
+                1,
+                "Военная разведка Швеции: Россия — главная военная угроза Швеции и НАТО, угроза "
+                "будет расти; Россия наращивает силы в регионе Балтийского моря и, похоже, "
+                "готова больше рисковать.",
+                "Swedish military intelligence: Russia is the main military threat to Sweden and "
+                "NATO and the threat will grow; Russia is reinforcing in the Baltic Sea region "
+                "and seems willing to take greater risks.",
+            ),
+            Warning(
+                "2026-02-10",
+                "Estonian Foreign Intelligence Service (International Security and Estonia 2026)",
+                "https://www.valisluureamet.ee/doc/raport/2026-en.pdf",
+                0,
+                "Разведка Эстонии: в 2026 году Россия не намерена нападать на Эстонию или другую "
+                "страну НАТО, и в следующем году оценка, вероятно, будет такой же; при этом "
+                "Россия восстанавливает армию и готовится к «следующей войне».",
+                "Estonian intelligence: Russia has no intention of attacking Estonia or any other "
+                "NATO state in 2026, and next year's assessment is likely to be similar; Russia "
+                "is nonetheless rebuilding its forces and preparing for its 'next war'.",
+            ),
+            Warning(
+                "2026-02-06",
+                "Norwegian Intelligence Service (Focus 2026)",
+                "https://www.etterretningstjenesten.no/publikasjoner/focus",
+                0,
+                "Разведка Норвегии: Россия — главная угроза Европе и Норвегии; ослабление "
+                "сотрудничества США и Европы даёт России и Китаю новые возможности.",
+                "Norwegian intelligence: Russia is the main threat to Europe and Norway; weaker "
+                "US–European cooperation gives Russia and China new opportunities.",
+            ),
+            Warning(
+                "2026-01-26",
+                "Latvian Constitution Protection Bureau (SAB), annual report 2025",
+                "https://www.sab.gov.lv/files/uploads/2026/01/SABs-annual-report_2025_ENG.pdf",
+                1,
+                "Бюро защиты Сатверсме Латвии: прямой военной угрозы Латвии сейчас нет, но "
+                "многие признаки указывают на долгосрочные планы; российская пропаганда всё чаще "
+                "изображает Латвию так же, как Украину перед войной.",
+                "Latvia's SAB: no direct military threat to Latvia at the moment, but many signs "
+                "point to long-term plans; Russian propaganda increasingly portrays Latvia as it "
+                "did Ukraine before the war.",
+            ),
+            Warning(
+                "2025-02-11",
+                "Danish Defence Intelligence Service (threat assessment)",
+                "https://www.kyivpost.com/post/47032",
+                1,
+                "Разведка Дании (февраль 2025): если война в Украине остановится, а НАТО не "
+                "будет перевооружаться тем же темпом, через полгода Россия сможет вести "
+                "локальную войну с соседом, через два года — угрожать странам НАТО на Балтике, "
+                "через пять лет — вести большую войну в Европе без участия США.",
+                "Danish intelligence (February 2025): if the war in Ukraine stops and NATO does "
+                "not rearm at the same pace, within six months Russia could wage a local war "
+                "against a neighbour, within two years threaten NATO's Baltic states, and within "
+                "five years fight a large-scale war in Europe without US involvement.",
+            ),
             Warning(
                 "2026-09-24",
                 "Danish Defence Intelligence Service (DDIS)",
@@ -732,11 +764,19 @@ def _large_war() -> Scenario:
                 3.0,
                 "an outright invasion was highly unlikely but possible",
             ),
+            Assessment(
+                "2026-02-10",
+                "Estonian Foreign Intelligence Service",
+                "https://www.valisluureamet.ee/doc/raport/2026-en.pdf",
+                "highly unlikely",
+                1.0,
+                "Russia has no intention of militarily attacking Estonia or any other NATO state",
+            ),
         ),
     )
 
 
-CATALOGUE = (CATALOGUE[0], _large_war(), *CATALOGUE[1:])
+CATALOGUE = (CATALOGUE[0], _large_war(), *CATALOGUE[1:], *EXTRA)
 
 # --------------------------------------------------------------------------------------
 # Components
@@ -904,14 +944,14 @@ def scenario_signs(
     dyad_trend: Mapping[str, dict] | None,
     active_interstate: set[str],
 ) -> list[dict]:
-    """Active interstate signs in the scenario's parties and front-line countries."""
-    from geointel.risk.warning_signs import INTERSTATE, SPEC
+    """Active signs of the scenario's risk type in its parties and front-line countries."""
+    from geointel.risk.warning_signs import SPEC
 
     found: list[dict] = []
     for code in sorted(watched_countries(scenario)):
         for sign in country_signs.get(code, []):
             spec = SPEC.get(sign["key"])
-            if sign.get("status") != "active" or spec is None or INTERSTATE not in spec.applies:
+            if sign.get("status") != "active" or spec is None or scenario.risk not in spec.applies:
                 continue
             if (
                 sign.get("actor")
@@ -1068,12 +1108,12 @@ def indicator_list(signs: list[dict], near: dict | None) -> list[dict]:
     return result + ([market] if market else [])
 
 
-def scenario_factor(signs: list[dict], polarity: int) -> dict:
-    from geointel.risk.warning_signs import INTERSTATE, combine
+def scenario_factor(signs: list[dict], polarity: int, risk: str = "interstate_conflict") -> dict:
+    from geointel.risk.warning_signs import combine
 
     # Automated signals are pooled over many countries here, so they count at half strength
     # (square root of the factor) and together at most × 2.
-    combined = combine(signs, INTERSTATE, auto_power=0.5, auto_cap=2.0)
+    combined = combine(signs, risk, auto_power=0.5, auto_cap=2.0)
     factor = combined["factor"]
     if polarity < 0:  # escalation makes a ceasefire less likely, and vice versa
         factor = min(max(1 / factor, 0.5), 2.0)
@@ -1081,35 +1121,48 @@ def scenario_factor(signs: list[dict], polarity: int) -> dict:
 
 
 def official_component(scenario: Scenario, today: date) -> dict | None:
+    """Published judgements from the last 400 days, each mapped by its wording to a range and
+    annualised; several judgements are combined by the geometric mean of their mid-points."""
     from geointel.risk.warning_signs import ESTIMATIVE
 
-    usable = [
-        a
-        for a in scenario.assessments
-        if a.phrase in ESTIMATIVE and (today - _warning_date(a.date)).days <= 400
-    ]
+    usable = sorted(
+        (
+            a
+            for a in scenario.assessments
+            if a.phrase in ESTIMATIVE and 0 <= (today - _warning_date(a.date)).days <= 400
+        ),
+        key=lambda a: a.date,
+        reverse=True,
+    )
     if not usable:
         return None
-    latest = max(usable, key=lambda a: a.date)
-    low, high = ESTIMATIVE[latest.phrase]
-    mid = math.sqrt(low * high)
-    to_annual = lambda p: _p_to_hazard(p, latest.years)  # noqa: E731
+    mids, lows, highs, parts_ru, parts_en = [], [], [], [], []
+    for a in usable:
+        low, high = ESTIMATIVE[a.phrase]
+        mids.append(_p_to_hazard(math.sqrt(low * high), a.years))
+        lows.append(_p_to_hazard(low, a.years))
+        highs.append(_p_to_hazard(high, a.years))
+        parts_ru.append(
+            f"{a.source}, {a.date}: «{a.quote_en}» — «{a.phrase}» = {low * 100:.0f}–"
+            f"{high * 100:.0f}% за {a.years:g} г."
+        )
+        parts_en.append(
+            f'{a.source}, {a.date}: "{a.quote_en}" — "{a.phrase}" = {low * 100:.0f}–'
+            f"{high * 100:.0f}% over {a.years:g} year(s)."
+        )
+    annual = math.exp(sum(math.log(max(m, 1e-5)) for m in mids) / len(mids))
+    note_ru = " Оценки объединены средним геометрическим." if len(usable) > 1 else ""
+    note_en = " Judgements combined by geometric mean." if len(usable) > 1 else ""
     return {
         "kind": "official",
-        "annual": round(to_annual(mid), 4),
-        "low": round(to_annual(low), 4),
-        "high": round(to_annual(high), 4),
+        "annual": round(annual, 4),
+        "low": round(min(lows), 4),
+        "high": round(max(highs), 4),
         "weight": 1.0,
-        "detail_ru": (
-            f"{latest.source}, {latest.date}: «{latest.quote_en}». Формулировка «{latest.phrase}» "
-            f"по шкале GeoIntel = {low * 100:.0f}–{high * 100:.0f}% за {latest.years:g} г."
-        ),
-        "detail_en": (
-            f'{latest.source}, {latest.date}: "{latest.quote_en}". The phrase '
-            f'"{latest.phrase}" on the GeoIntel scale = {low * 100:.0f}–{high * 100:.0f}% '
-            f"over {latest.years:g} year(s)."
-        ),
-        "url": latest.url,
+        "detail_ru": " ".join(parts_ru) + " Словесная шкала GeoIntel." + note_ru,
+        "detail_en": " ".join(parts_en) + " GeoIntel verbal scale." + note_en,
+        "url": usable[0].url,
+        "sources": [{"source": a.source, "date": a.date, "url": a.url} for a in usable],
     }
 
 
@@ -1202,6 +1255,11 @@ def build_scenarios(
         official = official_component(scenario, today)
         if official:
             components.append(official)
+        from geointel.risk.expert_panel import panel_component
+
+        panel = panel_component(scenario.key)
+        if panel:
+            components.append(panel)
         found_community: list[dict] = []
         if community is not None:
             comp, found_community = community_component(scenario, community, today)
@@ -1212,7 +1270,7 @@ def build_scenarios(
             country_signs if country_signs is not None else structural_signs(scenario, milex, gpr)
         )
         signs = scenario_signs(scenario, per_country, dyad_trend, active_interstate)
-        factor_info = scenario_factor(signs, scenario.polarity)
+        factor_info = scenario_factor(signs, scenario.polarity, scenario.risk)
         factor = factor_info["factor"]
         pooled = pool(components, factor)
         affected: list[dict] = []
@@ -1274,4 +1332,7 @@ def build_scenarios(
                 "calibration": "uncalibrated",
             }
         )
+    from geointel.risk.scenario_tree import apply_trees
+
+    apply_trees(result)
     return {"schema": SCHEMA, "generated_at": now.isoformat(), "scenarios": result}

@@ -368,6 +368,8 @@ details p { margin-top: 6px; color: var(--ink-2); font-size: 13px; max-width: 80
 .scenario-head { display: grid; gap: 6px; max-width: 80ch; }
 .scenario-head h2 { font-size: 26px; }
 .scenario-cols { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 28px; }
+.tree .tree-bar { display: inline-block; height: 0.7em; margin-right: 8px; background: currentColor; opacity: 0.35; vertical-align: middle; min-width: 2px; max-width: 60%; }
+.tree caption { text-align: left; font-weight: 600; padding-bottom: 6px; }
 .sub-section { display: grid; gap: 10px; align-content: start; }
 .sub-section h3 { font-size: 17px; }
 .table-wrap { overflow-x: auto; }
@@ -490,3 +492,15 @@ td.up, td.down { margin-left: 0; }
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; scroll-behavior: auto !important; }
 }
+
+.lenses { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
+.lens { border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; background: var(--surface); }
+.lens h3 { font-size: 15px; margin: 0 0 8px; }
+.lens p { margin: 0 0 8px; line-height: 1.5; }
+.survey { display: grid; gap: 12px; }
+.survey label { display: grid; gap: 4px; max-width: 420px; }
+.survey input, .survey select, .survey textarea { font: inherit; padding: 6px 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); }
+.survey td input[type=number] { width: 90px; }
+.survey td input[type=text] { width: 100%; min-width: 180px; }
+.survey textarea { width: 100%; font-family: ui-monospace, monospace; font-size: 13px; }
+.spark { display: block; }

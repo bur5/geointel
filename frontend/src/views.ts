@@ -22,7 +22,7 @@ const ru = {
   colAnnual: 'За год',
   colRange: 'Диапазон',
   colWeight: 'Вес',
-  kind: { history: 'История конфликтов сторон (UCDP/PRIO)', expert: 'Экспертная априорная оценка GeoIntel', market: 'Рынок прогнозов (Polymarket)', official: 'Официальная оценка разведки (по шкале формулировок)', community: 'Сообщество прогнозистов (Metaculus)' },
+  kind: { history: 'История конфликтов сторон (UCDP/PRIO)', expert: 'Экспертная априорная оценка GeoIntel', market: 'Рынок прогнозов (Polymarket)', official: 'Официальная оценка разведки (по шкале формулировок)', community: 'Сообщество прогнозистов (Metaculus)', panel: 'Анкета экспертов GeoIntel' },
   communityOff: 'Metaculus не подключён (нужен токен) — источник не участвует.',
   communityNone: 'Подходящего вопроса Metaculus со сроком от 4 месяцев не нашлось.',
   combo: 'Активны признаки из трёх и более групп подготовки — дополнительный коэффициент × 1,5.',
@@ -93,6 +93,12 @@ const ru = {
   milexNote: (y: number, d: string) => `% ВВП, ${y}; изменение за 5 лет: ${d} п. п. (SIPRI)`,
   loading: 'Загружаем…',
   unavailable: 'Данные пока не опубликованы. Они появятся после ближайшего ежедневного обновления.',
+  treeTitle: 'Как риск меняется со временем',
+  treeInputs: (a: string, c: string, u: string) => `Сейчас: ${a} в год. Вероятность прекращения огня в Украине: ${c} в год; ослабления гарантий США: ${u} в год (из соответствующих сценариев).`,
+  treeYear: 'Год', treeAnnual: 'Риск в этот год', treeCum: 'Накопленно',
+  treeBranches: 'Ветви сценария', treeBranch: 'Ветвь', treeWeight: 'Вероятность ветви', treeP5: 'За 5 лет', treeP10: 'За 10 лет',
+  ukraine: { war: 'Война в Украине идёт все 10 лет', cease_early: 'Прекращение огня в ближайшие 2 года', cease_late: 'Прекращение огня через 2–10 лет' } as Record<string, string>,
+  us: { us_firm: 'гарантии США сохраняются', us_weak: 'гарантии США ослабевают' } as Record<string, string>,
 };
 
 type Dict = typeof ru;
@@ -100,6 +106,12 @@ const en: Dict = {
   scenariosTitle: 'Scenarios',
   scenariosLead: 'Concrete events instead of average frequencies. Each scenario\'s probability combines several independent sources, next to escalation signals and the countries it would hit, with the reasons why.',
   definition: 'What counts as the scenario happening',
+  treeTitle: 'How the risk changes over time',
+  treeInputs: (a: string, c: string, u: string) => `Now: ${a} a year. Chance of a ceasefire in Ukraine: ${c} a year; of weaker US guarantees: ${u} a year (from those scenarios).`,
+  treeYear: 'Year', treeAnnual: 'Risk in that year', treeCum: 'Cumulative',
+  treeBranches: 'Scenario branches', treeBranch: 'Branch', treeWeight: 'Branch probability', treeP5: 'Within 5 years', treeP10: 'Within 10 years',
+  ukraine: { war: 'War in Ukraine continues all 10 years', cease_early: 'Ceasefire within 2 years', cease_late: 'Ceasefire in 2–10 years' } as Record<string, string>,
+  us: { us_firm: 'US guarantees hold', us_weak: 'US guarantees weaken' } as Record<string, string>,
   deescalation: 'De-escalation scenario: a high probability is good news.',
   componentsTitle: 'What the probability is made of',
   componentsLead: 'Each source is shown separately. The result is a weighted average of the sources, then adjusted by the indicators. The range shows the spread between sources.',
@@ -107,7 +119,7 @@ const en: Dict = {
   colAnnual: 'Per year',
   colRange: 'Range',
   colWeight: 'Weight',
-  kind: { history: 'Conflict history of the sides (UCDP/PRIO)', expert: 'GeoIntel expert prior', market: 'Prediction market (Polymarket)', official: 'Official intelligence judgement (wording scale)', community: 'Forecasting community (Metaculus)' },
+  kind: { history: 'Conflict history of the sides (UCDP/PRIO)', expert: 'GeoIntel expert prior', market: 'Prediction market (Polymarket)', official: 'Official intelligence judgement (wording scale)', community: 'Forecasting community (Metaculus)', panel: 'GeoIntel expert questionnaire' },
   communityOff: 'Metaculus is not connected (token needed), so this source is not used.',
   communityNone: 'No matching Metaculus question running 4+ months was found.',
   combo: 'Signs from three or more preparation groups are active, adding a further × 1.5.',
@@ -234,6 +246,7 @@ export function scenarioDetail(ctx: ViewContext, s: Scenario, horizonLabels: Rec
   }).join('');
   const candidates = s.market_candidates.length ? `<details><summary>${d.candidates}</summary><ul class="candidates">${s.market_candidates.map((m) =>
     `<li><a href="https://polymarket.com/event/${esc(m.slug)}" rel="noreferrer" lang="en">${esc(m.question)}</a> — ${m.inverse ? d.inverse + ' ' : ''}${ctx.pct(m.p)}, ${esc(m.end)}</li>`).join('')}</ul></details>` : '';
+  const tree = s.tree ? treeSection(ctx, s) : '';
   return `<article class="scenario" id="scenario-detail">
     <div class="scenario-head"><h2>${esc(title(s, lang))}</h2>
       <p class="muted-text">${d.confidenceLabel}: ${d.confidence[s.confidence]}.${s.polarity < 0 ? ' ' + d.deescalation : ''}</p>
@@ -247,6 +260,7 @@ export function scenarioDetail(ctx: ViewContext, s: Scenario, horizonLabels: Rec
       <section class="sub-section"><h3>${d.indicatorsTitle}</h3><p class="muted-text">${d.indicatorsLead}</p><ul class="indicators">${indicators}</ul>${s.sign_combo ? `<p class="muted-text small">${d.combo}</p>` : ''}
         ${warnings ? `<h3>${d.warningsTitle}</h3><ul class="warnings">${warnings}</ul>` : ''}</section>
     </div>
+    ${tree}
     <section class="sub-section"><h3>${d.affectedTitle}</h3><p class="muted-text">${d.affectedLead}</p>
       <div class="affected-layout"><div class="map-stage scenario-map" id="scenario-map"><svg viewBox="0 0 900 440" role="img" tabindex="0" aria-label="${esc(d.affectedTitle)}"><g></g></svg>
         <div class="tooltip" hidden></div>
@@ -255,6 +269,22 @@ export function scenarioDetail(ctx: ViewContext, s: Scenario, horizonLabels: Rec
       <div class="roles">${affected}</div></div></section>
     <p class="caveat">${d.uncalibrated}</p>
   </article>`;
+}
+
+function treeSection(ctx: ViewContext, s: Scenario) {
+  const d = vt(ctx.lang);
+  const t = s.tree!;
+  const start = new Date().getFullYear();
+  const top = Math.max(...t.yearly.map((y) => y.annual), 1e-6);
+  const years = t.yearly.map((y) => `<tr><th scope="row">${start + y.year - 1}</th>
+    <td><span class="tree-bar" style="width:${Math.round((y.annual / top) * 100)}%"></span>${ctx.pct(y.annual)}</td><td class="numcell">${ctx.pct(y.cumulative)}</td></tr>`).join('');
+  const branches = [...t.branches].sort((a, b) => b.weight - a.weight).map((b) => `<tr><th scope="row">${ctx.esc(d.ukraine[b.ukraine])}; ${ctx.esc(d.us[b.us])}</th>
+    <td class="numcell">${ctx.pct(b.weight)}</td><td class="numcell">${ctx.pct(b.p5y)}</td><td class="numcell">${ctx.pct(b.p10y)}</td></tr>`).join('');
+  return `<section class="sub-section tree" id="scenario-tree"><h3>${d.treeTitle}</h3>
+    <p class="muted-text">${ctx.esc(ctx.lang === 'ru' ? t.basis_ru : t.basis_en)}</p>
+    <p class="muted-text">${ctx.esc(d.treeInputs(ctx.pct(t.inputs.annual_now), ctx.pct(t.inputs.ceasefire_annual), ctx.pct(t.inputs.us_weak_annual)))}</p>
+    <div class="scenario-cols"><div class="table-wrap"><table class="table"><thead><tr><th>${d.treeYear}</th><th>${d.treeAnnual}</th><th>${d.treeCum}</th></tr></thead><tbody>${years}</tbody></table></div>
+    <div class="table-wrap"><table class="table"><caption>${d.treeBranches}</caption><thead><tr><th>${d.treeBranch}</th><th>${d.treeWeight}</th><th>${d.treeP5}</th><th>${d.treeP10}</th></tr></thead><tbody>${branches}</tbody></table></div></div></section>`;
 }
 
 export function scenariosPage(ctx: ViewContext, file: ScenarioFile | undefined, current: string, horizonLabels: Record<HorizonKey, string>) {

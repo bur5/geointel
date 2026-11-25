@@ -240,19 +240,38 @@ def _regions(client: httpx.Client, _year: int) -> tuple[bytes, str, str]:
     return _get(client, regions.URL).content, regions.URL, "ne_10m_admin_1"
 
 
+_BROWSER = {
+    "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) "
+    "Chrome/124.0 Safari/537.36"
+}
+
+
 def _coups(client: httpx.Client, fallback: list[str]) -> tuple[bytes, str, str]:
     """Cline Center Coup d'État Project (Illinois Data Bank), else Powell & Thyne."""
     from geointel.risk.sources import coups
 
-    try:
-        page = _get(client, coups.CLINE_LANDING, retries=1).text
-        for link in coups.cline_csv_links(page):
-            payload = _get(client, link, retries=1).content
-            if b"year" in payload[:2000].lower():
-                return payload, link, "Cline Center"
-    except Exception as exc:  # noqa: BLE001 - fall back to Powell & Thyne
-        print(f"[coups] Cline Center failed: {type(exc).__name__}: {str(exc)[:200]}")
-    return _download_first(client, [(u, "live") for u in fallback])
+    for landing in coups.CLINE_LANDINGS:
+        try:
+            response = client.get(landing, headers=_BROWSER, follow_redirects=True, timeout=60)
+            response.raise_for_status()
+            links = coups.cline_csv_links(response.text)
+            print(f"[coups] {landing}: {len(response.text)} chars, {len(links)} CSV links")
+            for link in links:
+                payload = client.get(link, headers=_BROWSER, follow_redirects=True, timeout=90)
+                payload.raise_for_status()
+                if b"year" in payload.content[:2000].lower():
+                    return payload.content, link, "Cline Center"
+        except Exception as exc:  # noqa: BLE001 - fall back to Powell & Thyne
+            print(f"[coups] Cline Center {landing} failed: {type(exc).__name__}: {str(exc)[:160]}")
+    errors = []
+    for url in fallback:
+        try:
+            response = client.get(url, headers=_BROWSER, follow_redirects=True, timeout=60)
+            response.raise_for_status()
+            return response.content, url, "Powell & Thyne"
+        except Exception as exc:  # noqa: BLE001 - try the next mirror
+            errors.append(f"{url}: {type(exc).__name__} {str(exc)[:120]}")
+    raise RuntimeError("; ".join(errors))
 
 
 def cache_dir() -> Path:
@@ -363,7 +382,8 @@ def _metaculus(client: httpx.Client, _year: int) -> tuple[bytes, str, str]:
         print(
             f"[metaculus] query={query!r} results={len(results)} "
             f"type={question.get('type')} "
-            f"aggregations={sorted(question.get('aggregations') or {})}"
+            f"aggregations={sorted(question.get('aggregations') or {})} "
+            f"{metaculus.diagnose(body)}"
         )
         payloads.append({"query": query, **body})
         time.sleep(1.5)
@@ -501,21 +521,26 @@ def _firms(client: httpx.Client, _year: int) -> tuple[bytes, str, str]:
 
 def _military(client: httpx.Client, _year: int) -> tuple[bytes, str, str]:
     snapshots = []
+    used = early.MIL_URL
     for i in range(3):
-        try:
-            response = client.get(early.MIL_URL, timeout=60)
-            response.raise_for_status()
-            snapshots.append(response.json())
-        except Exception as exc:  # noqa: BLE001 - one failed snapshot is not fatal
-            print(f"[military] snapshot {i}: {type(exc).__name__}")
+        for url in early.MIL_URLS:
+            try:
+                response = client.get(url, headers=_BROWSER, timeout=60)
+                response.raise_for_status()
+                snapshots.append(response.json())
+                used = url
+                break
+            except Exception as exc:  # noqa: BLE001 - one failed snapshot is not fatal
+                code = getattr(getattr(exc, "response", None), "status_code", "")
+                print(f"[military] snapshot {i} {url}: {type(exc).__name__} {code}")
         if i < 2:
             time.sleep(60)
     if not snapshots:
-        raise RuntimeError("no airplanes.live snapshots")
+        raise RuntimeError("no military aircraft snapshots (airplanes.live, adsb.lol)")
     counts = early.military_counts(snapshots)
     print(f"[military] {counts}")
     payload = {"counts": counts, "aircraft": sum(len(s.get("ac") or []) for s in snapshots)}
-    return json.dumps(payload).encode(), early.MIL_URL, f"{payload['aircraft']} positions"
+    return json.dumps(payload).encode(), used, f"{payload['aircraft']} positions"
 
 
 def _zakupki(client: httpx.Client, _year: int) -> tuple[bytes, str, str]:
@@ -532,12 +557,18 @@ def _zakupki(client: httpx.Client, _year: int) -> tuple[bytes, str, str]:
             continue
         counts: dict[str, int] = {}
         for name, term in early.ZAKUPKI_TERMS.items():
-            response = client.get(
-                early.ZAKUPKI_URL,
-                params=early.zakupki_params(term, start, end),
-                headers=headers,
-                timeout=60,
-            )
+            try:
+                response = client.get(
+                    early.ZAKUPKI_URL,
+                    params=early.zakupki_params(term, start, end),
+                    headers=headers,
+                    timeout=20,
+                )
+            except httpx.TimeoutException as exc:
+                raise RuntimeError(
+                    "zakupki.gov.ru did not answer; it is usually closed to servers outside "
+                    "Russia, where GitHub runs"
+                ) from exc
             response.raise_for_status()
             total = early.zakupki_total(response.text)
             if total is None:
@@ -553,7 +584,13 @@ def _media(client: httpx.Client, _year: int) -> tuple[bytes, str, str]:
     for key, query in early.DOC_QUERIES.items():
         response = client.get(early.DOC_URL, params=early.doc_timeline_params(query), timeout=90)
         response.raise_for_status()
-        series[key] = early.doc_timeline(response.json())
+        try:
+            body = response.json()
+        except ValueError:
+            print(f"[media] {key}: not JSON: {response.text[:160]!r}")
+            body = {}
+        series[key] = early.doc_timeline(body)
+        print(f"[media] {key}: {len(series[key])} days, {len(response.content)} bytes")
         time.sleep(6)
     return (
         json.dumps({"series": series}).encode(),
