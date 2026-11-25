@@ -369,10 +369,10 @@ SIGNS: tuple[SignSpec, ...] = (
     _s(
         "satellite_change",
         "posture",
-        1.5,
+        1.0,
         (INTERSTATE,),
-        "Радарный спутник: резкий рост техники на объекте",
-        "Radar satellite: sharp rise in metal objects at a site",
+        "Радарный спутник: резкий рост металла на объекте (эксперимент, в расчёт не входит)",
+        "Radar satellite: sharp rise in metal at a site (experimental, not counted)",
         auto=True,
     ),
     _s(

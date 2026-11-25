@@ -314,6 +314,7 @@ def build_signal_layer(snapshot: dict, extras: dict, sources: list[dict], now) -
         result = sentinel.change(extras.get("radar", {}).get(site.key, []))
         if result is None:
             continue
+        print(f"[signals] radar {site.key}: x{result['ratio']} last={result['last']}")
         for code in (*site.countries, site.actor):
             satellite.setdefault(code, []).append(
                 {"name_ru": site.name_ru, "name_en": site.name_en, **result}

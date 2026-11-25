@@ -338,7 +338,16 @@ def _metaculus(client: httpx.Client, _year: int) -> tuple[bytes, str, str]:
             timeout=45,
         )
         response.raise_for_status()
-        payloads.append({"query": query, **response.json()})
+        body = response.json()
+        results = body.get("results") or []
+        sample = results[0] if results else {}
+        question = sample.get("question") or {}
+        print(
+            f"[metaculus] query={query!r} results={len(results)} "
+            f"type={question.get('type')} "
+            f"aggregations={sorted(question.get('aggregations') or {})}"
+        )
+        payloads.append({"query": query, **body})
         time.sleep(1.5)
     found = metaculus.questions(payloads)
     for q in found[:30]:
