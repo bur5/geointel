@@ -94,7 +94,7 @@ const ru = {
   loading: 'Загружаем…',
   unavailable: 'Данные пока не опубликованы. Они появятся после ближайшего ежедневного обновления.',
   treeTitle: 'Как риск меняется со временем',
-  treeInputs: (a: string, c: string, u: string) => `Сейчас: ${a} в год. Вероятность прекращения огня в Украине: ${c} в год; ослабления гарантий США: ${u} в год (из соответствующих сценариев).`,
+  treeInputs: (a: string, b: string, c: string, u: string) => `Сейчас с учётом признаков: ${a} в год; без текущих признаков: ${b} в год — влияние сегодняшних признаков в расчёте затухает вдвое каждые полгода. Прекращение огня в Украине: ${c} в год; ослабление гарантий США: ${u} в год (из соответствующих сценариев).`,
   treeYear: 'Год', treeAnnual: 'Риск в этот год', treeCum: 'Накопленно',
   treeBranches: 'Ветви сценария', treeBranch: 'Ветвь', treeWeight: 'Вероятность ветви', treeP5: 'За 5 лет', treeP10: 'За 10 лет',
   ukraine: { war: 'Война в Украине идёт все 10 лет', cease_early: 'Прекращение огня в ближайшие 2 года', cease_late: 'Прекращение огня через 2–10 лет' } as Record<string, string>,
@@ -107,7 +107,7 @@ const en: Dict = {
   scenariosLead: 'Concrete events instead of average frequencies. Each scenario\'s probability combines several independent sources, next to escalation signals and the countries it would hit, with the reasons why.',
   definition: 'What counts as the scenario happening',
   treeTitle: 'How the risk changes over time',
-  treeInputs: (a: string, c: string, u: string) => `Now: ${a} a year. Chance of a ceasefire in Ukraine: ${c} a year; of weaker US guarantees: ${u} a year (from those scenarios).`,
+  treeInputs: (a: string, b: string, c: string, u: string) => `Now, with warning signs: ${a} a year; without today's signs: ${b} a year — the effect of today's signs halves every six months in the calculation. Ceasefire in Ukraine: ${c} a year; weaker US guarantees: ${u} a year (from those scenarios).`,
   treeYear: 'Year', treeAnnual: 'Risk in that year', treeCum: 'Cumulative',
   treeBranches: 'Scenario branches', treeBranch: 'Branch', treeWeight: 'Branch probability', treeP5: 'Within 5 years', treeP10: 'Within 10 years',
   ukraine: { war: 'War in Ukraine continues all 10 years', cease_early: 'Ceasefire within 2 years', cease_late: 'Ceasefire in 2–10 years' } as Record<string, string>,
@@ -282,7 +282,7 @@ function treeSection(ctx: ViewContext, s: Scenario) {
     <td class="numcell">${ctx.pct(b.weight)}</td><td class="numcell">${ctx.pct(b.p5y)}</td><td class="numcell">${ctx.pct(b.p10y)}</td></tr>`).join('');
   return `<section class="sub-section tree" id="scenario-tree"><h3>${d.treeTitle}</h3>
     <p class="muted-text">${ctx.esc(ctx.lang === 'ru' ? t.basis_ru : t.basis_en)}</p>
-    <p class="muted-text">${ctx.esc(d.treeInputs(ctx.pct(t.inputs.annual_now), ctx.pct(t.inputs.ceasefire_annual), ctx.pct(t.inputs.us_weak_annual)))}</p>
+    <p class="muted-text">${ctx.esc(d.treeInputs(ctx.pct(t.inputs.annual_now), ctx.pct(t.inputs.annual_base ?? t.inputs.annual_now), ctx.pct(t.inputs.ceasefire_annual), ctx.pct(t.inputs.us_weak_annual)))}</p>
     <div class="scenario-cols"><div class="table-wrap"><table class="table"><thead><tr><th>${d.treeYear}</th><th>${d.treeAnnual}</th><th>${d.treeCum}</th></tr></thead><tbody>${years}</tbody></table></div>
     <div class="table-wrap"><table class="table"><caption>${d.treeBranches}</caption><thead><tr><th>${d.treeBranch}</th><th>${d.treeWeight}</th><th>${d.treeP5}</th><th>${d.treeP10}</th></tr></thead><tbody>${branches}</tbody></table></div></div></section>`;
 }

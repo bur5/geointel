@@ -256,6 +256,13 @@ def _coups(client: httpx.Client, fallback: list[str]) -> tuple[bytes, str, str]:
             response.raise_for_status()
             links = coups.cline_csv_links(response.text)
             print(f"[coups] {landing}: {len(response.text)} chars, {len(links)} CSV links")
+            if not links:
+                import re
+
+                hrefs = re.findall(
+                    r"href=[\"']([^\"']*(?:datafile|download|\.csv)[^\"']*)", response.text
+                )
+                print(f"[coups] sample links: {hrefs[:8]}")
             for link in links:
                 payload = client.get(link, headers=_BROWSER, follow_redirects=True, timeout=90)
                 payload.raise_for_status()
@@ -367,6 +374,7 @@ def _metaculus(client: httpx.Client, _year: int) -> tuple[bytes, str, str]:
     from geointel.risk.scenarios import CATALOGUE
 
     payloads = []
+    details = 0
     for query in sorted({q for s in CATALOGUE for q in (s.metaculus_queries or s.market_queries)}):
         response = client.get(
             metaculus.POSTS_URL,
@@ -385,6 +393,24 @@ def _metaculus(client: httpx.Client, _year: int) -> tuple[bytes, str, str]:
             f"aggregations={sorted(question.get('aggregations') or {})} "
             f"{metaculus.diagnose(body)}"
         )
+        # The list endpoint often leaves the community aggregate empty; the post's own page
+        # carries it, so fetch the first few posts of each query individually.
+        for post in results[:5]:
+            if details >= 80 or metaculus.has_probability(post):
+                continue
+            try:
+                detail = client.get(
+                    f"{metaculus.POSTS_URL}{post['id']}/",
+                    headers={"Authorization": f"Token {token}"},
+                    timeout=45,
+                )
+                detail.raise_for_status()
+                post.update(detail.json())
+            except Exception as exc:  # noqa: BLE001 - keep the list entry
+                print(f"[metaculus] detail {post.get('id')}: {type(exc).__name__}")
+            details += 1
+            time.sleep(1.0)
+        print(f"[metaculus] after details: {metaculus.diagnose(body)}")
         payloads.append({"query": query, **body})
         time.sleep(1.5)
     found = metaculus.questions(payloads)
@@ -582,7 +608,14 @@ def _zakupki(client: httpx.Client, _year: int) -> tuple[bytes, str, str]:
 def _media(client: httpx.Client, _year: int) -> tuple[bytes, str, str]:
     series = {}
     for key, query in early.DOC_QUERIES.items():
-        response = client.get(early.DOC_URL, params=early.doc_timeline_params(query), timeout=90)
+        for attempt in range(4):
+            response = client.get(
+                early.DOC_URL, params=early.doc_timeline_params(query), timeout=90
+            )
+            if response.status_code != 429:
+                break
+            print(f"[media] {key}: 429, waiting")
+            time.sleep(20 * (attempt + 1))
         response.raise_for_status()
         try:
             body = response.json()

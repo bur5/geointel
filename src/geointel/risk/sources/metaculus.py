@@ -59,6 +59,10 @@ def _end(post: Mapping, question: Mapping) -> str:
     return ""
 
 
+def has_probability(post: Mapping) -> bool:
+    return _probability(post.get("question") or {}) is not None
+
+
 def diagnose(payload: Mapping) -> str:
     """One line describing why posts in a response were or were not used."""
     reasons = {"ok": 0, "type": 0, "no_p": 0, "no_end": 0}

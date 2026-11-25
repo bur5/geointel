@@ -317,3 +317,17 @@ def test_expert_panel_needs_a_reason():
     comp = panel_component("k", answers)
     assert comp["kind"] == "panel" and comp["annual"] == 0.02 and comp["high"] == 0.04
     assert panel_component("other", answers) is None
+
+
+def test_signs_are_not_counted_twice():
+    signs = {
+        "EST": [
+            {"key": "intel_warning", "status": "active", "lr": 1.3, "group": "intel"},
+            {"key": "hybrid", "status": "active", "lr": 1.2, "group": "hybrid"},
+            {"key": "ongoing_war", "status": "active", "lr": 1.2, "group": "intel"},
+        ]
+    }
+    by_key = {s.key: s for s in scenarios.CATALOGUE}
+    keys = {s["key"] for s in scenarios.scenario_signs(by_key["russia_nato"], signs, None, set())}
+    assert keys == {"hybrid"}  # the judgement is pooled already; the war is in the prior
+    assert scenarios.scenario_signs(by_key["us_guarantee"], signs, None, set()) == []

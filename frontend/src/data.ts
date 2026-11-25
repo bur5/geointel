@@ -179,7 +179,7 @@ export interface Scenario {
   tree?: ScenarioTree;
 }
 export interface ScenarioTree {
-  inputs: { annual_now: number; ceasefire_annual: number; us_weak_annual: number };
+  inputs: { annual_now: number; annual_base?: number; sign_factor?: number; ceasefire_annual: number; us_weak_annual: number };
   yearly: { year: number; cumulative: number; annual: number }[];
   branches: { ukraine: 'war' | 'cease_early' | 'cease_late'; us: 'us_firm' | 'us_weak'; weight: number; p5y: number; p10y: number }[];
   basis_ru: string; basis_en: string;

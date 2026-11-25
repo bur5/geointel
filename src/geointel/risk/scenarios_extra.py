@@ -43,6 +43,7 @@ MOLDOVA = Scenario(
     market_groups=(("moldova", "transnistria"), ("russia", "war", "invade", "attack", "troops")),
     market_exclude=("election", "eu accession", "join the eu"),
     use_history=False,
+    prior_includes=("ongoing_war",),
     milex=_t("RUS MDA"),
     gpr=_t("RUS"),
     war_context=_t("RUS UKR"),
@@ -128,6 +129,7 @@ BELARUS = Scenario(
     market_groups=(("belarus",), ("invade", "attack", "enter the war", "offensive", "troops")),
     market_exclude=("election", "lukashenko out", "release"),
     use_history=False,
+    prior_includes=("ongoing_war",),
     milex=_t("BLR RUS"),
     gpr=_t("RUS UKR POL"),
     war_context=_t("RUS UKR"),
@@ -460,6 +462,7 @@ US_GUARANTEE = Scenario(
     market_exclude=("ukraine join", "sweden", "finland"),
     metaculus_queries=("United States NATO withdrawal",),
     use_history=False,
+    use_signs=False,  # warning signs near Russia say nothing about US policy
     exposures=(
         Exposure(
             "party",

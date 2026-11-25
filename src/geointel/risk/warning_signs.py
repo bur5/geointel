@@ -628,7 +628,7 @@ JOURNAL: tuple[Entry, ...] = tuple(
             "https://www.atlanticcouncil.org/blogs/ukrainealert/belarus-hosts-nuclear-capable-russian-missiles-despite-talk-of-us-thaw/",
             "RUS",
             "belarus_front",
-            0.5,
+            0.3,  # a standing deployment, not a build-up
         )
         for c in ("POL", "LTU", "LVA")
     ]

@@ -74,6 +74,10 @@ class Scenario:
     warnings: tuple[Warning, ...] = field(default_factory=tuple)
     # Which warning-sign risk type moves this scenario (see warning_signs.RISKS).
     risk: str = "interstate_conflict"
+    # Country signs move this scenario only if they are evidence about its event.
+    use_signs: bool = True
+    # Sign keys whose evidence the expert prior already includes (not counted again).
+    prior_includes: tuple[str, ...] = ()
 
 
 def _t(codes: str) -> tuple[str, ...]:
