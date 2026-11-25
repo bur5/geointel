@@ -5,8 +5,8 @@
     "version": "26.1",
     "bytes": 45955,
     "file": "ucdp_acd.bin",
-    "seconds": 1.3,
-    "retrieved_at": "2026-11-25T04:50:03.256780+00:00",
+    "seconds": 1.1,
+    "retrieved_at": "2026-11-25T05:26:37.458889+00:00",
     "errors": []
   },
   "coups": {
@@ -21,8 +21,8 @@
     "version": "live",
     "bytes": 294613,
     "file": "usgs.csv",
-    "seconds": 0.4,
-    "retrieved_at": "2026-11-25T04:50:04.295711+00:00",
+    "seconds": 0.8,
+    "retrieved_at": "2026-11-25T05:26:39.608474+00:00",
     "errors": []
   },
   "gdacs": {
@@ -31,8 +31,8 @@
     "version": "992 features",
     "bytes": 1463883,
     "file": "gdacs.json",
-    "seconds": 82.5,
-    "retrieved_at": "2026-11-25T04:51:26.816934+00:00",
+    "seconds": 80.9,
+    "retrieved_at": "2026-11-25T05:28:00.524879+00:00",
     "errors": []
   },
   "tsunami": {
@@ -41,8 +41,8 @@
     "version": "601 events",
     "bytes": 288499,
     "file": "tsunami.json",
-    "seconds": 2.0,
-    "retrieved_at": "2026-11-25T04:51:28.866688+00:00",
+    "seconds": 10.6,
+    "retrieved_at": "2026-11-25T05:28:11.164297+00:00",
     "errors": []
   },
   "worldbank": {
@@ -51,8 +51,8 @@
     "version": "WDI",
     "bytes": 4727534,
     "file": "worldbank.json",
-    "seconds": 0.3,
-    "retrieved_at": "2026-11-25T04:51:29.188034+00:00",
+    "seconds": 0.4,
+    "retrieved_at": "2026-11-25T05:28:11.582428+00:00",
     "errors": []
   },
   "fts": {
@@ -61,8 +61,8 @@
     "version": "FTS",
     "bytes": 4368060,
     "file": "fts.json",
-    "seconds": 8.3,
-    "retrieved_at": "2026-11-25T04:51:37.503096+00:00",
+    "seconds": 11.3,
+    "retrieved_at": "2026-11-25T05:28:22.871005+00:00",
     "errors": []
   },
   "advisories": {
@@ -72,7 +72,7 @@
     "bytes": 495758,
     "file": "advisories.json",
     "seconds": 0.6,
-    "retrieved_at": "2026-11-25T04:51:38.128475+00:00",
+    "retrieved_at": "2026-11-25T05:28:23.470004+00:00",
     "errors": []
   },
   "exposure": {
@@ -81,8 +81,8 @@
     "version": "WDI structure",
     "bytes": 5772098,
     "file": "exposure.json",
-    "seconds": 0.9,
-    "retrieved_at": "2026-11-25T04:51:38.983299+00:00",
+    "seconds": 0.8,
+    "retrieved_at": "2026-11-25T05:28:24.276563+00:00",
     "errors": []
   },
   "imf": {
@@ -91,8 +91,8 @@
     "version": "WEO",
     "bytes": 401301,
     "file": "imf.json",
-    "seconds": 1.3,
-    "retrieved_at": "2026-11-25T04:51:40.321984+00:00",
+    "seconds": 2.1,
+    "retrieved_at": "2026-11-25T05:28:26.357864+00:00",
     "errors": []
   },
   "vdem": {
@@ -101,8 +101,8 @@
     "version": "electoral-democracy-index",
     "bytes": 1115751,
     "file": "vdem.csv",
-    "seconds": 0.4,
-    "retrieved_at": "2026-11-25T04:51:40.683129+00:00",
+    "seconds": 1.8,
+    "retrieved_at": "2026-11-25T05:28:28.194382+00:00",
     "errors": []
   },
   "gpr": {
@@ -111,18 +111,18 @@
     "version": "monthly",
     "bytes": 2718208,
     "file": "gpr.xls",
-    "seconds": 0.2,
-    "retrieved_at": "2026-11-25T04:51:40.895021+00:00",
+    "seconds": 0.5,
+    "retrieved_at": "2026-11-25T05:28:28.669383+00:00",
     "errors": []
   },
   "elections": {
     "status": "ok",
     "url": "https://query.wikidata.org/sparql",
     "version": "194 countries",
-    "bytes": 141359,
+    "bytes": 146424,
     "file": "elections.json",
-    "seconds": 429.2,
-    "retrieved_at": "2026-11-25T04:58:50.085192+00:00",
+    "seconds": 168.5,
+    "retrieved_at": "2026-11-25T05:31:17.217841+00:00",
     "errors": []
   },
   "fcdo": {
@@ -131,8 +131,8 @@
     "version": "226 countries",
     "bytes": 15461173,
     "file": "fcdo.json",
-    "seconds": 56.8,
-    "retrieved_at": "2026-11-25T04:59:46.921893+00:00",
+    "seconds": 102.2,
+    "retrieved_at": "2026-11-25T05:32:59.444718+00:00",
     "errors": []
   },
   "milex": {
@@ -141,18 +141,18 @@
     "version": "military-expenditure-share-gdp",
     "bytes": 302580,
     "file": "milex.csv",
-    "seconds": 0.2,
-    "retrieved_at": "2026-11-25T04:59:47.138334+00:00",
+    "seconds": 0.9,
+    "retrieved_at": "2026-11-25T05:33:00.358232+00:00",
     "errors": []
   },
   "markets": {
     "status": "ok",
     "url": "https://gamma-api.polymarket.com/public-search",
-    "version": "481 markets",
-    "bytes": 4953202,
+    "version": "463 markets",
+    "bytes": 4952712,
     "file": "markets.json",
-    "seconds": 9.2,
-    "retrieved_at": "2026-11-25T04:59:56.326222+00:00",
+    "seconds": 10.7,
+    "retrieved_at": "2026-11-25T05:33:11.088408+00:00",
     "errors": []
   },
   "unhcr": {
@@ -161,8 +161,8 @@
     "version": "2025",
     "bytes": 1976865,
     "file": "unhcr.json",
-    "seconds": 1.1,
-    "retrieved_at": "2026-11-25T04:59:57.379998+00:00",
+    "seconds": 1.4,
+    "retrieved_at": "2026-11-25T05:33:12.517182+00:00",
     "errors": []
   },
   "eurostat": {
@@ -171,8 +171,8 @@
     "version": "since 2023-01",
     "bytes": 21334,
     "file": "eurostat.json",
-    "seconds": 0.5,
-    "retrieved_at": "2026-11-25T04:59:57.892931+00:00",
+    "seconds": 0.7,
+    "retrieved_at": "2026-11-25T05:33:13.252760+00:00",
     "errors": []
   },
   "trade": {
@@ -181,38 +181,38 @@
     "version": "160/203 reporters (key)",
     "bytes": 2616246,
     "file": "trade.json",
-    "seconds": 31.1,
-    "retrieved_at": "2026-11-25T05:00:29.027169+00:00",
+    "seconds": 30.0,
+    "retrieved_at": "2026-11-25T05:33:43.269146+00:00",
     "errors": []
   },
   "gdelt": {
     "status": "ok",
     "url": "http://data.gdeltproject.org/",
-    "version": "187 new days",
-    "bytes": 2820830,
+    "version": "0 new days",
+    "bytes": 12,
     "file": "gdelt.json",
-    "seconds": 178.1,
-    "retrieved_at": "2026-11-25T05:03:27.118436+00:00",
+    "seconds": 0.0,
+    "retrieved_at": "2026-11-25T05:33:43.304748+00:00",
     "errors": []
   },
   "gpsjam": {
     "status": "ok",
     "url": "https://gpsjam.org/",
-    "version": "90 new days",
-    "bytes": 94581079,
+    "version": "0 new days",
+    "bytes": 13,
     "file": "gpsjam.json",
-    "seconds": 16.8,
-    "retrieved_at": "2026-11-25T05:03:43.954709+00:00",
+    "seconds": 0.0,
+    "retrieved_at": "2026-11-25T05:33:43.314572+00:00",
     "errors": []
   },
   "metaculus": {
     "status": "ok",
     "url": "https://www.metaculus.com/api/posts/",
     "version": "0 questions",
-    "bytes": 2020326,
+    "bytes": 2017502,
     "file": "metaculus.json",
-    "seconds": 41.9,
-    "retrieved_at": "2026-11-25T05:04:25.817082+00:00",
+    "seconds": 63.4,
+    "retrieved_at": "2026-11-25T05:34:46.755915+00:00",
     "errors": []
   },
   "sentinel": {
@@ -221,8 +221,8 @@
     "version": "13 sites",
     "bytes": 85087,
     "file": "sentinel.json",
-    "seconds": 42.6,
-    "retrieved_at": "2026-11-25T05:05:08.461002+00:00",
+    "seconds": 46.1,
+    "retrieved_at": "2026-11-25T05:35:32.830293+00:00",
     "errors": []
   },
   "newswire": {
@@ -237,8 +237,8 @@
     "version": "ne_10m_admin_1",
     "bytes": 40726851,
     "file": "regions.geojson",
-    "seconds": 3.2,
-    "retrieved_at": "2026-11-25T05:05:11.613332+00:00",
+    "seconds": 4.4,
+    "retrieved_at": "2026-11-25T05:35:37.207946+00:00",
     "errors": []
   }
 }
