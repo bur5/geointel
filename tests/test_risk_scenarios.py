@@ -371,3 +371,51 @@ def test_caucasus_and_middle_east_scenarios():
     assert by_key["hormuz_reopening"].polarity == -1
     assert by_key["georgia_crisis"].risk == "political_crisis"
     assert len({s.key for s in scenarios.CATALOGUE}) == len(scenarios.CATALOGUE)
+
+
+def test_monthly_profile_alerts_and_network():
+    from geointel.risk.network import scenario_network
+    from geointel.risk.warning_signs import alert_level
+
+    assert alert_level(0.01, 1.0, False) == "green"
+    assert alert_level(0.04, 1.0, False) == "yellow"
+    assert alert_level(0.05, 3.5, False) == "orange"
+    assert alert_level(0.25, 10, False) == "orange"  # no last-stage signs: not red
+    assert alert_level(0.25, 10, True) == "red"
+    result = scenarios.build_scenarios(
+        dyads=None,
+        last_conflict_year=None,
+        active_interstate=set(),
+        markets=None,
+        milex={},
+        gpr={},
+        generated_at=NOW,
+    )
+    by_key = {s["key"]: s for s in result["scenarios"]}
+    guyana = by_key["venezuela_guyana"]
+    assert len(guyana["profile"]) == 12
+    assert guyana["profile"][0]["p"] > guyana["profile"][6]["p"]  # the ICJ ruling window
+    assert guyana["alert"]["level"] in ("green", "yellow", "orange", "red")
+    assert by_key["hormuz_reopening"]["alert"] is None  # de-escalation: no alarm
+    assert "us_iran" in by_key
+    catalogue = {s.key: s for s in scenarios.CATALOGUE}
+    links = {
+        "DEU": {"trade": {"exports_to": [{"iso3": "USA", "share": 0.1}]}},
+        "JPN": {"trade": {"exports_to": [{"iso3": "USA", "share": 0.2}]}},
+        "BHR": {},
+        "KOR": {"trade": {"exports_to": [{"iso3": "JPN", "share": 0.2}]}},
+    }
+    net = {n["iso3"]: n for n in scenario_network(catalogue["us_iran"], links)}
+    assert net["BHR"]["involve"] > 0.3  # hosts US bases within Iran's reach
+    assert net.get("DEU", {}).get("involve", 0) == 0  # NATO does not oblige joining US wars
+    korea = {n["iso3"]: n for n in scenario_network(catalogue["korea"], links)}
+    assert korea["USA"]["involve"] >= 0.5  # treaty with the side under attack
+
+
+def test_network_ignores_trade_with_powers_fighting_abroad():
+    from geointel.risk.network import scenario_network
+
+    catalogue = {s.key: s for s in scenarios.CATALOGUE}
+    links = {"MEX": {"trade": {"exports_to": [{"iso3": "USA", "share": 0.8}]}}}
+    net = {n["iso3"]: n for n in scenario_network(catalogue["us_iran"], links)}
+    assert "MEX" not in net

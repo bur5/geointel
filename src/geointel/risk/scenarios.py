@@ -733,6 +733,7 @@ def _large_war() -> Scenario:
     return replace(
         limited,
         key="russia_nato_war",
+        mud_season=True,
         title_ru="Большая война России с НАТО",
         title_en="Large-scale war between Russia and NATO",
         event_ru=(
@@ -1334,7 +1335,9 @@ def build_scenarios(
                 "calibration": "uncalibrated",
             }
         )
+    from geointel.risk.scenario_profile import apply_profiles
     from geointel.risk.scenario_tree import apply_trees
 
+    apply_profiles(result, {s.key: s for s in catalogue}, today)
     apply_trees(result)
     return {"schema": SCHEMA, "generated_at": now.isoformat(), "scenarios": result}

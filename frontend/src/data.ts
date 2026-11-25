@@ -1,3 +1,4 @@
+import type { AlertInfo } from './alerts';
 export type Lang = 'ru' | 'en';
 export type HorizonKey = '1m' | '1y' | '5y' | '10y';
 
@@ -177,6 +178,10 @@ export interface Scenario {
   community_status?: 'matched' | 'no_match' | 'unavailable';
   community_candidates?: { question: string; p: number; end: string; forecasters: number; url: string }[];
   tree?: ScenarioTree;
+  profile?: { month: string; from: string; p: number; multiplier: number; why_ru: string[]; why_en: string[] }[];
+  stage?: number;
+  alert?: AlertInfo | null;
+  network?: { iso3: string; involve: number; econ: number; ring: number; why_ru: string[]; why_en: string[] }[];
 }
 export interface ScenarioTree {
   inputs: { annual_now: number; annual_base?: number; sign_factor?: number; ceasefire_annual: number; us_weak_annual: number };
@@ -224,7 +229,7 @@ export interface SignSpec {
   automated: boolean; expires_days: number;
 }
 export interface AdjustedRisk { factor: number; signs: string[]; groups: string[]; combo: boolean; horizons?: Record<HorizonKey, Probability> }
-export interface CountrySignals { signs: Sign[]; adjusted: Record<string, AdjustedRisk>; active: number; max_factor: number }
+export interface CountrySignals { signs: Sign[]; adjusted: Record<string, AdjustedRisk>; active: number; max_factor: number; alert?: AlertInfo }
 export interface SignalsFile {
   schema: string; generated_at: string; catalogue: SignSpec[];
   groups: Record<string, { ru: string; en: string }>;

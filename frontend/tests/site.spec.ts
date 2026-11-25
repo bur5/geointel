@@ -60,7 +60,7 @@ test('country, changes, assistant and method pages; language switch', async ({ p
   await page.locator('[data-field="country"]').selectOption('JPN');
   await expect(page.locator('.hazard-card').first()).toBeVisible();
   await expect(page.locator('.country-map circle').first()).toBeVisible();
-  await expect(page.locator('.verdict')).toHaveCount(3);
+  await expect(page.locator('.verdict')).toHaveCount(4);
   await expect(page.locator('.ctx')).not.toHaveCount(0);
   await shoot(page, 'country-japan');
   await page.locator('[data-field="country"]').selectOption('USA');
@@ -91,6 +91,9 @@ test('scenarios, links graph and migration', async ({ page }) => {
   await expect(page.locator('#scenario-map path.country.role-party').first()).toBeVisible();
   await expect(page.locator('.role-group')).toHaveCount(4);
   await expect(page.locator('#scenario-tree tbody tr')).not.toHaveCount(0);
+  await expect(page.locator('#alert-card')).toBeVisible();
+  await expect(page.locator('#scenario-profile tbody tr')).toHaveCount(12);
+  await expect(page.locator('#scenario-network tbody tr')).not.toHaveCount(0);
   await shoot(page, 'scenarios');
   await page.locator('[data-scenario="china_taiwan"]').first().click();
   await expect(page.locator('.table.comp')).toContainText('Polymarket');
@@ -133,6 +136,8 @@ test('warning signs: signals page, country section and backtest', async ({ page 
   await page.locator('[data-field="country"]').selectOption('UKR');
   await expect(page.locator('#country-signals .sig').first()).toBeVisible();
   await expect(page.locator('#country-signals .adjusted li').first()).toBeVisible();
+  await expect(page.locator('.verdict.relocation .reloc-part')).toHaveCount(3);
+  await expect(page.locator('#alert-card')).toBeVisible();
   await shoot(page, 'country-ukraine-signals');
   await page.goto('/#accuracy');
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Насколько мы точны');

@@ -5,7 +5,7 @@ Each scenario states the event precisely, gives a reference-class prior with a w
 lists the countries it touches. Expert priors are GeoIntel judgement and are uncalibrated.
 """
 
-from geointel.risk.scenario_types import EU, NATO, Exposure, Scenario, Warning, _t
+from geointel.risk.scenario_types import EU, NATO, Exposure, KeyDate, Scenario, Warning, _t
 
 _PARTIES = "Стороны сценария."
 _PARTIES_EN = "Parties to the scenario."
@@ -125,6 +125,7 @@ BELARUS = Scenario(
     ),
     side_a=_t("BLR RUS"),
     side_b=_t("UKR POL LTU LVA"),
+    mud_season=True,
     market_queries=("Belarus war", "Belarus invade"),
     market_groups=(("belarus",), ("invade", "attack", "enter the war", "offensive", "troops")),
     market_exclude=("election", "lukashenko out", "release"),
@@ -260,6 +261,16 @@ VENEZUELA_GUYANA = Scenario(
     ),
     side_a=_t("VEN"),
     side_b=_t("GUY"),
+    key_dates=(
+        KeyDate(
+            "2026-11-15",
+            "2027-01-31",
+            2.0,
+            "ожидается решение Международного суда ООН по Эссекибо",
+            "the ICJ ruling on Essequibo is expected",
+            "https://riotimesonline.com/essequibo-guyana-ali-unga-venezuela-icj-ruling-2026",
+        ),
+    ),
     market_queries=("Venezuela Guyana", "Essequibo"),
     market_groups=(("venezuela", "essequibo"), ("guyana", "essequibo")),
     market_exclude=("election", "oil price"),
@@ -799,8 +810,60 @@ IRAQ_STRIKES = Scenario(
     ),
 )
 
+US_IRAN = Scenario(
+    key="us_iran",
+    title_ru="Удары США по территории Ирана",
+    title_en="US strikes on Iranian territory",
+    event_ru=(
+        "Вооружённые силы США наносят удар по территории Ирана (не только по судам в море) после "
+        "последней паузы в боевых действиях."
+    ),
+    event_en=(
+        "US forces strike Iranian territory (not only ships at sea) after the latest pause in "
+        "fighting."
+    ),
+    polarity=1,
+    expert=(0.45, 0.2, 0.75),
+    expert_basis_ru=(
+        "США вели войну с Ираном с 28 февраля 2026 года, после перемирия снова нанесли удары в "
+        "конце июля; морская блокада иранских портов продолжается, нападения на суда в "
+        "Ормузском проливе не прекращаются и в ноябре. Удар Израиля по Ирану с высокой "
+        "вероятностью втянет и США. Оценка GeoIntel: около 45% в год."
+    ),
+    expert_basis_en=(
+        "The US fought Iran from 28 February 2026 and struck again in late July after a truce; "
+        "the naval blockade of Iranian ports continues and attacks on ships in the Strait of "
+        "Hormuz went on in November. An Israeli strike on Iran is likely to draw in the US too. "
+        "GeoIntel judgement: about 45% a year."
+    ),
+    side_a=_t("USA"),
+    side_b=_t("IRN"),
+    market_queries=("US strike Iran",),
+    market_groups=(("iran",), ("us ", "u.s.", "united states", "american"), ("strike", "attack")),
+    market_exclude=("nuclear deal", "regime", "leader"),
+    use_history=False,
+    gpr=_t("IRN SAU"),
+    war_context=_t("IRN USA ISR"),
+    exposures=(
+        Exposure("party", _t("USA IRN"), _PARTIES, _PARTIES_EN),
+        Exposure(
+            "frontline",
+            _t("QAT BHR KWT ARE SAU IRQ JOR OMN"),
+            "Страны с базами США — вероятные цели ответных ударов Ирана.",
+            "Countries hosting US bases — likely targets of Iranian retaliation.",
+        ),
+        Exposure(
+            "ally",
+            _t("ISR GBR"),
+            "Союзники США, участвующие в обороне региона.",
+            "US allies taking part in regional defence.",
+        ),
+    ),
+)
+
 EXTRA = (
     *EXTRA,
+    US_IRAN,
     ARMENIA_AZERBAIJAN,
     ISRAEL_HEZBOLLAH,
     HORMUZ_REOPENING,

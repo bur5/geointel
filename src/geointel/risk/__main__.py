@@ -665,9 +665,6 @@ def main(argv: list[str] | None = None) -> int:
                 f"[scenario]   candidate {candidate['p']:.3f} {candidate['end']} "
                 f"${candidate['volume']:.0f} {candidate['question'][:100]}"
             )
-    (args.out.parent / "scenarios.json").write_text(
-        json.dumps(scenarios, ensure_ascii=False, separators=(",", ":"))
-    )
     links = build_links(
         trade=extras.get("trade"),
         trade_year=extras.get("trade_year"),
@@ -679,6 +676,18 @@ def main(argv: list[str] | None = None) -> int:
     )
     for code, value in (extras.get("milex") or {}).items():
         links["countries"].setdefault(code, {})["milex"] = value
+    from geointel.risk.network import apply_network
+    from geointel.risk.scenarios import CATALOGUE as SCENARIO_CATALOGUE
+
+    apply_network(scenarios, SCENARIO_CATALOGUE, links)
+    for item in scenarios["scenarios"]:
+        top = ", ".join(
+            f"{n['iso3']}:{n['involve']:.2f}/{n['econ']:.2f}" for n in item.get("network", [])[:6]
+        )
+        print(f"[network] {item['key']}: {top}")
+    (args.out.parent / "scenarios.json").write_text(
+        json.dumps(scenarios, ensure_ascii=False, separators=(",", ":"))
+    )
     (args.out.parent / "links.json").write_text(
         json.dumps(links, ensure_ascii=False, separators=(",", ":"))
     )
