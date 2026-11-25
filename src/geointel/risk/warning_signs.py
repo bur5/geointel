@@ -560,19 +560,26 @@ def active_entries(entries: Iterable[Entry], today: date) -> list[Entry]:
     return result
 
 
-def combine(signs: Iterable[dict], risk: str) -> dict:
-    """Odds factor for one risk type from active signs (strongest entry per sign counts once)."""
+def combine(
+    signs: Iterable[dict], risk: str, auto_power: float = 1.0, auto_cap: float | None = None
+) -> dict:
+    """Odds factor for one risk type from active signs (strongest entry per sign counts once).
+
+    ``auto_power`` < 1 damps automated signals when they are pooled over many countries.
+    """
     best: dict[str, dict] = {}
     for sign in signs:
         spec = SPEC.get(sign["key"])
         if spec is None or risk not in spec.applies or sign.get("status") != "active":
             continue
         lr = sign.get("lr", spec.lr) ** sign.get("strength", 1.0)
+        if spec.automated:
+            lr **= auto_power
         if sign["key"] not in best or abs(math.log(lr)) > abs(math.log(best[sign["key"]]["lr"])):
             best[sign["key"]] = {"lr": lr, "auto": spec.automated, "group": spec.group}
     auto = math.prod(v["lr"] for v in best.values() if v["auto"])
     hard = math.prod(v["lr"] for v in best.values() if not v["auto"])
-    auto = min(max(auto, AUTO_CAP[0]), AUTO_CAP[1])
+    auto = min(max(auto, AUTO_CAP[0]), auto_cap or AUTO_CAP[1])
     groups = {v["group"] for v in best.values() if v["lr"] > 1} & COMBO_GROUPS
     combo = COMBO_LR if len(groups) >= 3 else 1.0
     hard = min(max(hard * combo, HARD_CAP[0]), HARD_CAP[1])
@@ -632,8 +639,8 @@ def _zscore_signs(iso3: str, z: Mapping[str, float | None]) -> list[dict]:
         if value is None:
             signs.append(_sign(key, "no_data", "мало данных", "not enough data"))
             continue
-        status = "active" if value >= 2 else "normal"
-        strength = 1.5 if value >= 3 else 1.0
+        status = "active" if value >= 2.5 else "normal"
+        strength = 1.5 if value >= 3.5 else 1.0
         signs.append(
             _sign(
                 key,

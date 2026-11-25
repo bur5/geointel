@@ -34,7 +34,7 @@ def test_gdelt_aggregate_and_zscores():
     assert day["countries"]["RUS"]["external"] == 1 and day["dyads"] == {"RUS>LTU": 1}
 
     days = {}
-    for i in range(1, 60):
+    for i in range(1, 90):
         d = (TODAY - timedelta(days=i)).isoformat()
         protest = 40 if i <= 7 else 5 + (i % 3)
         days[d] = {
@@ -45,7 +45,7 @@ def test_gdelt_aggregate_and_zscores():
     z = gdelt.zscores(days, TODAY)
     assert z["FRA"]["protest"] > 3
     assert abs(z["FRA"]["armed"]) < 1
-    assert gdelt.missing_days(days, TODAY, 3)[0] == TODAY - timedelta(days=60)
+    assert gdelt.missing_days(days, TODAY, 3)[0] == TODAY - timedelta(days=90)
 
 
 def test_gpsjam_parse_and_summary():

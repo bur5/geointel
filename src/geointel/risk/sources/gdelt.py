@@ -20,7 +20,7 @@ V1_DAILY = "http://data.gdeltproject.org/events/{day}.export.CSV.zip"
 V2_15MIN = "http://data.gdeltproject.org/gdeltv2/{stamp}.export.CSV.zip"
 BASELINE_DAYS = 180
 WINDOW_DAYS = 7
-MIN_BASELINE = 28
+MIN_BASELINE = 60
 
 CATEGORIES = ("all", "protest", "armed", "repression", "external")
 HOSTILE_ROOTS = {"13", "15", "17", "18", "19", "20"}

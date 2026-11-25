@@ -270,7 +270,7 @@ def _gdelt(client: httpx.Client, _year: int) -> tuple[bytes, str, str]:
     watch = _watch_dyads()
     days: dict[str, dict] = {}
     deadline = time.monotonic() + 540
-    for day in gdelt.missing_days(cached, today, limit=40):
+    for day in gdelt.missing_days(cached, today, limit=200):
         if time.monotonic() > deadline:
             break
         texts: list[str] = []
@@ -309,7 +309,7 @@ def _gpsjam(client: httpx.Client, _year: int) -> tuple[bytes, str, str]:
     wanted = [today - timedelta(days=i) for i in range(1, gpsjam.BASELINE_DAYS + 1)]
     files: dict[str, str] = {}
     errors = []
-    for day in [d for d in wanted if d.isoformat() not in cached][:30]:
+    for day in [d for d in wanted if d.isoformat() not in cached][:95]:
         for pattern in gpsjam.URLS:
             try:
                 files[day.isoformat()] = _get(

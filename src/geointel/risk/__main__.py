@@ -335,6 +335,9 @@ def build_signal_layer(snapshot: dict, extras: dict, sources: list[dict], now) -
     signals["dyads"] = dyad_trend
     top = sorted(signals["countries"].items(), key=lambda kv: -kv[1]["max_factor"])[:15]
     print("[signals] top: " + ", ".join(f"{k} x{v['max_factor']:.2f}" for k, v in top))
+    for code, item in top[:12]:
+        keys = [s["key"] for s in item["signs"] if s["status"] == "active"]
+        print(f"[signals]   {code}: {', '.join(keys)}")
     country_signs = {k: v["signs"] for k, v in signals["countries"].items()}
     return signals, {
         "country_signs": country_signs,
@@ -427,6 +430,10 @@ def main(argv: list[str] | None = None) -> int:
         print(
             f"[scenario] {item['key']} {horizons} | {parts} | x{item['indicator_factor']} "
             f"| market={item['market_status']}"
+        )
+        print(
+            "[scenario]   signs: "
+            + ", ".join(f"{i['key']}x{i['lr']}" for i in item["indicators"] if i.get("lr"))
         )
         for component in item["components"]:
             if component["kind"] == "history":

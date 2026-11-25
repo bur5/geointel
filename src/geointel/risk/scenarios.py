@@ -1071,7 +1071,9 @@ def indicator_list(signs: list[dict], near: dict | None) -> list[dict]:
 def scenario_factor(signs: list[dict], polarity: int) -> dict:
     from geointel.risk.warning_signs import INTERSTATE, combine
 
-    combined = combine(signs, INTERSTATE)
+    # Automated signals are pooled over many countries here, so they count at half strength
+    # (square root of the factor) and together at most × 2.
+    combined = combine(signs, INTERSTATE, auto_power=0.5, auto_cap=2.0)
     factor = combined["factor"]
     if polarity < 0:  # escalation makes a ceasefire less likely, and vice versa
         factor = min(max(1 / factor, 0.5), 2.0)
