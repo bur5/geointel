@@ -331,3 +331,18 @@ def test_signs_are_not_counted_twice():
     keys = {s["key"] for s in scenarios.scenario_signs(by_key["russia_nato"], signs, None, set())}
     assert keys == {"hybrid"}  # the judgement is pooled already; the war is in the prior
     assert scenarios.scenario_signs(by_key["us_guarantee"], signs, None, set()) == []
+
+
+def test_caucasus_and_middle_east_scenarios():
+    by_key = {s.key: s for s in scenarios.CATALOGUE}
+    for key in (
+        "armenia_azerbaijan",
+        "israel_hezbollah",
+        "hormuz_reopening",
+        "georgia_crisis",
+        "iraq_strikes",
+    ):
+        assert key in by_key, key
+    assert by_key["hormuz_reopening"].polarity == -1
+    assert by_key["georgia_crisis"].risk == "political_crisis"
+    assert len({s.key for s in scenarios.CATALOGUE}) == len(scenarios.CATALOGUE)
