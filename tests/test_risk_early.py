@@ -114,26 +114,30 @@ def test_early_signals_build_and_persistence(tmp_path):
     assert ("IRN", "internet_outage") in active
     assert (cache_out / "fx.json").exists() and notes["fx"]
 
-    country = {"iso3": "TUR", "risks": {}}
-    entry = warning_signs.country_entry(country, signs["TUR"])
+    country = {"iso3": "IRN", "risks": {}}
+    entry = warning_signs.country_entry(country, signs["IRN"])
     history = {
         "countries": {
-            "TUR": [
-                [(TODAY - timedelta(days=i)).isoformat(), 1.6, ["currency_crash"]]
+            "IRN": [
+                [(TODAY - timedelta(days=i)).isoformat(), 1.4, ["internet_outage"]]
                 for i in range(1, 13)
             ]
         }
     }
     (cache_in / "signals_history.json").write_text(__import__("json").dumps(history))
     trends = early_signals.persistence(
-        cache_in / "signals_history.json", cache_out / "signals_history.json", {"TUR": entry}, TODAY
+        cache_in / "signals_history.json", cache_out / "signals_history.json", {"IRN": entry}, TODAY
     )
-    assert trends["TUR"]["persistent"] == ["currency_crash"]
-    boosted = warning_signs.apply_persistence(country, entry, {"currency_crash"})
-    assert (
-        boosted["adjusted"]["economic_crisis"]["factor"]
-        > entry["adjusted"]["economic_crisis"]["factor"]
-    )
+    assert trends["IRN"]["persistent"] == ["internet_outage"]
+    assert trends["IRN"]["recent5"]["internet_outage"] == 5
+    factor = lambda e: e["adjusted"]["internal_armed_conflict"]["factor"]  # noqa: E731
+    boosted = warning_signs.apply_persistence(country, entry, {"internet_outage"})
+    fresh = warning_signs.apply_persistence(country, entry, set(), {"internet_outage": 1})
+    confirmed = warning_signs.apply_persistence(country, entry, set(), {"internet_outage": 3})
+    assert factor(boosted) > factor(confirmed) == factor(entry) > factor(fresh)
+    # slow official data (exchange rates) is not discounted as a one-day spike
+    tur = warning_signs.country_entry({"iso3": "TUR", "risks": {}}, signs["TUR"])
+    assert warning_signs.apply_persistence({"iso3": "TUR", "risks": {}}, tur, set(), {}) is tur
 
 
 def test_backtest_real_evaluate_on_synthetic_days():

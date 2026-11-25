@@ -1211,16 +1211,59 @@ def country_entry(country: Mapping, signs: list[dict]) -> dict:
 
 
 PERSISTENCE_STRENGTH = 1.25
+FRESH_STRENGTH = 0.5
+CONFIRM_DAYS = 3  # active on at least this many of the last five days
+# Automated signs built from slow official data (not daily spikes) keep their full strength.
+SLOW_AUTOMATED = frozenset(
+    {
+        "imf_crisis",
+        "high_inflation",
+        "election_soon",
+        "ongoing_war",
+        "milex_rise",
+        "gpr_high",
+        "currency_crash",
+        "food_price_spike",
+        "hazard_alert",
+        "advisory_raised",
+        "advisory_departure",
+    }
+)
 
 
-def apply_persistence(country: Mapping, entry: dict, persistent: set[str]) -> dict:
-    """Automated signs active on most of the last two weeks count × 1.25 in strength."""
+def apply_persistence(
+    country: Mapping,
+    entry: dict,
+    persistent: set[str],
+    recent: Mapping[str, int] | None = None,
+) -> dict:
+    """Weigh automated daily signals by how well they are confirmed.
+
+    * active on most of the last two weeks: strength × 1.25;
+    * active on at least three of the last five days, or the country also has a verified
+      (non-automated) sign: full strength;
+    * otherwise a fresh one-off spike: strength × 0.5 (most such spikes were noise when the
+      rules were replayed on 2008–2025 archives).
+    """
+    recent = recent or {}
+    curated = any(
+        s["status"] == "active" and not (SPEC.get(s["key"]) and SPEC[s["key"]].automated)
+        for s in entry["signs"]
+    )
     changed = False
     for sign in entry["signs"]:
         spec = SPEC.get(sign["key"])
-        if spec and spec.automated and sign["status"] == "active" and sign["key"] in persistent:
+        if not spec or not spec.automated or sign["status"] != "active":
+            continue
+        if sign["key"] in SLOW_AUTOMATED:
+            continue
+        if sign["key"] in persistent:
             sign["strength"] = sign.get("strength", 1.0) * PERSISTENCE_STRENGTH
             sign["persistent"] = True
+            changed = True
+        elif recent.get(sign["key"], 0) < CONFIRM_DAYS and not curated:
+            sign["strength"] = sign.get("strength", 1.0) * FRESH_STRENGTH
+            sign["fresh"] = True
             changed = True
     return country_entry(country, entry["signs"]) if changed else entry
 
