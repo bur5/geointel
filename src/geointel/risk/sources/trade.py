@@ -15,6 +15,7 @@ TRADE_SOURCE = "UN Comtrade (public preview API), total goods exports by partner
 REPORTERS_URL = "https://comtradeapi.un.org/files/v1/app/reference/Reporters.json"
 PARTNERS_URL = "https://comtradeapi.un.org/files/v1/app/reference/partnerAreas.json"
 DATA_URL = "https://comtradeapi.un.org/public/v1/preview/C/A/HS"
+KEYED_URL = "https://comtradeapi.un.org/data/v1/get/C/A/HS"
 
 MILEX_SOURCE = "SIPRI Military Expenditure Database (via Our World in Data)"
 MILEX_SLUGS = ("military-expenditure-share-gdp", "military-spending-as-a-share-of-gdp-sipri")

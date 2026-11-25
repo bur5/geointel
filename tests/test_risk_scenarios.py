@@ -108,7 +108,7 @@ def test_scenarios_without_optional_sources_still_build():
     )
     item = result["scenarios"][0]
     assert item["market_status"] == "unavailable"
-    assert [c["kind"] for c in item["components"]] == ["expert"]
+    assert [c["kind"] for c in item["components"]] == ["expert", "official"]
 
 
 def test_unhcr_displacement_and_eurostat_trend():

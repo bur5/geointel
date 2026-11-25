@@ -157,11 +157,12 @@ export function loadHazards(): Promise<HazardDetails | undefined> {
 }
 
 export interface ScenarioComponent {
-  kind: 'history' | 'expert' | 'market'; annual: number; low: number; high: number; weight: number;
+  kind: 'history' | 'expert' | 'market' | 'official' | 'community'; annual: number; low: number; high: number; weight: number;
   detail_ru: string; detail_en: string; url: string | null;
 }
 export interface ScenarioIndicator {
-  key: string; direction: -1 | 0 | 1; label_ru: string; label_en: string; value: string; source: string;
+  key: string; group?: string; direction: -1 | 0 | 1; lr?: number; label_ru: string; label_en: string; value: string;
+  value_ru?: string; value_en?: string; source: string; url?: string | null; countries?: string[];
 }
 export interface ScenarioWarning { date: string; source: string; url: string; direction: -1 | 0 | 1; summary_ru: string; summary_en: string }
 export type ScenarioRole = 'party' | 'frontline' | 'ally' | 'economic';
@@ -172,6 +173,9 @@ export interface Scenario {
   indicator_factor: number; components: ScenarioComponent[]; indicators: ScenarioIndicator[];
   warnings: ScenarioWarning[]; market_candidates: { question: string; p: number; end: string; volume: number; slug: string; inverse?: boolean }[];
   market_status: 'matched' | 'no_match' | 'unavailable'; affected: ScenarioAffected[]; calibration: string;
+  sign_groups?: string[]; sign_combo?: boolean;
+  community_status?: 'matched' | 'no_match' | 'unavailable';
+  community_candidates?: { question: string; p: number; end: string; forecasters: number; url: string }[];
 }
 export interface ScenarioFile { schema: string; generated_at: string; scenarios: Scenario[] }
 
@@ -202,3 +206,30 @@ const cachedJson = <T>(name: string) => {
 };
 export const loadScenarios = cachedJson<ScenarioFile>('scenarios.json');
 export const loadLinks = cachedJson<LinksFile>('links.json');
+
+export interface Sign {
+  key: string; group: string; status: 'active' | 'normal' | 'no_data'; lr: number;
+  value_ru: string; value_en: string; source?: string; url?: string | null; date?: string;
+  strength?: number; actor?: string | null; curated?: boolean; reports?: number; chronic?: boolean;
+}
+export interface SignSpec {
+  key: string; group: string; lr: number; applies: string[]; label_ru: string; label_en: string;
+  automated: boolean; expires_days: number;
+}
+export interface AdjustedRisk { factor: number; signs: string[]; groups: string[]; combo: boolean; horizons?: Record<HorizonKey, Probability> }
+export interface CountrySignals { signs: Sign[]; adjusted: Record<string, AdjustedRisk>; active: number; max_factor: number }
+export interface SignalsFile {
+  schema: string; generated_at: string; catalogue: SignSpec[];
+  groups: Record<string, { ru: string; en: string }>;
+  caps: { auto: [number, number]; hard: [number, number]; total: [number, number]; combo: number };
+  status: Record<string, string>;
+  countries: Record<string, CountrySignals>;
+}
+export interface BacktestPoint { date: string; factor: number; p1m: number; p1y: number; signs: string[] }
+export interface BacktestFile {
+  key: string; title_ru: string; title_en: string; event_date: string; base_annual: number;
+  points: BacktestPoint[];
+  timeline: { date: string; sign: string; summary_ru: string; summary_en: string; source: string; strength: number }[];
+}
+export const loadSignals = cachedJson<SignalsFile>('signals.json');
+export const loadBacktest = cachedJson<BacktestFile>('backtest.json');

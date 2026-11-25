@@ -380,7 +380,7 @@ details p { margin-top: 6px; color: var(--ink-2); font-size: 13px; max-width: 80
 .table .pooled th, .table .pooled td { border-top: 2px solid var(--ink); font-weight: 600; }
 .candidates { font-size: 13px; padding-left: 18px; display: grid; gap: 4px; }
 .indicators, .warnings, .routes, .link-list, .mig-list, .plain { list-style: none; margin: 0; padding: 0; display: grid; }
-.ind { display: grid; grid-template-columns: 22px 1fr auto; gap: 2px 8px; padding: 10px 0; border-top: 1px solid var(--line); font-size: 13.5px; }
+.ind { display: grid; grid-template-columns: 46px 1fr auto; gap: 2px 8px; padding: 10px 0; border-top: 1px solid var(--line); font-size: 13.5px; }
 .ind-arrow { grid-row: span 2; font-size: 13px; line-height: 1.5; }
 .dir-up .ind-arrow { color: var(--up); } .dir-down .ind-arrow { color: var(--down); } .dir-flat .ind-arrow { color: var(--muted); }
 .ind-value { grid-column: 2 / 4; color: var(--ink-2); font-variant-numeric: tabular-nums; }
@@ -458,6 +458,33 @@ td.up, td.down { margin-left: 0; }
   .routes li, .warnings li { grid-template-columns: 1fr; gap: 4px; }
   .scenario-head h2 { font-size: 22px; }
 }
+/* Signals --------------------------------------------------------------- */
+.signals-layout { display: grid; grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr); gap: 28px; align-items: start; }
+.adjusted { list-style: none; margin: 0; padding: 0; display: grid; }
+.adjusted li { display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; padding: 10px 0; border-top: 1px solid var(--line); font-size: 14px; }
+.adj-name { font-weight: 500; }
+.adj-factor { font-variant-numeric: tabular-nums; font-size: 13px; padding: 1px 8px; border-radius: 999px; background: #eef2f6; justify-self: end; }
+.adj-factor.elevated { background: #f7e2cc; } .adj-factor.high { background: #f3d0c8; } .adj-factor.critical { background: var(--r-critical); color: #fff; }
+.adjusted li > span:nth-child(n+3), .adjusted li > b { grid-column: 1 / -1; }
+.adj-base { color: var(--muted); }
+.sig-list { list-style: none; margin: 0 0 10px; padding: 0; display: grid; }
+.sig { display: grid; grid-template-columns: 56px 1fr; gap: 10px; padding: 10px 0; border-top: 1px solid var(--line); font-size: 13.5px; }
+.sig p { margin: 2px 0 0; }
+.sig-lr { font-family: 'IBM Plex Sans Condensed', sans-serif; font-size: 18px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.sig.up .sig-lr { color: var(--up); } .sig.down .sig-lr { color: var(--down); }
+.small { font-size: 12.5px; }
+.src-status li { display: flex; gap: 8px; align-items: baseline; }
+.country.minimal.sigmap { fill: var(--r-minimal); }
+.bt-chart { width: 100%; height: auto; display: block; }
+.bt-grid { stroke: var(--line); stroke-width: 1; }
+.bt-axis { font-size: 11px; fill: var(--muted); }
+.bt-mark { stroke: #c4ccd6; stroke-dasharray: 2 3; }
+.bt-year { fill: none; stroke: var(--r-high); stroke-width: 2.2; }
+.bt-month { fill: none; stroke: var(--ink); stroke-width: 2.2; }
+.legend-key i.bt-year-key { background: var(--r-high); height: 4px; }
+.legend-key i.bt-month-key { background: var(--ink); height: 4px; }
+.bt-summary { font-size: 15px; margin: 0 0 10px; max-width: 80ch; }
+@media (max-width: 1080px) { .signals-layout { grid-template-columns: 1fr; } }
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; scroll-behavior: auto !important; }
 }

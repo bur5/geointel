@@ -8,7 +8,7 @@ import json
 import os
 import time
 from collections.abc import Callable
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import httpx
@@ -21,10 +21,15 @@ from geointel.risk.sources import (
     fcdo,
     fts,
     gdacs,
+    gdelt,
+    gpsjam,
+    metaculus,
     migration,
     ncei_tsunami,
+    newswire,
     outlook,
     polymarket,
+    sentinel,
     trade,
     usgs,
     worldbank,
@@ -232,6 +237,191 @@ def _regions(client: httpx.Client, _year: int) -> tuple[bytes, str, str]:
     return _get(client, regions.URL).content, regions.URL, "ne_10m_admin_1"
 
 
+def cache_dir() -> Path:
+    """State carried between daily runs (published to the risk-data branch under cache/)."""
+    return Path(os.environ.get("GEOINTEL_CACHE_DIR", "data/cache"))
+
+
+def _read_cache(name: str) -> dict:
+    path = cache_dir() / name
+    try:
+        return json.loads(path.read_text()) if path.is_file() else {}
+    except ValueError:
+        return {}
+
+
+def _watch_dyads() -> set[tuple[str, str]]:
+    from geointel.risk.scenarios import CATALOGUE
+
+    pairs: set[tuple[str, str]] = set()
+    for scenario in CATALOGUE:
+        others = set(scenario.side_b) | {
+            c for e in scenario.exposures if e.role in ("party", "frontline") for c in e.countries
+        }
+        for a in scenario.side_a:
+            for b in others - {a}:
+                pairs |= {(a, b), (b, a)}
+    return pairs
+
+
+def _gdelt(client: httpx.Client, _year: int) -> tuple[bytes, str, str]:
+    today = datetime.now(UTC).date()
+    cached = _read_cache("gdelt.json").get("days", {})
+    watch = _watch_dyads()
+    days: dict[str, dict] = {}
+    deadline = time.monotonic() + 540
+    for day in gdelt.missing_days(cached, today, limit=200):
+        if time.monotonic() > deadline:
+            break
+        texts: list[str] = []
+        try:
+            texts.append(
+                gdelt.read_export(
+                    _get(
+                        client, gdelt.V1_DAILY.format(day=day.strftime("%Y%m%d")), retries=0
+                    ).content
+                )
+            )
+        except Exception:  # noqa: BLE001 - fall back to the 15-minute files
+            for stamp in gdelt.v2_stamps(day):
+                try:
+                    texts.append(
+                        gdelt.read_export(
+                            _get(client, gdelt.V2_15MIN.format(stamp=stamp), retries=0).content
+                        )
+                    )
+                except Exception:  # noqa: BLE001 - a missing slice is not fatal
+                    continue
+        if texts:
+            days[day.isoformat()] = gdelt.aggregate(texts, watch)
+    if not days and not cached:
+        raise RuntimeError("no GDELT data")
+    return (
+        json.dumps({"days": days}).encode(),
+        "http://data.gdeltproject.org/",
+        f"{len(days)} new days",
+    )
+
+
+def _gpsjam(client: httpx.Client, _year: int) -> tuple[bytes, str, str]:
+    today = datetime.now(UTC).date()
+    cached = _read_cache("gpsjam.json").get("days", {})
+    wanted = [today - timedelta(days=i) for i in range(1, gpsjam.BASELINE_DAYS + 1)]
+    files: dict[str, str] = {}
+    errors = []
+    for day in [d for d in wanted if d.isoformat() not in cached][:95]:
+        for pattern in gpsjam.URLS:
+            try:
+                files[day.isoformat()] = _get(
+                    client, pattern.format(day=day.isoformat()), retries=0
+                ).text
+                break
+            except Exception as exc:  # noqa: BLE001 - try the next pattern
+                errors.append(f"{day}: {type(exc).__name__}")
+    if not files and not cached:
+        raise RuntimeError("; ".join(errors[:4]) or "no GPSJam data")
+    return json.dumps({"files": files}).encode(), "https://gpsjam.org/", f"{len(files)} new days"
+
+
+def _metaculus(client: httpx.Client, _year: int) -> tuple[bytes, str, str]:
+    token = os.environ.get("METACULUS_API_TOKEN")
+    if not token or os.environ.get("GEOINTEL_DISABLE_METACULUS"):
+        raise RuntimeError("not configured (METACULUS_API_TOKEN secret missing)")
+    from geointel.risk.scenarios import CATALOGUE
+
+    payloads = []
+    for query in sorted({q for s in CATALOGUE for q in (s.metaculus_queries or s.market_queries)}):
+        response = client.get(
+            metaculus.POSTS_URL,
+            params=metaculus.search_params(query),
+            headers={"Authorization": f"Token {token}"},
+            timeout=45,
+        )
+        response.raise_for_status()
+        payloads.append({"query": query, **response.json()})
+        time.sleep(1.5)
+    found = metaculus.questions(payloads)
+    for q in found[:30]:
+        print(f"[metaculus] {q['p']:.3f} {q['end']} n={q['forecasters']} {q['question'][:100]}")
+    return (
+        json.dumps({"payloads": payloads}).encode(),
+        metaculus.POSTS_URL,
+        f"{len(found)} questions",
+    )
+
+
+def _sentinel(client: httpx.Client, _year: int) -> tuple[bytes, str, str]:
+    cid, secret = os.environ.get("CDSE_CLIENT_ID"), os.environ.get("CDSE_CLIENT_SECRET")
+    if not cid or not secret:
+        raise RuntimeError("not configured (CDSE_CLIENT_ID / CDSE_CLIENT_SECRET secrets missing)")
+    token = client.post(
+        sentinel.TOKEN_URL,
+        data={"grant_type": "client_credentials", "client_id": cid, "client_secret": secret},
+        timeout=30,
+    )
+    token.raise_for_status()
+    headers = {"Authorization": f"Bearer {token.json()['access_token']}"}
+    today = datetime.now(UTC).date()
+    sites, errors = {}, []
+    for site in sentinel.SITES:
+        try:
+            response = client.post(
+                sentinel.STATS_URL, json=sentinel.request(site, today), headers=headers, timeout=90
+            )
+            response.raise_for_status()
+            sites[site.key] = response.json()
+        except Exception as exc:  # noqa: BLE001 - one site failing is not fatal
+            errors.append(f"{site.key}: {type(exc).__name__}: {str(exc)[:120]}")
+    if not sites:
+        raise RuntimeError("; ".join(errors[:3]))
+    return (
+        json.dumps({"sites": sites, "errors": errors}).encode(),
+        sentinel.STATS_URL,
+        f"{len(sites)} sites",
+    )
+
+
+def _newswire(client: httpx.Client, _year: int) -> tuple[bytes, str, str]:
+    key = os.environ.get("ANTHROPIC_API_KEY")
+    if not key:
+        raise RuntimeError("not configured (ANTHROPIC_API_KEY secret missing)")
+    payloads = []
+    for query in newswire.QUERIES.values():
+        try:
+            response = client.get(newswire.DOC_URL, params=newswire.doc_params(query), timeout=60)
+            response.raise_for_status()
+            payloads.append(response.json())
+        except Exception:  # noqa: BLE001 - one query failing is not fatal
+            pass
+        time.sleep(6)  # GDELT DOC asks for at most one request every five seconds
+    items = newswire.headlines(payloads)
+    entries, tokens = [], 0
+    for start in range(0, len(items), 60):
+        batch = items[start : start + 60]
+        response = client.post(
+            newswire.MESSAGES_URL,
+            json=newswire.request_body(batch),
+            headers={"x-api-key": key, "anthropic-version": "2023-06-01"},
+            timeout=120,
+        )
+        response.raise_for_status()
+        body = response.json()
+        usage = body.get("usage") or {}
+        tokens += int(usage.get("input_tokens", 0)) + int(usage.get("output_tokens", 0))
+        text = "".join(
+            c.get("text", "") for c in body.get("content") or [] if c.get("type") == "text"
+        )
+        entries.extend(newswire.parse_reply(text, batch))
+    for e in entries[:40]:
+        print(f"[news] {e['date']} {e['country']} {e['sign']} {e['summary_en'][:100]}")
+    payload = {"entries": entries, "headlines": len(items), "tokens": tokens}
+    return (
+        json.dumps(payload).encode(),
+        newswire.DOC_URL,
+        f"{len(items)} headlines, {len(entries)} signs, {tokens} tokens",
+    )
+
+
 def _milex(client: httpx.Client, _year: int) -> tuple[bytes, str, str]:
     return _download_first(client, [(outlook.owid_url(slug), slug) for slug in trade.MILEX_SLUGS])
 
@@ -301,8 +491,8 @@ TRADE_FIELDS = ("reporterCode", "reporterISO", "partnerCode", "partnerISO", "pri
 
 def _trade_cache() -> dict[int, dict]:
     """Previously fetched reporters (Comtrade is slow, so the cache fills over several days)."""
-    path = os.environ.get("GEOINTEL_TRADE_CACHE")
-    if not path or not Path(path).is_file():
+    path = os.environ.get("GEOINTEL_TRADE_CACHE") or str(cache_dir() / "trade.json")
+    if not Path(path).is_file():
         return {}
     try:
         payload = json.loads(Path(path).read_text())
@@ -317,6 +507,9 @@ def _trade_cache() -> dict[int, dict]:
 
 
 def _trade(client: httpx.Client, reference_year: int) -> tuple[bytes, str, str]:
+    key = os.environ.get("COMTRADE_API_KEY")
+    if key:
+        return _trade_keyed(client, reference_year, key)
     reporters = trade.reference_codes(_get(client, trade.REPORTERS_URL).json())
     partners = trade.reference_codes(_get(client, trade.PARTNERS_URL).json())
     codes = {**partners, **reporters}
@@ -359,6 +552,47 @@ def _trade(client: httpx.Client, reference_year: int) -> tuple[bytes, str, str]:
     return json.dumps(payload).encode(), trade.DATA_URL, version
 
 
+def _trade_keyed(client: httpx.Client, reference_year: int, key: str) -> tuple[bytes, str, str]:
+    """With a free subscription key all reporters come in a few large requests."""
+    reporters = trade.reference_codes(_get(client, trade.REPORTERS_URL).json())
+    partners = trade.reference_codes(_get(client, trade.PARTNERS_URL).json())
+    codes = {**partners, **reporters}
+    year = reference_year - 2
+    got: dict[int, dict] = {}
+    for period in (year, year - 1):
+        todo = sorted(c for c in reporters if c not in got)
+        for start in range(0, len(todo), 40):
+            chunk = todo[start : start + 40]
+            params = {
+                **trade.data_params(chunk[0], period),
+                "reporterCode": ",".join(map(str, chunk)),
+            }
+            response = client.get(
+                trade.KEYED_URL,
+                params=params,
+                headers={"Ocp-Apim-Subscription-Key": key},
+                timeout=120,
+            )
+            response.raise_for_status()
+            rows = response.json().get("data") or []
+            by_reporter: dict[int, list] = {}
+            for row in rows:
+                by_reporter.setdefault(int(row.get("reporterCode", -1)), []).append(
+                    {k: row.get(k) for k in TRADE_FIELDS}
+                )
+            for code, items in by_reporter.items():
+                got.setdefault(code, {"period": period, "data": items})
+            time.sleep(1)
+    if not got:
+        raise RuntimeError("no Comtrade data with key")
+    payload = {"year": year, "codes": codes, "responses": list(got.values()), "failures": 0}
+    return (
+        json.dumps(payload).encode(),
+        trade.KEYED_URL,
+        f"{len(got)}/{len(reporters)} reporters (key)",
+    )
+
+
 def fetch_all(raw_dir: Path, reference_year: int | None = None) -> dict:
     raw_dir.mkdir(parents=True, exist_ok=True)
     year = reference_year or datetime.now(UTC).year
@@ -383,6 +617,11 @@ def fetch_all(raw_dir: Path, reference_year: int | None = None) -> dict:
         "unhcr": ("unhcr.json", lambda c: _unhcr(c, year)),
         "eurostat": ("eurostat.json", lambda c: _eurostat(c, year)),
         "trade": ("trade.json", lambda c: _trade(c, year)),
+        "gdelt": ("gdelt.json", lambda c: _gdelt(c, year)),
+        "gpsjam": ("gpsjam.json", lambda c: _gpsjam(c, year)),
+        "metaculus": ("metaculus.json", lambda c: _metaculus(c, year)),
+        "sentinel": ("sentinel.json", lambda c: _sentinel(c, year)),
+        "newswire": ("newswire.json", lambda c: _newswire(c, year)),
         "regions": ("regions.geojson", lambda c: _regions(c, year)),
     }
     only = {k for k in os.environ.get("GEOINTEL_SOURCES", "").split(",") if k}

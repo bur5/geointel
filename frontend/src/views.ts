@@ -22,7 +22,11 @@ const ru = {
   colAnnual: 'За год',
   colRange: 'Диапазон',
   colWeight: 'Вес',
-  kind: { history: 'История конфликтов сторон (UCDP/PRIO)', expert: 'Экспертная априорная оценка GeoIntel', market: 'Рынок прогнозов (Polymarket)' },
+  kind: { history: 'История конфликтов сторон (UCDP/PRIO)', expert: 'Экспертная априорная оценка GeoIntel', market: 'Рынок прогнозов (Polymarket)', official: 'Официальная оценка разведки (по шкале формулировок)', community: 'Сообщество прогнозистов (Metaculus)' },
+  communityOff: 'Metaculus не подключён (нужен токен) — источник не участвует.',
+  communityNone: 'Подходящего вопроса Metaculus со сроком от 4 месяцев не нашлось.',
+  combo: 'Активны признаки из трёх и более групп подготовки — дополнительный коэффициент × 1,5.',
+  inCountries: 'где',
   factor: (x: string) => `Поправка по индикаторам: шансы × ${x}`,
   pooled: 'Итог',
   marketNone: 'Подходящего рынка прогнозов со сроком от 4 месяцев не нашлось — источник не участвует (рынки на ближайшие недели показаны в индикаторах).',
@@ -30,7 +34,7 @@ const ru = {
   candidates: 'Найденные рынки (для проверки)',
   inverse: 'обратный вопрос, вероятность сценария',
   indicatorsTitle: 'Индикаторы эскалации и деэскалации',
-  indicatorsLead: 'Сигналы, которые сдвигают оценку. Стрелка вверх — в сторону эскалации.',
+  indicatorsLead: 'Признаки, которые сдвигают оценку, с коэффициентом: во сколько раз каждый меняет шансы. Подробнее — на странице «Сигналы».',
   dir: { 1: 'эскалация', 0: 'нейтрально', [-1]: 'деэскалация' } as Record<number, string>,
   warningsTitle: 'Официальные оценки и события',
   affectedTitle: 'Кого затронет и почему',
@@ -103,7 +107,11 @@ const en: Dict = {
   colAnnual: 'Per year',
   colRange: 'Range',
   colWeight: 'Weight',
-  kind: { history: 'Conflict history of the sides (UCDP/PRIO)', expert: 'GeoIntel expert prior', market: 'Prediction market (Polymarket)' },
+  kind: { history: 'Conflict history of the sides (UCDP/PRIO)', expert: 'GeoIntel expert prior', market: 'Prediction market (Polymarket)', official: 'Official intelligence judgement (wording scale)', community: 'Forecasting community (Metaculus)' },
+  communityOff: 'Metaculus is not connected (token needed), so this source is not used.',
+  communityNone: 'No matching Metaculus question running 4+ months was found.',
+  combo: 'Signs from three or more preparation groups are active, adding a further × 1.5.',
+  inCountries: 'where',
   factor: (x: string) => `Indicator adjustment: odds × ${x}`,
   pooled: 'Result',
   marketNone: 'No matching prediction market running at least 4 months was found, so this source is not used (near-term markets appear among the indicators).',
@@ -111,7 +119,7 @@ const en: Dict = {
   candidates: 'Markets found (for checking)',
   inverse: 'inverse question, scenario probability',
   indicatorsTitle: 'Escalation and de-escalation indicators',
-  indicatorsLead: 'Signals that shift the estimate. An up arrow points towards escalation.',
+  indicatorsLead: 'Signs that shift the estimate, with the factor by which each changes the odds. More on the Signals page.',
   dir: { 1: 'escalation', 0: 'neutral', [-1]: 'de-escalation' } as Record<number, string>,
   warningsTitle: 'Official assessments and events',
   affectedTitle: 'Who it affects and why',
@@ -205,11 +213,12 @@ export function scenarioDetail(ctx: ViewContext, s: Scenario, horizonLabels: Rec
   const rows = s.components.map((c) => `<tr class="main-row"><th scope="row">${esc(d.kind[c.kind])}</th>
       <td class="numcell">${ctx.pct(c.annual)}</td><td class="numcell">${ctx.pct(c.low)} – ${ctx.pct(c.high)}</td><td class="numcell">${num(c.weight, lang)}</td></tr>
       <tr class="detail-row"><td colspan="4" class="detail">${esc(lang === 'ru' ? c.detail_ru : c.detail_en)}${c.url ? ` <a href="${esc(c.url)}" rel="noreferrer">${lang === 'ru' ? 'источник' : 'source'}</a>` : ''}</td></tr>`).join('');
+  const communityRow = s.community_status === 'matched' ? '' : `<tr class="main-row muted-row"><th scope="row">${esc(d.kind.community)}</th><td colspan="3">${s.community_status === 'no_match' ? d.communityNone : d.communityOff}</td></tr>`;
   const marketRow = s.market_status === 'matched' ? '' : `<tr class="main-row muted-row"><th scope="row">${esc(d.kind.market)}</th><td colspan="3">${s.market_status === 'unavailable' ? d.marketOff : d.marketNone}</td></tr>`;
   const indicators = s.indicators.map((i) => `<li class="ind dir-${i.direction > 0 ? 'up' : i.direction < 0 ? 'down' : 'flat'}">
-      <span class="ind-arrow" aria-label="${esc(d.dir[i.direction])}">${arrow(i.direction)}</span>
+      <span class="ind-arrow" aria-label="${esc(d.dir[i.direction])}">${i.lr && i.lr !== 1 ? '×' + num(i.lr, lang, i.lr >= 10 ? 0 : 2).replace(/[,.]00$/, '') : arrow(i.direction)}</span>
       <span class="ind-label">${esc(lang === 'ru' ? i.label_ru : i.label_en)}</span>
-      <span class="ind-value">${esc(i.value)}</span><span class="ind-source">${esc(i.source)}</span></li>`).join('');
+      <span class="ind-value">${esc((lang === 'ru' ? i.value_ru : i.value_en) ?? i.value)}${i.countries?.length ? ` <span class="muted-text">(${d.inCountries}: ${i.countries.map((c) => esc(ctx.name(c))).join(', ')})</span>` : ''}${i.url ? ` <a href="${esc(i.url)}" rel="noreferrer">↗</a>` : ''}</span><span class="ind-source">${esc(i.source)}</span></li>`).join('');
   const warnings = s.warnings.map((w) => `<li><time>${esc(w.date)}</time><div><p>${esc(lang === 'ru' ? w.summary_ru : w.summary_en)}</p>
       <a href="${esc(w.url)}" rel="noreferrer">${esc(w.source)}</a></div></li>`).join('');
   const affected = ROLE_ORDER.map((role) => {
@@ -233,9 +242,9 @@ export function scenarioDetail(ctx: ViewContext, s: Scenario, horizonLabels: Rec
     <div class="scenario-cols">
       <section class="sub-section"><h3>${d.componentsTitle}</h3><p class="muted-text">${d.componentsLead}</p>
         <div class="table-wrap"><table class="table comp"><thead><tr><th>${d.colSource}</th><th>${d.colAnnual}</th><th>${d.colRange}</th><th>${d.colWeight}</th></tr></thead>
-        <tbody>${rows}${marketRow}<tr class="main-row pooled"><th scope="row">${d.pooled}</th><td class="numcell">${ctx.pct(s.annual.p)}</td><td class="numcell">${ctx.pct(s.annual.low)} – ${ctx.pct(s.annual.high)}</td><td></td></tr>
+        <tbody>${rows}${marketRow}${communityRow}<tr class="main-row pooled"><th scope="row">${d.pooled}</th><td class="numcell">${ctx.pct(s.annual.p)}</td><td class="numcell">${ctx.pct(s.annual.low)} – ${ctx.pct(s.annual.high)}</td><td></td></tr>
         <tr class="detail-row"><td colspan="4" class="detail">${esc(d.factor(num(s.indicator_factor, lang, 2)))}</td></tr></tbody></table></div>${candidates}</section>
-      <section class="sub-section"><h3>${d.indicatorsTitle}</h3><p class="muted-text">${d.indicatorsLead}</p><ul class="indicators">${indicators}</ul>
+      <section class="sub-section"><h3>${d.indicatorsTitle}</h3><p class="muted-text">${d.indicatorsLead}</p><ul class="indicators">${indicators}</ul>${s.sign_combo ? `<p class="muted-text small">${d.combo}</p>` : ''}
         ${warnings ? `<h3>${d.warningsTitle}</h3><ul class="warnings">${warnings}</ul>` : ''}</section>
     </div>
     <section class="sub-section"><h3>${d.affectedTitle}</h3><p class="muted-text">${d.affectedLead}</p>
