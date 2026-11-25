@@ -393,10 +393,11 @@ def _metaculus(client: httpx.Client, _year: int) -> tuple[bytes, str, str]:
             f"aggregations={sorted(question.get('aggregations') or {})} "
             f"{metaculus.diagnose(body)}"
         )
-        # The list endpoint often leaves the community aggregate empty; the post's own page
-        # carries it, so fetch the first few posts of each query individually.
+        # The list endpoint leaves the community aggregate empty for this account; a few post
+        # pages are fetched to keep checking whether access has changed (November 2026: it
+        # had not — Metaculus hides aggregates from API tokens without data access).
         for post in results[:5]:
-            if details >= 80 or metaculus.has_probability(post):
+            if details >= 10 or metaculus.has_probability(post):
                 continue
             try:
                 detail = client.get(

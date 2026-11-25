@@ -129,7 +129,9 @@ BELARUS = Scenario(
     market_groups=(("belarus",), ("invade", "attack", "enter the war", "offensive", "troops")),
     market_exclude=("election", "lukashenko out", "release"),
     use_history=False,
-    prior_includes=("ongoing_war",),
+    # Baltic and Nordic warnings are about a Russian attack on NATO, not about Belarus opening
+    # a front; they move the Russia–NATO scenarios instead.
+    prior_includes=("ongoing_war", "intel_warning"),
     milex=_t("BLR RUS"),
     gpr=_t("RUS UKR POL"),
     war_context=_t("RUS UKR"),
