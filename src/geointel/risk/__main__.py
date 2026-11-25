@@ -552,7 +552,35 @@ def main(argv: list[str] | None = None) -> int:
     acc_cmd.add_argument("--history-dir", type=Path, default=Path("data/history"))
     acc_cmd.add_argument("--today", type=Path, default=Path("data/site/scenarios.json"))
     acc_cmd.add_argument("--out", type=Path, default=Path("data/site/accuracy.json"))
+    notify_cmd = sub.add_parser("notify", help="send the Telegram digest if configured")
+    notify_cmd.add_argument("--scenarios", type=Path, default=Path("data/site/scenarios.json"))
+    notify_cmd.add_argument("--signals", type=Path, default=Path("data/site/signals.json"))
+    notify_cmd.add_argument("--history-dir", type=Path, default=Path("data/history"))
+    notify_cmd.add_argument(
+        "--signals-history", type=Path, default=Path("data/cache-out/signals_history.json")
+    )
     args = parser.parse_args(argv)
+
+    if args.command == "notify":
+        from geointel.risk import notify
+
+        today = datetime.now(UTC).date()
+        earlier = sorted(
+            p for p in args.history_dir.glob("*-scenarios.json") if p.name[:10] < today.isoformat()
+        )
+        text = notify.digest(
+            notify.load(args.scenarios) or {},
+            notify.load(earlier[-1]) if earlier else None,
+            notify.load(args.signals) or {},
+            (notify.load(args.signals_history) or {}).get("countries", {}),
+            today,
+        )
+        if text is None:
+            print("[notify] nothing material changed")
+            return 0
+        print(f"[notify] digest of {len(text)} characters")
+        notify.send(text)
+        return 0
 
     if args.command == "backtest-real":
         return run_backtest_real(args.out, [c for c in args.cases.split(",") if c])

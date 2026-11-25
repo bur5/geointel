@@ -72,6 +72,14 @@ jobs:
           python -m geointel.risk build --raw-dir data/raw --out data/site/risk.json $prev
           python -m geointel.risk accuracy --history-dir data/history --today data/site/scenarios.json --out data/site/accuracy.json
 
+      - name: Telegram digest (only if the Owner set up a bot)
+        if: github.event_name == 'schedule' && github.ref == 'refs/heads/main'
+        continue-on-error: true
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: python -m geointel.risk notify
+
       - uses: actions/upload-artifact@v4
         with:
           name: risk-snapshot
