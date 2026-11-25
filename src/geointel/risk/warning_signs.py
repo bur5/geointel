@@ -369,10 +369,91 @@ SIGNS: tuple[SignSpec, ...] = (
     _s(
         "satellite_change",
         "posture",
-        1.0,
+        1.25,
         (INTERSTATE,),
-        "Радарный спутник: резкий рост металла на объекте (эксперимент, в расчёт не входит)",
-        "Radar satellite: sharp rise in metal at a site (experimental, not counted)",
+        "Радарный спутник: резкий рост металла на объекте (с учётом сезона, эксперимент)",
+        "Radar satellite: sharp rise in metal at a site (season-adjusted, experimental)",
+        auto=True,
+    ),
+    _s(
+        "internet_outage",
+        "politics",
+        1.4,
+        (COUP, POLITICAL, PROTEST, INTERNAL),
+        "Крупное отключение интернета в стране",
+        "Major internet outage in the country",
+        auto=True,
+    ),
+    _s(
+        "fires_anomaly",
+        "events",
+        1.2,
+        (INTERNAL, INTERSTATE),
+        "Резкий рост пожаров со спутника в зоне конфликта",
+        "Sharp rise in satellite-detected fires in a conflict country",
+        auto=True,
+    ),
+    _s(
+        "military_air",
+        "posture",
+        1.15,
+        (INTERSTATE,),
+        "Больше военных самолётов в соседнем воздушном пространстве",
+        "More military aircraft in nearby airspace",
+        auto=True,
+    ),
+    _s(
+        "procurement_medical",
+        "logistics",
+        1.5,
+        WAR,
+        "Госзакупки: рост закупок крови, носилок, полевых госпиталей",
+        "Public procurement: more blood products, stretchers, field hospitals",
+        auto=True,
+    ),
+    _s(
+        "media_mobilization",
+        "personnel",
+        1.3,
+        WAR,
+        "Русскоязычные СМИ: всплеск темы мобилизации и сборов",
+        "Russian-language media: surge in mobilisation and call-up coverage",
+        auto=True,
+    ),
+    _s(
+        "media_martial_law",
+        "pretext",
+        1.4,
+        WAR,
+        "Русскоязычные СМИ: всплеск темы военного положения",
+        "Russian-language media: surge in martial-law coverage",
+        auto=True,
+    ),
+    _s(
+        "telegram_keywords",
+        "posture",
+        1.2,
+        WAR,
+        "Telegram: всплеск сообщений о переброске войск и мобилизации",
+        "Telegram: surge in posts about troop movements and mobilisation",
+        auto=True,
+    ),
+    _s(
+        "currency_crash",
+        "economy",
+        1.6,
+        (ECONOMIC, PROTEST, POLITICAL),
+        "Национальная валюта подешевела на 15%+ за месяц",
+        "National currency lost 15%+ in a month",
+        auto=True,
+    ),
+    _s(
+        "food_price_spike",
+        "economy",
+        1.4,
+        (PROTEST, POLITICAL, HUMANITARIAN),
+        "Резкий рост цен на продовольствие (ВПП ООН)",
+        "Sharp rise in food prices (WFP)",
         auto=True,
     ),
     _s(
@@ -613,6 +694,10 @@ def adjusted_horizons(horizons: Mapping[str, Mapping], factor: float) -> dict:
 # Automated signs from data already in the snapshot
 
 
+def make_sign(key: str, status: str, value_ru: str, value_en: str, **extra) -> dict:
+    return _sign(key, status, value_ru, value_en, **extra)
+
+
 def _sign(key: str, status: str, value_ru: str, value_en: str, **extra) -> dict:
     spec = SPEC[key]
     return {
@@ -791,8 +876,18 @@ def automated_signs(
             _sign(
                 "satellite_change",
                 "active" if site["active"] else "normal",
-                f"{site['name_ru']}: ×{site['ratio']:.2f}",
-                f"{site['name_en']}: ×{site['ratio']:.2f}",
+                f"{site['name_ru']}: ×{site['ratio']:.2f} к недавнему уровню"
+                + (
+                    f", ×{site['seasonal_ratio']:.2f} к тому же сезону год назад"
+                    if site.get("seasonal_ratio")
+                    else ", прошлогодних данных нет"
+                ),
+                f"{site['name_en']}: ×{site['ratio']:.2f} vs recent level"
+                + (
+                    f", ×{site['seasonal_ratio']:.2f} vs the same season last year"
+                    if site.get("seasonal_ratio")
+                    else ", no data for last year"
+                ),
                 source="Sentinel-1 (Copernicus)",
             )
         )
@@ -847,6 +942,42 @@ def journal_signs(entries: Iterable[Entry | dict], iso3: str, today: date) -> li
 RISKS = (INTERSTATE, INTERNAL, PROTEST, POLITICAL, ECONOMIC, HUMANITARIAN, COUP)
 
 
+def country_entry(country: Mapping, signs: list[dict]) -> dict:
+    """Adjusted probabilities per risk type for one country's signs."""
+    adjusted = {}
+    for risk in RISKS:
+        base = (country.get("risks") or {}).get(risk)
+        combined = combine(signs, risk)
+        if not combined["signs"]:
+            continue
+        item = {**combined}
+        if base and base.get("question") == "onset_within":
+            item["horizons"] = adjusted_horizons(base["horizons"], combined["factor"])
+        adjusted[risk] = item
+    active = [s for s in signs if s["status"] == "active" and s["key"] != "hazard_alert"]
+    return {
+        "signs": signs,
+        "adjusted": adjusted,
+        "active": len(active),
+        "max_factor": max((a["factor"] for a in adjusted.values()), default=1.0),
+    }
+
+
+PERSISTENCE_STRENGTH = 1.25
+
+
+def apply_persistence(country: Mapping, entry: dict, persistent: set[str]) -> dict:
+    """Automated signs active on most of the last two weeks count × 1.25 in strength."""
+    changed = False
+    for sign in entry["signs"]:
+        spec = SPEC.get(sign["key"])
+        if spec and spec.automated and sign["status"] == "active" and sign["key"] in persistent:
+            sign["strength"] = sign.get("strength", 1.0) * PERSISTENCE_STRENGTH
+            sign["persistent"] = True
+            changed = True
+    return country_entry(country, entry["signs"]) if changed else entry
+
+
 def build_signals(
     snapshot: Mapping,
     *,
@@ -858,6 +989,7 @@ def build_signals(
     hazard_alerts: Mapping[str, list[dict]] | None = None,
     satellite: Mapping[str, list[dict]] | None = None,
     news_entries: Iterable[dict] = (),
+    extra_signs: Mapping[str, list[dict]] | None = None,
     status: Mapping[str, str] | None = None,
     generated_at: datetime | None = None,
 ) -> dict:
@@ -867,34 +999,22 @@ def build_signals(
     countries: dict[str, dict] = {}
     for country in snapshot.get("countries", []):
         iso3 = country["iso3"]
-        signs = automated_signs(
-            iso3,
-            country,
-            today=today,
-            gdelt_z=(gdelt_z or {}).get(iso3) if gdelt_z is not None else None,
-            gps=(gps or {}).get(iso3) if gps is not None else None,
-            advisory_history=advisory_history,
-            milex=(milex or {}).get(iso3),
-            hazard_alerts=(hazard_alerts or {}).get(iso3, []),
-            satellite=(satellite or {}).get(iso3, []),
-        ) + journal_signs(entries, iso3, today)
-        adjusted = {}
-        for risk in RISKS:
-            base = (country.get("risks") or {}).get(risk)
-            combined = combine(signs, risk)
-            if not combined["signs"]:
-                continue
-            item = {**combined}
-            if base and base.get("question") == "onset_within":
-                item["horizons"] = adjusted_horizons(base["horizons"], combined["factor"])
-            adjusted[risk] = item
-        active = [s for s in signs if s["status"] == "active" and s["key"] != "hazard_alert"]
-        countries[iso3] = {
-            "signs": signs,
-            "adjusted": adjusted,
-            "active": len(active),
-            "max_factor": max((a["factor"] for a in adjusted.values()), default=1.0),
-        }
+        signs = (
+            automated_signs(
+                iso3,
+                country,
+                today=today,
+                gdelt_z=(gdelt_z or {}).get(iso3) if gdelt_z is not None else None,
+                gps=(gps or {}).get(iso3) if gps is not None else None,
+                advisory_history=advisory_history,
+                milex=(milex or {}).get(iso3),
+                hazard_alerts=(hazard_alerts or {}).get(iso3, []),
+                satellite=(satellite or {}).get(iso3, []),
+            )
+            + journal_signs(entries, iso3, today)
+            + list((extra_signs or {}).get(iso3, []))
+        )
+        countries[iso3] = country_entry(country, signs)
     return {
         "schema": SCHEMA,
         "generated_at": now.isoformat(),

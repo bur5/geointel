@@ -1,6 +1,6 @@
 // Warning signs: country section, world page and the 2022 backtest chart.
 import { band } from './data';
-import type { BacktestFile, CountryEntry, Lang, Sign, SignalsFile, SignSpec } from './data';
+import type { BacktestFile, CountryEntry, Lang, RealBacktestFile, RealCase, Sign, SignalsFile, SignSpec } from './data';
 import type { ViewContext } from './views';
 
 const ru = {
@@ -39,7 +39,14 @@ const ru = {
     fcdo: 'Рекомендации МИД Великобритании', elections: 'Выборы (Wikidata)', imf: 'Прогноз МВФ', milex: 'Военные расходы (SIPRI)',
     gpr: 'Индекс геополитического риска', newswire: 'Разбор новостей языковой моделью (ключ Claude API)',
     sentinel: 'Спутники Sentinel-1 (ключ Copernicus)', metaculus: 'Metaculus (токен)', markets: 'Polymarket',
+    ioda: 'Отключения интернета (IODA)', firms: 'Пожары со спутников (NASA FIRMS)', military: 'Военные самолёты (airplanes.live)',
+    zakupki: 'Госзакупки России (zakupki.gov.ru)', media: 'Русскоязычные СМИ: мобилизация и военное положение (GDELT)',
+    fx: 'Курсы валют (ExchangeRate-API)', food: 'Цены на продовольствие (ВПП ООН)', telegram: 'Публичные Telegram-каналы',
+    coups: 'Перевороты (Cline Center)',
   } as Record<string, string>,
+  persistent: 'держится 2 недели — вес × 1,25',
+  trendTitle: 'Как менялась сила признаков (90 дней)',
+  fxCredit: 'Курсы валют: <a href="https://www.exchangerate-api.com" rel="noreferrer">Rates By Exchange Rate API</a>.',
   btTitle: 'Проверка на истории: вторжение в Украину 2022',
   btLead: 'Тот же набор признаков и коэффициентов, применённый к открытым сообщениям 2021–2022 годов. Линии — вероятность нападения в течение месяца и года на каждую дату.',
   btCaveat: 'Важно: признаки и коэффициенты записаны в 2026 году, когда исход уже известен. Это проверка того, что метод ведёт себя разумно, а не доказательство, что мы бы предсказали. Апрель 2021 года — ложная тревога: тогда наращивание войск не закончилось вторжением.',
@@ -47,6 +54,15 @@ const ru = {
   btYear: 'в течение года',
   btEvents: 'Признаки по датам',
   btSummary: (aug: string, dec: string, feb: string) => `Август 2021 (за полгода): ${aug} за год. Декабрь 2021 (за 3 месяца): ${dec}. 23 февраля 2022: ${feb} в течение месяца.`,
+  realTitle: 'Проверка на реальных данных — только автоматические сигналы',
+  realLead: 'Архивы событий в новостях (GDELT) и, для 2021–2022 годов, спутниковый радар прогнаны через те же правила, что и на сайте сейчас, без подбора под случай и без ручного журнала. Так видно, что система показала бы сама.',
+  realLeadDays: (n: number) => n > 0 ? `сигнал непрерывно держался ${n} дн. до события` : 'устойчивого сигнала перед событием не было',
+  realMax: (x: string) => `максимум: шансы × ${x}`,
+  realBrier: (a: string, b: string) => `точность (Брайер, меньше — лучше): ${a} против ${b} без сигналов`,
+  realElevated: (n: number) => `точек с повышенным риском: ${n}`,
+  realMonthly: 'до апреля 2013 года GDELT публикует только месячные файлы — точки раз в месяц',
+  realCaveat: 'Автоматические сигналы ловят рост напряжённости в новостях, но не подготовку войск: без журнала и спутников их сила ограничена. Это нижняя граница того, что может система.',
+  realNone: 'Проверка на реальных данных ещё выполняется (отдельный процесс, около двух часов).',
 };
 type Dict = typeof ru;
 const en: Dict = {
@@ -85,7 +101,14 @@ const en: Dict = {
     fcdo: 'UK travel advice', elections: 'Elections (Wikidata)', imf: 'IMF outlook', milex: 'Military spending (SIPRI)',
     gpr: 'Geopolitical risk index', newswire: 'News classified by a language model (Claude API key)',
     sentinel: 'Sentinel-1 satellites (Copernicus key)', metaculus: 'Metaculus (token)', markets: 'Polymarket',
+    ioda: 'Internet outages (IODA)', firms: 'Satellite fires (NASA FIRMS)', military: 'Military aircraft (airplanes.live)',
+    zakupki: 'Russian public procurement (zakupki.gov.ru)', media: 'Russian-language media: mobilisation and martial law (GDELT)',
+    fx: 'Exchange rates (ExchangeRate-API)', food: 'Food prices (WFP)', telegram: 'Public Telegram channels',
+    coups: 'Coups (Cline Center)',
   },
+  persistent: 'lasting two weeks, weight × 1.25',
+  trendTitle: 'How the strength of signs changed (90 days)',
+  fxCredit: 'Exchange rates: <a href="https://www.exchangerate-api.com" rel="noreferrer">Rates By Exchange Rate API</a>.',
   btTitle: 'Backtest: the 2022 invasion of Ukraine',
   btLead: 'The same signs and factors applied to public reports from 2021–2022. Lines show the probability of an attack within a month and within a year on each date.',
   btCaveat: 'Important: the signs and factors were written in 2026, with the outcome known. This checks that the method behaves sensibly; it does not prove we would have predicted it. April 2021 is a false alarm: that build-up did not end in an invasion.',
@@ -93,9 +116,26 @@ const en: Dict = {
   btYear: 'within a year',
   btEvents: 'Signs by date',
   btSummary: (aug: string, dec: string, feb: string) => `August 2021 (six months before): ${aug} within a year. December 2021 (three months before): ${dec}. 23 February 2022: ${feb} within a month.`,
+  realTitle: 'Backtest on real data: automated signals only',
+  realLead: 'Archived news events (GDELT) and, for 2021–2022, satellite radar replayed through the same rules the site uses now, with no case-specific tuning and no hand-written journal. This shows what the system would have shown on its own.',
+  realLeadDays: (n: number) => n > 0 ? `the signal held without a break for ${n} days before the event` : 'no lasting signal before the event',
+  realMax: (x: string) => `peak: odds × ${x}`,
+  realBrier: (a: string, b: string) => `accuracy (Brier, lower is better): ${a} vs ${b} without signals`,
+  realElevated: (n: number) => `points with raised risk: ${n}`,
+  realMonthly: 'before April 2013 GDELT publishes only monthly files, so points are monthly',
+  realCaveat: 'Automated signals pick up rising tension in the news, not troop preparation: without the journal and satellites their strength is limited. This is the lower bound of what the system can do.',
+  realNone: 'The real-data backtest is still running (a separate process of about two hours).',
 };
 const dicts: Record<Lang, Dict> = { ru, en };
 export const st = (lang: Lang) => dicts[lang];
+
+type CountrySignalsEx = SignalsFile['countries'][string] & { trend?: { series?: [string, number][] } };
+
+function trendLine(values: number[]) {
+  const max = Math.max(...values, 1.5), min = Math.min(...values, 1);
+  const pts = values.map((v, i) => `${((i / (values.length - 1)) * 240).toFixed(1)},${(38 - ((v - min) / (max - min || 1)) * 34).toFixed(1)}`).join(' ');
+  return `<svg class="spark" viewBox="0 0 240 40" aria-hidden="true"><polyline points="${pts}"/></svg>`;
+}
 
 const num = (v: number, lang: Lang, d = 1) => v.toFixed(d).replace('.', lang === 'ru' ? ',' : '.');
 const fx = (v: number, lang: Lang) => (v >= 10 ? v.toFixed(0) : num(v, lang, v >= 2 ? 1 : 2));
@@ -111,7 +151,7 @@ function signRow(ctx: ViewContext, sign: Sign, spec: SignSpec | undefined, group
   return `<li class="sig ${lr >= 1 ? 'up' : 'down'}"><span class="sig-lr">×${fx(lr, ctx.lang)}</span>
     <div><strong>${ctx.esc(label)}</strong> <span class="muted-text small">${ctx.esc(group)}</span>
     <p>${ctx.esc(ctx.lang === 'ru' ? sign.value_ru : sign.value_en)}</p>
-    <p class="muted-text small">${sign.date ? ctx.esc(sign.date) + ' · ' : ''}${ctx.esc(sign.source ?? '')}${sign.reports ? ' · ' + d.reports(sign.reports) : ''}${weak ? ' · ' + d.weak : ''}${sign.url ? ` · <a href="${ctx.esc(sign.url)}" rel="noreferrer">${d.source}</a>` : ''}</p></div></li>`;
+    <p class="muted-text small">${sign.date ? ctx.esc(sign.date) + ' · ' : ''}${ctx.esc(sign.source ?? '')}${sign.reports ? ' · ' + d.reports(sign.reports) : ''}${(sign as Sign & { persistent?: boolean }).persistent ? ' · ' + d.persistent : ''}${weak ? ' · ' + d.weak : ''}${sign.url ? ` · <a href="${ctx.esc(sign.url)}" rel="noreferrer">${d.source}</a>` : ''}</p></div></li>`;
 }
 
 export function countrySignals(ctx: ViewContext, data: SignalsFile | undefined, country: CountryEntry | undefined) {
@@ -137,8 +177,10 @@ export function countrySignals(ctx: ViewContext, data: SignalsFile | undefined, 
     return `<li>${ctx.esc(spec ? (ctx.lang === 'ru' ? spec.label_ru : spec.label_en) : s.key)}: <span class="muted-text">${ctx.esc(ctx.lang === 'ru' ? s.value_ru : s.value_en)}</span></li>`;
   }).join('')}</ul>`;
   const combo = Object.values(entry.adjusted).some((a) => a.combo);
+  const series = (entry as CountrySignalsEx).trend?.series ?? [];
+  const trend = series.length >= 3 ? `<h3 class="sub">${d.trendTitle}</h3>${trendLine(series.map((p) => p[1]))}` : '';
   return head + `<div class="signals-layout">
-    <div>${risks ? `<ul class="adjusted">${risks}</ul>` : `<p class="muted-text">${d.none}</p>`}${combo ? `<p class="muted-text small">${d.combo}</p>` : ''}</div>
+    <div>${risks ? `<ul class="adjusted">${risks}</ul>` : `<p class="muted-text">${d.none}</p>`}${combo ? `<p class="muted-text small">${d.combo}</p>` : ''}${trend}</div>
     <div>${active.length ? `<ul class="sig-list">${active.sort((a, b) => Math.abs(Math.log(b.lr)) - Math.abs(Math.log(a.lr))).map((s) => signRow(ctx, s, specs.get(s.key), data.groups)).join('')}</ul>` : ''}
       ${normal.length ? `<details><summary>${d.normalTitle(normal.length)}</summary>${plain(normal)}</details>` : ''}
       ${noData.length ? `<details><summary>${d.noDataTitle(noData.length)}</summary>${plain(noData)}</details>` : ''}</div></div>`;
@@ -164,7 +206,7 @@ export function signalsPage(ctx: ViewContext, data: SignalsFile | undefined) {
         <div class="ramp">${steps.map(([cls, label]) => `<span class="${cls}"><i></i><small>×${label.replace(',', ctx.lang === 'ru' ? ',' : '.')}</small></span>`).join('')}</div></div></div></section>
     <aside class="brief"><h3 class="aside-title">${d.top}</h3><ul class="mig-list">${top.map(([code, c]) =>
       `<li><button type="button" class="link" data-select="${code}">${ctx.esc(ctx.name(code))}</button><span><b class="${factorClass(c.max_factor)}-text">×${fx(c.max_factor, ctx.lang)}</b> · ${d.activeSigns(c.active)}</span></li>`).join('')}</ul>
-      <h3 class="aside-title">${d.sourcesTitle}</h3><ul class="plain small src-status">${sources}</ul></aside></div>
+      <h3 class="aside-title">${d.sourcesTitle}</h3><ul class="plain small src-status">${sources}</ul><p class="muted-text small">${d.fxCredit}</p></aside></div>
     <section class="section"><div class="section-head"><h2>${d.catalogueTitle}</h2><p>${d.catalogueLead}</p></div>
       <div class="table-wrap"><table class="table"><thead><tr><th>${d.colSign}</th><th>${d.colGroup}</th><th>${d.colLr}</th><th>${d.colApplies}</th><th>${d.colKind}</th></tr></thead><tbody>${rows}</tbody></table></div></section>`;
 }
@@ -193,4 +235,35 @@ export function backtestSection(ctx: ViewContext, data: BacktestFile | undefined
     <div class="legend"><span class="legend-key"><i class="bt-year-key"></i>${d.btYear}</span><span class="legend-key"><i class="bt-month-key"></i>${d.btMonth}</span></div>
     <details><summary>${d.btEvents}</summary><ul class="warnings">${data.timeline.map((e) => `<li><time>${ctx.esc(e.date)}</time><div><p>${ctx.esc(ctx.lang === 'ru' ? e.summary_ru : e.summary_en)}</p><span class="muted-text small">${ctx.esc(e.source)}</span></div></li>`).join('')}</ul></details>
     <p class="caveat">${d.btCaveat}</p></section>`;
+}
+
+function caseChart(ctx: ViewContext, c: RealCase) {
+  const w = 860, h = 220, left = 46, right = 12, top = 12, bottom = 30;
+  if (!c.points.length) return '';
+  const t0 = Date.parse(c.points[0].date), t1 = Date.parse(c.event_date);
+  const x = (d: string) => left + ((Date.parse(d) - t0) / (t1 - t0)) * (w - left - right);
+  const max = Math.max(0.1, ...c.points.map((p) => p.p1y)) * 1.15;
+  const y = (p: number) => top + (1 - p / max) * (h - top - bottom);
+  const line = (k: 'p1m' | 'p1y') => c.points.map((p, i) => `${i ? 'L' : 'M'}${x(p.date).toFixed(1)},${y(p[k]).toFixed(1)}`).join('');
+  const ticks = [0, 0.5, 1].map((f) => max * f).map((p) => `<line x1="${left}" x2="${w - right}" y1="${y(p)}" y2="${y(p)}" class="bt-grid"/><text x="${left - 6}" y="${y(p) + 4}" text-anchor="end" class="bt-axis">${Math.round(p * 100)}%</text>`).join('');
+  const months = c.points.filter((p, i, a) => i === 0 || p.date.slice(0, 7) !== a[i - 1].date.slice(0, 7)).filter((_, i) => i % 2 === 0)
+    .map((p) => `<text x="${x(p.date)}" y="${h - 10}" text-anchor="middle" class="bt-axis">${p.date.slice(2, 7).replace('-', '.')}</text>`).join('');
+  return `<svg class="bt-chart" viewBox="0 0 ${w} ${h}" role="img" aria-label="${ctx.esc(ctx.lang === 'ru' ? c.title_ru : c.title_en)}">${ticks}${months}
+    <line x1="${w - right}" x2="${w - right}" y1="${top}" y2="${h - bottom}" class="bt-event"/><path d="${line('p1y')}" class="bt-year"/><path d="${line('p1m')}" class="bt-month"/></svg>`;
+}
+
+export function realBacktestSection(ctx: ViewContext, data: RealBacktestFile | undefined, current: string) {
+  const d = st(ctx.lang);
+  const head = `<div class="section-head"><h2>${d.realTitle}</h2><p>${d.realLead}</p></div>`;
+  if (!data || !data.cases.length) return `<section class="section">${head}<p class="muted-text">${d.realNone}</p></section>`;
+  const c = data.cases.find((x) => x.key === current) ?? data.cases[0];
+  const fmt = (v: number | null) => (v === null ? '—' : v.toFixed(4).replace('.', ctx.lang === 'ru' ? ',' : '.'));
+  const tabs = `<div class="segmented wrap" role="group">${data.cases.map((x) => `<button type="button" data-btcase="${x.key}" aria-pressed="${x.key === c.key}">${ctx.esc(ctx.lang === 'ru' ? x.title_ru : x.title_en)}</button>`).join('')}</div>`;
+  return `<section class="section">${head}${tabs}
+    <ul class="plain small bt-facts"><li><strong>${ctx.esc(d.realLeadDays(c.lead_days))}</strong></li>
+      <li>${ctx.esc(d.realMax(fx(c.max_factor, ctx.lang)))} · ${ctx.esc(d.realElevated(c.elevated_weeks))}</li>
+      <li>${ctx.esc(d.realBrier(fmt(c.brier), fmt(c.brier_base)))}</li>${c.monthly ? `<li class="muted-text">${d.realMonthly}</li>` : ''}</ul>
+    ${caseChart(ctx, c)}
+    <div class="legend"><span class="legend-key"><i class="bt-year-key"></i>${d.btYear}</span><span class="legend-key"><i class="bt-month-key"></i>${d.btMonth}</span></div>
+    <p class="caveat">${d.realCaveat}</p></section>`;
 }

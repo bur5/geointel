@@ -67,3 +67,67 @@ def parse(text: str, reference_year: int, start_year: int = 1990) -> TypeHistory
         records=rows,
         metadata={"dataset_version": version} if version else {},
     )
+
+
+CLINE_SOURCE = "Cline Center Coup d'État Project"
+CLINE_LANDING = "https://databank.illinois.edu/datasets/IDB-9651987"
+
+
+def cline_csv_links(html: str) -> list[str]:
+    """Download links of CSV files on the Illinois Data Bank landing page (newest first)."""
+    import re
+
+    links = []
+    matches = list(re.finditer(r'href="(/datafiles/[A-Za-z0-9]+/download)"', html))
+    for i, match in enumerate(matches):
+        # the file name sits between this link and the next one (or just before it)
+        before = html[matches[i - 1].end() if i else max(0, match.start() - 400) : match.start()]
+        after = html[match.end() : matches[i + 1].start() if i + 1 < len(matches) else None][:400]
+        name = (after.split("href=")[0] or before).lower()
+        if ".csv" in name and "coup" in name:
+            links.append("https://databank.illinois.edu" + match.group(1))
+    return list(dict.fromkeys(links))
+
+
+def parse_cline(text: str, reference_year: int, start_year: int = 1990) -> TypeHistory:
+    """Realised and attempted coups (conspiracies excluded) from the Cline Center CSV."""
+    import csv
+    import io
+
+    data: dict[str, set[int]] = defaultdict(set)
+    unresolved = rows = 0
+    end_year = reference_year - 1
+    for row in csv.DictReader(io.StringIO(text.lstrip("﻿"))):
+        row = {str(k).strip().lower(): str(v or "").strip() for k, v in row.items()}
+        try:
+            year = int(float(row.get("year", "")))
+        except ValueError:
+            continue
+        kind = row.get("event_type", "").lower()
+        conspiracy = row.get("conspiracy") == "1" or kind.startswith("consp")
+        if conspiracy or year < start_year or year > end_year:
+            continue
+        rows += 1
+        code = resolve_country_name(row.get("country", ""))
+        if code:
+            data[code].add(year)
+        else:
+            unresolved += 1
+    return TypeHistory(
+        event_type=EventType.COUP_ATTEMPT,
+        source=CLINE_SOURCE,
+        start_year=start_year,
+        end_year=end_year,
+        years_with_event={k: frozenset(v) for k, v in data.items()},
+        half_life_years=10.0,
+        unresolved_labels=unresolved,
+        records=rows,
+        metadata={"dataset": "Cline Center v2.2"},
+    )
+
+
+def parse_any(text: str, reference_year: int) -> TypeHistory:
+    head = text.lstrip("﻿")[:300].lower()
+    if "coup_id" in head or ("year" in head and "," in head.splitlines()[0]):
+        return parse_cline(text, reference_year)
+    return parse(text, reference_year)
