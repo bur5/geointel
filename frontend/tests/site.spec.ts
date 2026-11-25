@@ -139,5 +139,12 @@ test('warning signs: signals page, country section and backtest', async ({ page 
   await expect(page.locator('.bt-chart path.bt-month')).toBeVisible();
   await expect(page.locator('svg.spark').first()).toBeVisible();
   await shoot(page, 'accuracy');
+  await page.goto('/#lenses');
+  await expect(page.locator('.lens')).not.toHaveCount(0);
+  await page.locator('[data-survey="russia_nato"] input[name=p1y]').fill('2');
+  await page.locator('[data-survey="russia_nato"] input[name=why]').fill('test');
+  await page.getByRole('button', { name: 'Подготовить ответ' }).click();
+  await expect(page.locator('#expert-output')).toHaveValue(/geointel-expert-answer-v1/);
+  await shoot(page, 'lenses');
   expect(errors).toEqual([]);
 });

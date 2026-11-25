@@ -140,7 +140,7 @@ def test_build_signals_for_a_country():
         "posture",
         "intel_warning",
     } <= active
-    news_sign = next(s for s in lva["signs"] if s["key"] == "posture")
+    news_sign = next(s for s in lva["signs"] if s["key"] == "posture" and s.get("reports"))
     assert news_sign["strength"] == 1.0 and news_sign["reports"] == 2
     adjusted = lva["adjusted"]["interstate_conflict"]
     assert adjusted["factor"] > 3 and adjusted["horizons"]["1y"]["p"] > 0.03

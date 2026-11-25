@@ -157,7 +157,7 @@ export function loadHazards(): Promise<HazardDetails | undefined> {
 }
 
 export interface ScenarioComponent {
-  kind: 'history' | 'expert' | 'market' | 'official' | 'community'; annual: number; low: number; high: number; weight: number;
+  kind: 'history' | 'expert' | 'market' | 'official' | 'community' | 'panel'; annual: number; low: number; high: number; weight: number;
   detail_ru: string; detail_en: string; url: string | null;
 }
 export interface ScenarioIndicator {

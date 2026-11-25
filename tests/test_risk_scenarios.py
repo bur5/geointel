@@ -304,3 +304,16 @@ def test_metaculus_uses_history_when_latest_is_missing():
     }
     assert metaculus.questions([payload])[0]["p"] == 0.3
     assert metaculus.diagnose(payload).startswith("ok=1")
+
+
+def test_expert_panel_needs_a_reason():
+    from geointel.risk.expert_panel import panel_component
+
+    answers = [
+        {"answers": [{"scenario": "k", "p1y": 0.04, "why": "troop build-up"}]},
+        {"answers": [{"scenario": "k", "p1y": 0.01, "why": "deterrence"}]},
+        {"answers": [{"scenario": "k", "p1y": 0.5, "why": ""}]},
+    ]
+    comp = panel_component("k", answers)
+    assert comp["kind"] == "panel" and comp["annual"] == 0.02 and comp["high"] == 0.04
+    assert panel_component("other", answers) is None

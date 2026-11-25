@@ -492,3 +492,15 @@ td.up, td.down { margin-left: 0; }
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; scroll-behavior: auto !important; }
 }
+
+.lenses { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
+.lens { border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; background: var(--surface); }
+.lens h3 { font-size: 15px; margin: 0 0 8px; }
+.lens p { margin: 0 0 8px; line-height: 1.5; }
+.survey { display: grid; gap: 12px; }
+.survey label { display: grid; gap: 4px; max-width: 420px; }
+.survey input, .survey select, .survey textarea { font: inherit; padding: 6px 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); }
+.survey td input[type=number] { width: 90px; }
+.survey td input[type=text] { width: 100%; min-width: 180px; }
+.survey textarea { width: 100%; font-family: ui-monospace, monospace; font-size: 13px; }
+.spark { display: block; }

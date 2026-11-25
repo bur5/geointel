@@ -9,6 +9,7 @@ import { countryScenarios, linksSection, migrationClass, migrationPage, migratio
 import type { ViewContext } from './views';
 import { countrySignals, factorClass, signalsPage, st } from './signalsView';
 import { accuracyPage } from './accuracyView';
+import { lensesPage, surveyAnswer } from './lensesView';
 import type { ChainEvent } from './chains';
 import { dictionaries } from './i18n';
 import { drawCountryMap, drawMap, neighboursOf } from './map';
@@ -22,6 +23,7 @@ const pages = [
   ['scenarios', 'navScenarios'],
   ['signals', 'navSignals'],
   ['accuracy', 'navAccuracy'],
+  ['lenses', 'navLenses'],
   ['country', 'navCountry'],
   ['migration', 'navMigration'],
   ['changes', 'navChanges'],
@@ -536,6 +538,7 @@ function body(page: Page) {
   if (!snapshot) return `<div class="loading" role="status">${t().loading}</div>`;
   if (page === 'country') return countryPage();
   if (page === 'scenarios') return scenariosPage(viewContext(), scenariosData, currentScenario, horizonLabels());
+  if (page === 'lenses') return lensesPage(viewContext(), scenariosData);
   if (page === 'accuracy') return accuracyPage(viewContext(), accuracyData, backtestData, realBacktestData, btCase);
   if (page === 'signals') return signalsPage(viewContext(), signalsData);
   if (page === 'migration') return migrationPage(viewContext(), linksData, migMode);
@@ -686,6 +689,19 @@ root.addEventListener('click', (event) => {
   if (target.closest('[data-retry]')) void start();
 });
 
+root.addEventListener('submit', (event) => {
+  const form = (event.target as HTMLElement).closest<HTMLFormElement>('#expert-form');
+  if (!form) return;
+  event.preventDefault();
+  const { text, ok, fail } = surveyAnswer(form, lang);
+  const out = form.querySelector<HTMLTextAreaElement>('#expert-output');
+  const status = form.querySelector<HTMLElement>('#expert-status');
+  if (out) { out.hidden = false; out.value = text; out.select(); }
+  const done = (good: boolean) => { if (status) status.textContent = good ? ok : fail; };
+  if (navigator.clipboard) navigator.clipboard.writeText(text).then(() => done(true), () => done(false));
+  else done(false);
+});
+
 root.addEventListener('change', (event) => {
   const field = event.target as HTMLSelectElement;
   if (field.dataset.field === 'type') { eventType = field.value; store('geointel.type', eventType); render(); }
@@ -717,7 +733,7 @@ async function start() {
     }
     writeVisit(snapshot);
     void loadHazards().then((data) => { hazardsData = data; if (currentPage() === 'overview') render(); });
-    void loadScenarios().then((data) => { scenariosData = data; if (['scenarios', 'country'].includes(currentPage())) render(); });
+    void loadScenarios().then((data) => { scenariosData = data; if (['scenarios', 'country', 'lenses'].includes(currentPage())) render(); });
     void loadLinks().then((data) => { linksData = data; if (['migration', 'country'].includes(currentPage())) render(); });
     void loadSignals().then((data) => { signalsData = data; if (['signals', 'country'].includes(currentPage())) render(); });
     void loadBacktest().then((data) => { backtestData = data; if (currentPage() === 'accuracy') render(); });

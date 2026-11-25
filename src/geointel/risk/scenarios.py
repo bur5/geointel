@@ -1255,6 +1255,11 @@ def build_scenarios(
         official = official_component(scenario, today)
         if official:
             components.append(official)
+        from geointel.risk.expert_panel import panel_component
+
+        panel = panel_component(scenario.key)
+        if panel:
+            components.append(panel)
         found_community: list[dict] = []
         if community is not None:
             comp, found_community = community_component(scenario, community, today)
