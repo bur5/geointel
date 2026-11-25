@@ -411,3 +411,12 @@ def test_monthly_profile_alerts_and_network():
     assert net["JPN"]["econ"] > 0 and net["JPN"]["involve"] == 0
     korea = {n["iso3"]: n for n in scenario_network(catalogue["korea"], links)}
     assert korea["USA"]["involve"] >= 0.5  # treaty with the side under attack
+
+
+def test_network_ignores_trade_with_powers_fighting_abroad():
+    from geointel.risk.network import scenario_network
+
+    catalogue = {s.key: s for s in scenarios.CATALOGUE}
+    links = {"MEX": {"trade": {"exports_to": [{"iso3": "USA", "share": 0.8}]}}}
+    net = {n["iso3"]: n for n in scenario_network(catalogue["us_iran"], links)}
+    assert "MEX" not in net

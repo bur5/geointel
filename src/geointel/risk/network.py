@@ -67,6 +67,9 @@ ROLE_WEIGHT = {"frontline": 0.2, "ally": 0.15}
 TREATY_WEIGHT = 0.5
 FRONT_TREATY_WEIGHT = 0.35  # allied to a likely victim (e.g. NATO's Article 5)
 BASE_WEIGHT = 0.3
+# Powers whose own economy is not disrupted by fighting far from home: trade with them is not
+# counted as exposure (a US strike on Iran does not hit Mexico through US trade).
+FIGHTS_ABROAD = {"USA"}
 ECON_ROLE = {"economic": 0.3, "frontline": 0.2, "ally": 0.1}
 SECOND_RING = 0.5
 
@@ -146,7 +149,7 @@ def scenario_network(
         econ, econ_ru, econ_en = 0.0, [], []
         trade = (countries.get(code) or {}).get("trade")
         exports, imports = _shares(trade, "exports_to"), _shares(trade, "imports_from")
-        for side in sorted(sides):
+        for side in sorted(sides - FIGHTS_ABROAD):
             share = max(exports.get(side, 0.0), imports.get(side, 0.0))
             if share >= 0.03:
                 econ += share
@@ -166,7 +169,7 @@ def scenario_network(
         item["en"] += en + econ_en
 
     # Second ring: heavy trade with a strongly hit country (parties count as fully hit).
-    hit = {code: 1.0 for code in sides}
+    hit = {code: 1.0 for code in sides - FIGHTS_ABROAD}
     hit.update({c: v["econ"] for c, v in result.items() if v["econ"] >= 0.2})
     for code, data in countries.items():
         if code in sides:
