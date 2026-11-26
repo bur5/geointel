@@ -1,0 +1,36 @@
+name: News classification test
+
+# Runs only the news step (GDELT headlines classified by Claude) once, to check the API key.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  newswire:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: python -m pip install -e .
+      - name: Classify today's headlines
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          python - <<'PY'
+          import json
+          import httpx
+          from geointel.risk import fetch
+
+          with httpx.Client(timeout=60, follow_redirects=True) as client:
+              payload, url, version = fetch._newswire(client, 2026)
+          data = json.loads(payload)
+          print(f"[newswire-test] {version}")
+          for e in data["entries"][:25]:
+              print(f"[newswire-test] {e['date']} {e['country']} {e['sign']}: {e['summary_ru'][:120]}")
+          PY
