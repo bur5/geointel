@@ -465,7 +465,7 @@ def _sentinel(client: httpx.Client, _year: int) -> tuple[bytes, str, str]:
     )
 
 
-NEWSWIRE_BUDGET_SECONDS = 360  # headline fetching must not hold up the daily run
+NEWSWIRE_BUDGET_SECONDS = 420  # headline fetching must not hold up the daily run
 
 
 def _newswire(client: httpx.Client, _year: int) -> tuple[bytes, str, str]:
@@ -474,15 +474,15 @@ def _newswire(client: httpx.Client, _year: int) -> tuple[bytes, str, str]:
         raise RuntimeError("not configured (ANTHROPIC_API_KEY secret missing)")
     payloads, failed = [], []
     deadline = time.monotonic() + NEWSWIRE_BUDGET_SECONDS
-    for name, query in newswire.QUERIES.items():
+    for name, query in newswire.grouped_queries().items():
         if time.monotonic() > deadline:
             failed.append(f"{name}: time budget")
             continue
         outcome = "no answer"
-        for _attempt in range(2):
+        for attempt in range(4):
             try:
                 response = client.get(
-                    newswire.DOC_URL, params=newswire.doc_params(query), timeout=30
+                    newswire.DOC_URL, params=newswire.doc_params(query), timeout=45
                 )
             except httpx.HTTPError as exc:
                 outcome = type(exc).__name__
@@ -490,7 +490,7 @@ def _newswire(client: httpx.Client, _year: int) -> tuple[bytes, str, str]:
                 continue
             if response.status_code == 429:
                 outcome = "429"
-                time.sleep(15)
+                time.sleep(20 * (attempt + 1))
                 continue
             if response.status_code != 200:
                 outcome = f"HTTP {response.status_code}"

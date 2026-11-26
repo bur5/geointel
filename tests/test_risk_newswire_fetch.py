@@ -53,3 +53,17 @@ def test_newswire_stops_fetching_after_time_budget(monkeypatch):
         fetch._newswire(client, 2026)
 
     assert 0 < len(doc_calls) < 5
+
+
+def test_grouped_queries_cover_every_term_without_nesting():
+    from geointel.risk.sources import newswire
+
+    merged = newswire.grouped_queries()
+    assert len(merged) < len(newswire.QUERIES)
+    joined = " ".join(merged.values())
+    for query in newswire.QUERIES.values():
+        for term in query.strip("()").split(") (")[0].split(" OR "):
+            assert term.strip() in joined
+    for name in newswire.GROUPS:
+        inner = merged[name][1:-1]
+        assert "(" not in inner and ")" not in inner

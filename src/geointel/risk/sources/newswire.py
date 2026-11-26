@@ -35,6 +35,31 @@ QUERIES: dict[str, str] = {
     "deescalation": '(ceasefire OR truce OR "peace talks" OR "troop withdrawal")',
 }
 
+# GDELT throttles shared GitHub runners hard, so the queries above are sent as a few
+# combined requests. GDELT cannot nest brackets, so only plain "(a OR b)" queries merge.
+GROUPS: dict[str, tuple[str, ...]] = {
+    "military": ("posture", "mobilization", "medical", "logistics"),
+    "political": ("diplomatic", "airspace", "legal", "rhetoric", "hybrid"),
+    "internal": ("unrest", "elite_split", "repression", "deescalation"),
+}
+
+
+def grouped_queries() -> dict[str, str]:
+    merged: dict[str, str] = {}
+    used: set[str] = set()
+    for name, keys in GROUPS.items():
+        terms = []
+        for key in keys:
+            inner = QUERIES[key].strip()[1:-1]
+            terms.extend(t.strip() for t in inner.split(" OR "))
+            used.add(key)
+        merged[name] = "(" + " OR ".join(terms) + ")"
+    for key, query in QUERIES.items():
+        if key not in used:
+            merged[key] = query
+    return merged
+
+
 SIGN_HELP = {
     "posture": "troops, equipment or bases moved towards a border",
     "mobilization": "mobilisation, recruitment drives, reservist call-ups",
@@ -75,7 +100,7 @@ def doc_params(query: str, timespan: str = "1d") -> dict[str, str]:
     return {
         "query": query,
         "mode": "artlist",
-        "maxrecords": "75",
+        "maxrecords": "250",
         "format": "json",
         "timespan": timespan,
         "sort": "datedesc",
