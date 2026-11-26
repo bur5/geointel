@@ -10,7 +10,7 @@ import json
 import os
 import time
 from collections.abc import Callable
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 
 import httpx
@@ -474,7 +474,8 @@ def _newswire(client: httpx.Client, _year: int) -> tuple[bytes, str, str]:
         raise RuntimeError("not configured (ANTHROPIC_API_KEY secret missing)")
     payloads, failed = [], []
     deadline = time.monotonic() + NEWSWIRE_BUDGET_SECONDS
-    for name, query in newswire.grouped_queries().items():
+    queries = newswire.rotated(newswire.grouped_queries(), date.today().toordinal())
+    for name, query in queries.items():
         if time.monotonic() > deadline:
             failed.append(f"{name}: time budget")
             continue

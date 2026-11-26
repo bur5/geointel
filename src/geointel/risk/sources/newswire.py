@@ -49,6 +49,16 @@ def _plain_terms(query: str) -> list[str] | None:
     return [t.strip() for t in inner.split(" OR ")]
 
 
+def rotated(queries: dict[str, str], day: int) -> dict[str, str]:
+    """Start with a different query each day: GDELT often answers only the first one or
+    two requests from a shared runner, so rotation spreads coverage over the week."""
+    items = list(queries.items())
+    if not items:
+        return {}
+    shift = day % len(items)
+    return dict(items[shift:] + items[:shift])
+
+
 def grouped_queries() -> dict[str, str]:
     merged: dict[str, str] = {}
     current: list[str] = []
@@ -104,12 +114,14 @@ matching one of the signs, add an object:
  "actor": "<ISO3 of the state acting, or null>", "sign": "<sign key>",
  "summary_ru": "<one factual sentence in Russian, max 160 chars>",
  "summary_en": "<one factual sentence in English, max 160 chars>"}
+"country" is the state whose own risk the event raises: for a state's own mobilisation,
+protests, strikes, repression or coup it is that state itself, never a rival it fears.
 Skip opinion, analysis of the past, fiction, sport, games and anything uncertain.
 Sign keys:
 """
 
 
-def doc_params(query: str, timespan: str = "1d") -> dict[str, str]:
+def doc_params(query: str, timespan: str = "3d") -> dict[str, str]:
     return {
         "query": query,
         "mode": "artlist",

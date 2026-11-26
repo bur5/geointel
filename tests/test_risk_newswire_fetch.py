@@ -66,3 +66,12 @@ def test_grouped_queries_cover_every_term_and_stay_short():
             assert term.strip() in joined
     for query in merged.values():
         assert len(query) <= newswire.MAX_QUERY_CHARS
+
+
+def test_rotation_starts_with_a_different_query_each_day():
+    from geointel.risk.sources import newswire
+
+    queries = newswire.grouped_queries()
+    firsts = {next(iter(newswire.rotated(queries, day))) for day in range(len(queries))}
+    assert firsts == set(queries)
+    assert set(newswire.rotated(queries, 7)) == set(queries)
