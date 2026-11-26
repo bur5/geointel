@@ -36,27 +36,40 @@ QUERIES: dict[str, str] = {
 }
 
 # GDELT throttles shared GitHub runners hard, so the queries above are sent as a few
-# combined requests. GDELT cannot nest brackets, so only plain "(a OR b)" queries merge.
-GROUPS: dict[str, tuple[str, ...]] = {
-    "military": ("posture", "mobilization", "medical", "logistics"),
-    "political": ("diplomatic", "airspace", "legal", "rhetoric", "hybrid"),
-    "internal": ("unrest", "elite_split", "repression", "deescalation"),
-}
+# combined requests. GDELT cannot nest brackets, so only plain "(a OR b)" queries merge,
+# and it rejects queries longer than about 250 characters.
+MAX_QUERY_CHARS = 245
+
+
+def _plain_terms(query: str) -> list[str] | None:
+    query = query.strip()
+    inner = query[1:-1]
+    if not (query.startswith("(") and query.endswith(")")) or "(" in inner or ")" in inner:
+        return None
+    return [t.strip() for t in inner.split(" OR ")]
 
 
 def grouped_queries() -> dict[str, str]:
     merged: dict[str, str] = {}
-    used: set[str] = set()
-    for name, keys in GROUPS.items():
-        terms = []
-        for key in keys:
-            inner = QUERIES[key].strip()[1:-1]
-            terms.extend(t.strip() for t in inner.split(" OR "))
-            used.add(key)
-        merged[name] = "(" + " OR ".join(terms) + ")"
+    current: list[str] = []
+
+    def flush() -> None:
+        if current:
+            merged[f"group{sum(k.startswith('group') for k in merged) + 1}"] = (
+                "(" + " OR ".join(current) + ")"
+            )
+            current.clear()
+
     for key, query in QUERIES.items():
-        if key not in used:
+        terms = _plain_terms(query)
+        if terms is None:
             merged[key] = query
+            continue
+        for term in terms:
+            if current and len(" OR ".join([*current, term])) + 2 > MAX_QUERY_CHARS:
+                flush()
+            current.append(term)
+    flush()
     return merged
 
 
