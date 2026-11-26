@@ -465,31 +465,47 @@ def _sentinel(client: httpx.Client, _year: int) -> tuple[bytes, str, str]:
     )
 
 
+NEWSWIRE_BUDGET_SECONDS = 360  # headline fetching must not hold up the daily run
+
+
 def _newswire(client: httpx.Client, _year: int) -> tuple[bytes, str, str]:
-    key = os.environ.get("ANTHROPIC_API_KEY")
-    if not key:
+    api_key = os.environ.get("ANTHROPIC_API_KEY")
+    if not api_key:
         raise RuntimeError("not configured (ANTHROPIC_API_KEY secret missing)")
     payloads, failed = [], []
-    for key, query in newswire.QUERIES.items():
-        for attempt in range(3):
+    deadline = time.monotonic() + NEWSWIRE_BUDGET_SECONDS
+    for name, query in newswire.QUERIES.items():
+        if time.monotonic() > deadline:
+            failed.append(f"{name}: time budget")
+            continue
+        outcome = "no answer"
+        for _attempt in range(2):
             try:
                 response = client.get(
-                    newswire.DOC_URL, params=newswire.doc_params(query), timeout=60
+                    newswire.DOC_URL, params=newswire.doc_params(query), timeout=30
                 )
-                if response.status_code == 429:
-                    time.sleep(15 * (attempt + 1))
-                    continue
-                response.raise_for_status()
-                payloads.append(response.json())
-                break
-            except Exception as exc:  # noqa: BLE001 - one query failing is not fatal
-                if attempt == 2:
-                    failed.append(f"{key}: {type(exc).__name__}")
+            except httpx.HTTPError as exc:
+                outcome = type(exc).__name__
                 time.sleep(5)
-        else:
-            failed.append(f"{key}: 429")
+                continue
+            if response.status_code == 429:
+                outcome = "429"
+                time.sleep(15)
+                continue
+            if response.status_code != 200:
+                outcome = f"HTTP {response.status_code}"
+                break
+            try:
+                payloads.append(response.json())
+                outcome = "ok"
+            except ValueError:
+                outcome = f"not JSON: {response.text[:80]!r}"
+            break
+        print(f"[news] {name}: {outcome}")
+        if outcome != "ok":
+            failed.append(f"{name}: {outcome}")
         time.sleep(6)  # GDELT DOC asks for at most one request every five seconds
-    print(f"[news] queries ok={len(payloads)} failed={failed}")
+    print(f"[news] queries ok={len(payloads)} failed={len(failed)}")
     items = newswire.headlines(payloads)
     entries, tokens = [], 0
     for start in range(0, len(items), 60):
@@ -497,7 +513,7 @@ def _newswire(client: httpx.Client, _year: int) -> tuple[bytes, str, str]:
         response = client.post(
             newswire.MESSAGES_URL,
             json=newswire.request_body(batch),
-            headers={"x-api-key": key, "anthropic-version": "2023-06-01"},
+            headers={"x-api-key": api_key, "anthropic-version": "2023-06-01"},
             timeout=120,
         )
         response.raise_for_status()
