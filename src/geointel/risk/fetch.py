@@ -504,7 +504,7 @@ def _newswire(client: httpx.Client, _year: int) -> tuple[bytes, str, str]:
         print(f"[news] {name}: {outcome}")
         if outcome != "ok":
             failed.append(f"{name}: {outcome}")
-        time.sleep(6)  # GDELT DOC asks for at most one request every five seconds
+        time.sleep(10)  # GDELT DOC asks for at most one request every five seconds
     print(f"[news] queries ok={len(payloads)} failed={len(failed)}")
     items = newswire.headlines(payloads)
     entries, tokens = [], 0
