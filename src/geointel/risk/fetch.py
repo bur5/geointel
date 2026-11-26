@@ -469,15 +469,27 @@ def _newswire(client: httpx.Client, _year: int) -> tuple[bytes, str, str]:
     key = os.environ.get("ANTHROPIC_API_KEY")
     if not key:
         raise RuntimeError("not configured (ANTHROPIC_API_KEY secret missing)")
-    payloads = []
-    for query in newswire.QUERIES.values():
-        try:
-            response = client.get(newswire.DOC_URL, params=newswire.doc_params(query), timeout=60)
-            response.raise_for_status()
-            payloads.append(response.json())
-        except Exception:  # noqa: BLE001 - one query failing is not fatal
-            pass
+    payloads, failed = [], []
+    for key, query in newswire.QUERIES.items():
+        for attempt in range(3):
+            try:
+                response = client.get(
+                    newswire.DOC_URL, params=newswire.doc_params(query), timeout=60
+                )
+                if response.status_code == 429:
+                    time.sleep(15 * (attempt + 1))
+                    continue
+                response.raise_for_status()
+                payloads.append(response.json())
+                break
+            except Exception as exc:  # noqa: BLE001 - one query failing is not fatal
+                if attempt == 2:
+                    failed.append(f"{key}: {type(exc).__name__}")
+                time.sleep(5)
+        else:
+            failed.append(f"{key}: 429")
         time.sleep(6)  # GDELT DOC asks for at most one request every five seconds
+    print(f"[news] queries ok={len(payloads)} failed={failed}")
     items = newswire.headlines(payloads)
     entries, tokens = [], 0
     for start in range(0, len(items), 60):
