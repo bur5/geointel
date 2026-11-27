@@ -5,8 +5,8 @@
     "version": "26.1",
     "bytes": 45955,
     "file": "ucdp_acd.bin",
-    "seconds": 1.3,
-    "retrieved_at": "2026-11-27T10:20:28.024718+00:00",
+    "seconds": 1.9,
+    "retrieved_at": "2026-11-27T17:28:35.142747+00:00",
     "errors": []
   },
   "coups": {
@@ -15,8 +15,8 @@
     "version": "Cline Center v2.2.2",
     "bytes": 153830,
     "file": "coups.txt",
-    "seconds": 0.7,
-    "retrieved_at": "2026-11-27T10:20:28.688113+00:00",
+    "seconds": 0.8,
+    "retrieved_at": "2026-11-27T17:28:35.971265+00:00",
     "errors": []
   },
   "usgs": {
@@ -25,8 +25,8 @@
     "version": "live",
     "bytes": 294613,
     "file": "usgs.csv",
-    "seconds": 0.8,
-    "retrieved_at": "2026-11-27T10:20:29.460102+00:00",
+    "seconds": 0.5,
+    "retrieved_at": "2026-11-27T17:28:36.456601+00:00",
     "errors": []
   },
   "gdacs": {
@@ -42,8 +42,8 @@
     "version": "601 events",
     "bytes": 288499,
     "file": "tsunami.json",
-    "seconds": 1.7,
-    "retrieved_at": "2026-11-27T10:26:31.177098+00:00",
+    "seconds": 1.1,
+    "retrieved_at": "2026-11-27T17:34:37.607244+00:00",
     "errors": []
   },
   "worldbank": {
@@ -52,8 +52,8 @@
     "version": "WDI",
     "bytes": 4727534,
     "file": "worldbank.json",
-    "seconds": 0.3,
-    "retrieved_at": "2026-11-27T10:26:31.429166+00:00",
+    "seconds": 1.5,
+    "retrieved_at": "2026-11-27T17:34:39.102680+00:00",
     "errors": []
   },
   "fts": {
@@ -62,8 +62,8 @@
     "version": "FTS",
     "bytes": 4368060,
     "file": "fts.json",
-    "seconds": 6.8,
-    "retrieved_at": "2026-11-27T10:26:38.209122+00:00",
+    "seconds": 15.9,
+    "retrieved_at": "2026-11-27T17:34:54.970510+00:00",
     "errors": []
   },
   "advisories": {
@@ -72,8 +72,8 @@
     "version": "218 advisories",
     "bytes": 495758,
     "file": "advisories.json",
-    "seconds": 1.2,
-    "retrieved_at": "2026-11-27T10:26:39.412305+00:00",
+    "seconds": 0.8,
+    "retrieved_at": "2026-11-27T17:34:55.789331+00:00",
     "errors": []
   },
   "exposure": {
@@ -82,8 +82,8 @@
     "version": "WDI structure",
     "bytes": 5772098,
     "file": "exposure.json",
-    "seconds": 1.0,
-    "retrieved_at": "2026-11-27T10:26:40.402296+00:00",
+    "seconds": 1.1,
+    "retrieved_at": "2026-11-27T17:34:56.844807+00:00",
     "errors": []
   },
   "imf": {
@@ -92,8 +92,8 @@
     "version": "WEO",
     "bytes": 401301,
     "file": "imf.json",
-    "seconds": 1.6,
-    "retrieved_at": "2026-11-27T10:26:42.016352+00:00",
+    "seconds": 2.1,
+    "retrieved_at": "2026-11-27T17:34:58.994425+00:00",
     "errors": []
   },
   "vdem": {
@@ -102,8 +102,8 @@
     "version": "electoral-democracy-index",
     "bytes": 1109831,
     "file": "vdem.csv",
-    "seconds": 1.1,
-    "retrieved_at": "2026-11-27T10:26:43.085352+00:00",
+    "seconds": 1.3,
+    "retrieved_at": "2026-11-27T17:35:00.281052+00:00",
     "errors": []
   },
   "gpr": {
@@ -112,8 +112,8 @@
     "version": "monthly",
     "bytes": 2718208,
     "file": "gpr.xls",
-    "seconds": 0.3,
-    "retrieved_at": "2026-11-27T10:26:43.405230+00:00",
+    "seconds": 0.4,
+    "retrieved_at": "2026-11-27T17:35:00.641332+00:00",
     "errors": []
   },
   "regimes": {
@@ -122,8 +122,8 @@
     "version": "political-regime",
     "bytes": 1179482,
     "file": "regimes.csv",
-    "seconds": 0.7,
-    "retrieved_at": "2026-11-27T10:26:44.065889+00:00",
+    "seconds": 0.9,
+    "retrieved_at": "2026-11-27T17:35:01.538268+00:00",
     "errors": []
   },
   "ged": {
@@ -132,18 +132,18 @@
     "version": "33940 annual + 10994 candidate cells",
     "bytes": 3514130,
     "file": "ged.json",
-    "seconds": 2.5,
-    "retrieved_at": "2026-11-27T10:26:46.602302+00:00",
+    "seconds": 2.9,
+    "retrieved_at": "2026-11-27T17:35:04.428047+00:00",
     "errors": []
   },
   "views": {
     "status": "ok",
-    "url": "https://api.viewsforecasting.org/fatalities003_2026_09_t01/cm/sb",
-    "version": "fatalities003_2026_09_t01",
-    "bytes": 99870,
+    "url": "https://api.viewsforecasting.org/fatalities003_2026_10_t01/cm/sb",
+    "version": "fatalities003_2026_10_t01",
+    "bytes": 99943,
     "file": "views.json",
-    "seconds": 2.0,
-    "retrieved_at": "2026-11-27T10:26:48.613371+00:00",
+    "seconds": 1.8,
+    "retrieved_at": "2026-11-27T17:35:06.216953+00:00",
     "errors": []
   },
   "easa": {
@@ -153,7 +153,7 @@
     "bytes": 6645,
     "file": "easa.json",
     "seconds": 0.2,
-    "retrieved_at": "2026-11-27T10:26:48.808087+00:00",
+    "retrieved_at": "2026-11-27T17:35:06.388971+00:00",
     "errors": []
   },
   "undesa": {
@@ -162,8 +162,8 @@
     "version": "2024",
     "bytes": 53358,
     "file": "undesa.json",
-    "seconds": 3.8,
-    "retrieved_at": "2026-11-27T10:26:52.608506+00:00",
+    "seconds": 5.5,
+    "retrieved_at": "2026-11-27T17:35:11.882655+00:00",
     "errors": []
   },
   "protests": {
@@ -172,8 +172,8 @@
     "version": "to 2020",
     "bytes": 5448,
     "file": "protests.json",
-    "seconds": 1.1,
-    "retrieved_at": "2026-11-27T10:26:53.749894+00:00",
+    "seconds": 1.3,
+    "retrieved_at": "2026-11-27T17:35:13.188552+00:00",
     "errors": []
   },
   "irregular": {
@@ -182,8 +182,8 @@
     "version": "since 2022",
     "bytes": 5334,
     "file": "irregular.json",
-    "seconds": 0.5,
-    "retrieved_at": "2026-11-27T10:26:54.283712+00:00",
+    "seconds": 0.4,
+    "retrieved_at": "2026-11-27T17:35:13.635783+00:00",
     "errors": []
   },
   "inform_severity": {
@@ -192,18 +192,18 @@
     "version": "202610",
     "bytes": 2101140,
     "file": "inform_severity.xlsx",
-    "seconds": 7.1,
-    "retrieved_at": "2026-11-27T10:27:01.370255+00:00",
+    "seconds": 31.5,
+    "retrieved_at": "2026-11-27T17:35:45.139289+00:00",
     "errors": []
   },
   "advisories_extra": {
     "status": "ok",
     "url": "https://data.international.gc.ca/travel-voyage/index-alpha-eng.json",
     "version": "ca+de",
-    "bytes": 267438,
+    "bytes": 268397,
     "file": "advisories_extra.json",
-    "seconds": 1.2,
-    "retrieved_at": "2026-11-27T10:27:02.582581+00:00",
+    "seconds": 1.3,
+    "retrieved_at": "2026-11-27T17:35:46.474446+00:00",
     "errors": []
   },
   "elections": {
@@ -212,18 +212,18 @@
     "version": "194 countries",
     "bytes": 160780,
     "file": "elections.json",
-    "seconds": 124.6,
-    "retrieved_at": "2026-11-27T10:29:07.166696+00:00",
+    "seconds": 156.8,
+    "retrieved_at": "2026-11-27T17:38:23.306838+00:00",
     "errors": []
   },
   "fcdo": {
     "status": "ok",
     "url": "https://www.gov.uk/api/content/foreign-travel-advice",
     "version": "226 countries",
-    "bytes": 15460767,
+    "bytes": 15460338,
     "file": "fcdo.json",
-    "seconds": 42.5,
-    "retrieved_at": "2026-11-27T10:29:49.671175+00:00",
+    "seconds": 43.6,
+    "retrieved_at": "2026-11-27T17:39:06.882969+00:00",
     "errors": []
   },
   "milex": {
@@ -233,17 +233,17 @@
     "bytes": 302580,
     "file": "milex.csv",
     "seconds": 0.6,
-    "retrieved_at": "2026-11-27T10:29:50.288323+00:00",
+    "retrieved_at": "2026-11-27T17:39:07.524575+00:00",
     "errors": []
   },
   "markets": {
     "status": "ok",
     "url": "https://gamma-api.polymarket.com/public-search",
-    "version": "1412 markets",
-    "bytes": 16298796,
+    "version": "1418 markets",
+    "bytes": 16356118,
     "file": "markets.json",
-    "seconds": 27.3,
-    "retrieved_at": "2026-11-27T10:30:17.616894+00:00",
+    "seconds": 25.5,
+    "retrieved_at": "2026-11-27T17:39:33.068196+00:00",
     "errors": []
   },
   "unhcr": {
@@ -252,8 +252,8 @@
     "version": "2025",
     "bytes": 1976865,
     "file": "unhcr.json",
-    "seconds": 1.2,
-    "retrieved_at": "2026-11-27T10:30:18.824336+00:00",
+    "seconds": 1.4,
+    "retrieved_at": "2026-11-27T17:39:34.489783+00:00",
     "errors": []
   },
   "eurostat": {
@@ -262,8 +262,8 @@
     "version": "since 2023-01",
     "bytes": 21346,
     "file": "eurostat.json",
-    "seconds": 0.6,
-    "retrieved_at": "2026-11-27T10:30:19.399695+00:00",
+    "seconds": 0.5,
+    "retrieved_at": "2026-11-27T17:39:34.954563+00:00",
     "errors": []
   },
   "trade": {
@@ -272,8 +272,8 @@
     "version": "160/203 reporters (key)",
     "bytes": 2616355,
     "file": "trade.json",
-    "seconds": 32.2,
-    "retrieved_at": "2026-11-27T10:30:51.564220+00:00",
+    "seconds": 18.5,
+    "retrieved_at": "2026-11-27T17:39:53.427350+00:00",
     "errors": []
   },
   "gdelt": {
@@ -283,7 +283,7 @@
     "bytes": 12,
     "file": "gdelt.json",
     "seconds": 0.0,
-    "retrieved_at": "2026-11-27T10:30:51.598307+00:00",
+    "retrieved_at": "2026-11-27T17:39:53.463530+00:00",
     "errors": []
   },
   "gpsjam": {
@@ -293,17 +293,17 @@
     "bytes": 13,
     "file": "gpsjam.json",
     "seconds": 0.0,
-    "retrieved_at": "2026-11-27T10:30:51.607670+00:00",
+    "retrieved_at": "2026-11-27T17:39:53.472393+00:00",
     "errors": []
   },
   "metaculus": {
     "status": "ok",
     "url": "https://www.metaculus.com/api/posts/",
     "version": "1 questions",
-    "bytes": 5153694,
+    "bytes": 5150901,
     "file": "metaculus.json",
-    "seconds": 114.9,
-    "retrieved_at": "2026-11-27T10:32:46.520696+00:00",
+    "seconds": 120.9,
+    "retrieved_at": "2026-11-27T17:41:54.420885+00:00",
     "errors": []
   },
   "sentinel": {
@@ -312,8 +312,8 @@
     "version": "13 sites",
     "bytes": 296902,
     "file": "sentinel.json",
-    "seconds": 52.1,
-    "retrieved_at": "2026-11-27T10:33:38.655447+00:00",
+    "seconds": 84.3,
+    "retrieved_at": "2026-11-27T17:43:18.728234+00:00",
     "errors": []
   },
   "media": {
@@ -322,26 +322,26 @@
     "version": "134 points",
     "bytes": 2635,
     "file": "media.json",
-    "seconds": 109.2,
-    "retrieved_at": "2026-11-27T10:35:27.838996+00:00",
+    "seconds": 36.3,
+    "retrieved_at": "2026-11-27T17:43:55.057466+00:00",
     "errors": []
   },
   "newswire": {
     "status": "ok",
     "url": "https://api.gdeltproject.org/api/v2/doc/doc",
-    "version": "0 headlines, 0 signs, 0 tokens",
-    "bytes": 44,
+    "version": "400 headlines, 62 signs, 44398 tokens",
+    "bytes": 56717,
     "file": "newswire.json",
-    "seconds": 539.3,
-    "retrieved_at": "2026-11-27T10:44:27.100793+00:00",
+    "seconds": 386.8,
+    "retrieved_at": "2026-11-27T17:50:21.866557+00:00",
     "errors": []
   },
   "ioda": {
     "status": "failed",
     "errors": [
-      "RuntimeError: https://api.ioda.inetintel.cc.gatech.edu/v2/outages/summary: ConnectError: [SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in violation of protocol (_ssl.c:1011); https://api.ioda.inetintel.cc.gatech.edu/v2/outages/events: ConnectError: [SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in violation of protocol (_ssl.c:1011)"
+      "RuntimeError: https://api.ioda.inetintel.cc.gatech.edu/v2/outages/summary: ConnectError: [SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in violation of protocol (_ssl.c:1011); https://api.ioda.inetintel.cc.gatech.edu/v2/outages/events: HTTPStatusError: Server error '504 Gateway Time-out' for url 'https://api.ioda.inetintel.cc.gatech.edu/v2/outages/events?from=1795132800&until=1795737600&entityType=country'\nFor"
     ],
-    "seconds": 75.7
+    "seconds": 286.4
   },
   "firms": {
     "status": "ok",
@@ -350,17 +350,17 @@
     "bytes": 12,
     "file": "firms.json",
     "seconds": 0.0,
-    "retrieved_at": "2026-11-27T10:45:42.781631+00:00",
+    "retrieved_at": "2026-11-27T17:55:08.277060+00:00",
     "errors": []
   },
   "military": {
     "status": "ok",
     "url": "https://api.adsb.lol/v2/mil",
-    "version": "528 positions",
-    "bytes": 145,
+    "version": "303 positions",
+    "bytes": 144,
     "file": "military.json",
-    "seconds": 122.4,
-    "retrieved_at": "2026-11-27T10:47:45.157398+00:00",
+    "seconds": 121.6,
+    "retrieved_at": "2026-11-27T17:57:09.905899+00:00",
     "errors": []
   },
   "fx": {
@@ -370,7 +370,7 @@
     "bytes": 2935,
     "file": "fx.json",
     "seconds": 0.4,
-    "retrieved_at": "2026-11-27T10:47:45.578554+00:00",
+    "retrieved_at": "2026-11-27T17:57:10.286059+00:00",
     "errors": []
   },
   "food": {
@@ -379,18 +379,18 @@
     "version": "3170492 bytes",
     "bytes": 3170492,
     "file": "food.csv",
-    "seconds": 4.0,
-    "retrieved_at": "2026-11-27T10:47:49.592504+00:00",
+    "seconds": 4.8,
+    "retrieved_at": "2026-11-27T17:57:15.107199+00:00",
     "errors": []
   },
   "telegram": {
     "status": "ok",
     "url": "https://t.me/s/",
     "version": "12 channels",
-    "bytes": 7712,
+    "bytes": 7997,
     "file": "telegram.json",
-    "seconds": 70.5,
-    "retrieved_at": "2026-11-27T10:49:00.120159+00:00",
+    "seconds": 79.3,
+    "retrieved_at": "2026-11-27T17:58:34.381994+00:00",
     "errors": []
   },
   "regions": {
@@ -399,8 +399,8 @@
     "version": "ne_10m_admin_1",
     "bytes": 40726851,
     "file": "regions.geojson",
-    "seconds": 2.8,
-    "retrieved_at": "2026-11-27T10:49:02.932751+00:00",
+    "seconds": 4.2,
+    "retrieved_at": "2026-11-27T17:58:38.542435+00:00",
     "errors": []
   },
   "geonames": {
@@ -409,18 +409,18 @@
     "version": "cities15000",
     "bytes": 3368969,
     "file": "geonames.zip",
-    "seconds": 2.0,
-    "retrieved_at": "2026-11-27T10:49:04.885854+00:00",
+    "seconds": 1.6,
+    "retrieved_at": "2026-11-27T17:58:40.160233+00:00",
     "errors": []
   },
   "volcanoes": {
     "status": "ok",
     "url": "https://webservices.volcano.si.edu/geoserver/GVP-VOTW/ows?service=WFS&version=2.0.0&request=GetFeature&typeName=GVP-VOTW:Smithsonian_VOTW_Holocene_Volcanoes&outputFormat=application/json",
     "version": "1209 volcanoes",
-    "bytes": 2434504,
+    "bytes": 2433295,
     "file": "volcanoes.json",
-    "seconds": 0.6,
-    "retrieved_at": "2026-11-27T10:49:05.525181+00:00",
+    "seconds": 0.7,
+    "retrieved_at": "2026-11-27T17:58:40.872927+00:00",
     "errors": []
   }
 }
