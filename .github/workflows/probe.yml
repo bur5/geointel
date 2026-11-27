@@ -1,0 +1,28 @@
+name: Source probe
+# Manual check of what a public data source returns (status, type, first bytes).
+on:
+  workflow_dispatch:
+    inputs:
+      urls:
+        description: "URLs separated by spaces"
+        required: true
+      bytes:
+        description: "How many bytes to print"
+        default: "1500"
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Fetch
+        env:
+          URLS: ${{ inputs.urls }}
+          BYTES: ${{ inputs.bytes }}
+        run: |
+          for u in $URLS; do
+            echo "=== $u"
+            curl -sSL -A "Mozilla/5.0 (GeoIntel probe)" -o /tmp/body -w "status=%{http_code} type=%{content_type} size=%{size_download}\n" --max-time 60 "$u" || echo "curl failed"
+            head -c "$BYTES" /tmp/body | tr -d '\000' ; echo
+          done
