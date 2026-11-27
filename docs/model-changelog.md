@@ -3,6 +3,14 @@
 Every change that can move a published probability gets a new `MODEL_VERSION`
 (`src/geointel/risk/__init__.py`), an entry here, and a before/after report.
 
+## 1.9.1 — 2026-11-27
+- ViEWS is not blended into internal conflict onset for countries in an active interstate war:
+  ViEWS counts all state-based deaths on the territory, so Ukraine showed internal conflict at
+  100%. ViEWS is still shown there for comparison.
+- GDACS history is cached; only the last two years are fetched daily.
+- Political crisis detection: emergencies for weather, disasters or disease are dropped by rule;
+  the classifier counts only events that happened (not calls or speculation).
+
 ## 1.9.0 — 2026-11-27
 - Regional conflict levels recalibrated. The 1.6.0 rule (5+ deaths in 90 days → level 5)
   put 43 countries' regions, including ordinary criminal-violence regions, at the top level and

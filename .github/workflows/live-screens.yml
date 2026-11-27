@@ -36,6 +36,7 @@ jobs:
               for (const item of process.env.PAGES.split(' ').filter(Boolean)) {
                 const [route, iso] = item.split(':');
                 if (iso) await page.addInitScript(([c]) => { localStorage.setItem('geointel.country', c); }, [iso]);
+                await page.goto('about:blank'); // a hash-only change would not reload the page
                 await page.goto(base + '#' + route, { waitUntil: 'networkidle' });
                 await page.waitForTimeout(2500);
                 const name = `${theme}-${width}-${route}${iso ? '-' + iso : ''}.png`;

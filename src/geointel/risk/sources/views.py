@@ -140,6 +140,12 @@ def apply_views(snapshot: dict, payload: Mapping | None, today: date, key: str) 
         country.setdefault("external", {})["views"] = {**view, "run": run}
         if risk.get("question") != "onset_within":
             continue
+        # ViEWS counts every state-based battle death on the territory, including an interstate
+        # war fought there (Ukraine), so it cannot stand for internal conflict onset in a
+        # country at war with another state. Shown for comparison only (1.9.1).
+        if ((country.get("risks") or {}).get("interstate_conflict") or {}).get("active"):
+            country["external"]["views"]["skipped"] = "interstate_war"
+            continue
         horizons = risk.get("horizons") or {}
         own = {h: dict(v) for h, v in horizons.items()}
         targets = {

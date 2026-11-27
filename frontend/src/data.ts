@@ -14,7 +14,7 @@ export interface Risk {
   model?: 'trained' | 'views_blend';
   own_horizons?: Record<HorizonKey, Probability>;
 }
-export interface ViewsForecast { p1m: number; p12m: number; p12m_low: number; p12m_high: number; months: number; run: string | null }
+export interface ViewsForecast { p1m: number; p12m: number; p12m_low: number; p12m_high: number; months: number; run: string | null; skipped?: 'interstate_war' }
 export interface Advisory { level: 1 | 2 | 3 | 4; title: string; url: string | null; updated: string | null; summary: string }
 export type Profile = Record<string, { value: number; year: number }>;
 export interface AdvisoryUK { level: 1 | 2 | 3 | 4; partial: boolean; statuses: string[]; url: string | null; updated: string | null; restrictions: string[] }

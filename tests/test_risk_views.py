@@ -64,3 +64,27 @@ def test_apply_views_blends_only_onset_and_keeps_order():
     assert "model" not in b["risks"]["internal_armed_conflict"]
     assert b["external"]["views"]["run"] == "fatalities003_2026_10_t01"
     assert snapshot["event_types"][0]["views"]["countries"] == 1
+
+
+def test_views_not_blended_for_a_country_at_interstate_war():
+    months = {f"2026-{m:02d}": 0.99 for m in range(11, 13)}
+    months.update({f"2027-{m:02d}": 0.99 for m in range(1, 13)})
+    cell = {"p": 0.05, "low": 0.03, "high": 0.08}
+    risk = {
+        "question": "onset_within",
+        "horizons": {h: dict(cell) for h in ("1m", "1y", "5y", "10y")},
+    }
+    snapshot = {
+        "countries": [
+            {
+                "iso3": "UKR",
+                "risks": {"internal_armed_conflict": risk, "interstate_conflict": {"active": True}},
+            }
+        ],
+        "event_types": [],
+    }
+    payload = {"run": "r", "countries": {"UKR": months}}
+    assert views.apply_views(snapshot, payload, date(2026, 11, 2), "internal_armed_conflict") == 0
+    ukr = snapshot["countries"][0]
+    assert ukr["risks"]["internal_armed_conflict"]["horizons"]["1y"]["p"] == 0.05
+    assert ukr["external"]["views"]["skipped"] == "interstate_war"
