@@ -321,6 +321,15 @@ SIGNS: tuple[SignSpec, ...] = (
         auto=True,
     ),
     _s(
+        "airspace_warning",
+        "final",
+        1.0,  # observation only until a with/without test shows value (1.7.0)
+        WAR,
+        "EASA: бюллетень о зоне конфликта для воздушного пространства",
+        "EASA conflict zone bulletin for the airspace",
+        auto=True,
+    ),
+    _s(
         "election_soon",
         "politics",
         1.3,

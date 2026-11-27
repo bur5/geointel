@@ -214,6 +214,9 @@ def load_histories(
     def news(path: Path) -> None:
         extras["news_new"] = json.loads(path.read_text()).get("entries", [])
 
+    def czib(path: Path) -> None:
+        extras.setdefault("early_raw", {})["easa"] = json.loads(path.read_text())["bulletins"]
+
     def views_forecasts(path: Path) -> None:
         extras["views"] = json.loads(path.read_text())
 
@@ -250,6 +253,7 @@ def load_histories(
         ("ged", "UCDP GED and Candidate events", ged),
         ("inform_severity", "INFORM Severity Index (EC JRC)", severity),
         ("views", views.SOURCE, views_forecasts),
+        ("easa", "EASA Conflict Zone Information Bulletins", czib),
         ("advisories_extra", "Global Affairs Canada; Auswärtiges Amt travel advice", ministries),
         ("gpr", outlook.GPR_SOURCE, gpr),
         ("elections", elections.SOURCE, votes),

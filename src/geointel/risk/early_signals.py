@@ -226,6 +226,30 @@ def build(
                 ),
             )
     notes["telegram"] = f"{len(tg)} channels"
+    # EASA conflict zone bulletins: an active bulletin is shown; a new or revised one in the
+    # last 30 days is marked active. Observation only (multiplier 1).
+    bulletins = raw.get("easa")
+    if isinstance(bulletins, list):
+        from geointel.risk.sources import easa
+
+        for code, item in easa.current(bulletins, today).items():
+            part_ru = " (часть страны)" if item["partial"] else ""
+            part_en = " (part of the country)" if item["partial"] else ""
+            when = item["latest"]
+            add(
+                code,
+                make_sign(
+                    "airspace_warning",
+                    "active" if item["fresh"] else "normal",
+                    f"{item['number']}{part_ru}, обновлён {when}"
+                    + (" — новый или пересмотрен за 30 дней" if item["fresh"] else ""),
+                    f"{item['number']}{part_en}, updated {when}"
+                    + (" — new or revised in 30 days" if item["fresh"] else ""),
+                    source=easa.SOURCE,
+                    url=easa.URL,
+                ),
+            )
+        notes["easa"] = f"{sum(1 for b in bulletins if b.get('active'))} active bulletins"
     return signs, notes
 
 
