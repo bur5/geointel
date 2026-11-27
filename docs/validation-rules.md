@@ -41,3 +41,11 @@ The trained model replaces the base rate for a type only if the lower end of the
 of the Brier skill score against baseline (1) is above zero and at least 30 test events exist.
 The decision is recorded in `docs/model-changelog.md` with the numbers, and the owner approves
 the switch.
+
+## Log
+- 2026-11-27, run 1: the optimiser diverged for internal conflict and protests (coefficients
+  of ±10^12, all predictions 0) and the democracy index was read from the wrong column. These
+  are bugs, not rule changes: the optimiser now uses a damped Newton step with a line search,
+  and the index is read from the first value column. Rules above are unchanged; run 2 is the
+  first valid result. Run 1 coups (valid): Brier skill score −0.019 (95% CI −0.032…−0.004),
+  base rate kept.
