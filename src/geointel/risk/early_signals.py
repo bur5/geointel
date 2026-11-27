@@ -137,8 +137,19 @@ def build(
     notes["military"] = f"{len(mil_days)} days"
 
     # Russian-language media on mobilisation and martial law (GDELT DOC, 90-day series).
+    # The series are cached so a day when GDELT refuses the request (429) keeps the last
+    # good timeline; a stale timeline simply has no recent week and gives no sign.
+    media_cache = _load(cache_in / "media.json").get("series", {})
+    for key, values in ((raw.get("media") or {}) or {}).items():
+        media_cache[key] = {**media_cache.get(key, {}), **values}
+    keep_from = (today - timedelta(days=150)).isoformat()
+    media_cache = {
+        k: {d: v for d, v in sorted(series.items()) if d >= keep_from}
+        for k, series in media_cache.items()
+    }
+    _save(cache_out / "media.json", {"series": media_cache})
     for key, sign in (("mobilization", "media_mobilization"), ("martial_law", "media_martial_law")):
-        series = (raw.get("media") or {}).get(key) or {}
+        series = media_cache.get(key) or {}
         stats = early.ratio_to_baseline(series, today, recent_days=7, min_base=30)
         if stats:
             add(
