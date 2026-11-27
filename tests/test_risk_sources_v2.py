@@ -269,6 +269,22 @@ def test_fcdo_levels_and_restrictions():
     assert code == "ETH" and entry["level"] == 2 and entry["partial"]
     assert entry["restrictions"][:2] == ["FCDO advises against all travel to:", "• Amhara region"]
     code, entry = fcdo.parse_country(
+        {
+            "title": "Ukraine travel advice",
+            "details": {
+                "alert_status": ["avoid_all_travel_to_parts"],
+                "parts": [
+                    {
+                        "slug": "warnings-and-insurance",
+                        "body": "<p>FCDO advises against all travel to all other regions of "
+                        "Ukraine (with the exception of some Western regions).</p>",
+                    }
+                ],
+            },
+        }
+    )
+    assert code == "UKR" and entry["level"] == 4 and entry["partial"]
+    code, entry = fcdo.parse_country(
         {"title": "USA travel advice", "details": {"alert_status": []}}
     )
     assert code == "USA" and entry["level"] == 1
