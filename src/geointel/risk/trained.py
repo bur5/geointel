@@ -210,6 +210,10 @@ def fit_logistic(x: list[list[float]], y: list[int], l2: float = L2, iters: int 
     return {"beta": beta, "means": means, "sds": sds, "var": cov_diag}
 
 
+def _expit(x: float) -> float:
+    return 1 / (1 + math.exp(-max(min(x, 30.0), -30.0)))
+
+
 def predict(model: Mapping, row: list[float]) -> float:
     eta = sum(
         b * ((v - model["means"][j]) / model["sds"][j] if j else 1.0)
@@ -413,6 +417,7 @@ def run_type(
     preds = {}
     for (iso3, _, _), row in zip(nxt, x_all[len(train) :], strict=True):
         p = predict(model, row)
+        p = min(max(p, 1e-9), 1 - 1e-9)
         eta = math.log(p / (1 - p))
         se = math.sqrt(
             sum(
@@ -422,8 +427,8 @@ def run_type(
         )
         preds[iso3] = {
             "p": round(p, 5),
-            "low": round(1 / (1 + math.exp(-(eta - 1.645 * se))), 5),
-            "high": round(1 / (1 + math.exp(-(eta + 1.645 * se))), 5),
+            "low": round(_expit(eta - 1.645 * se), 5),
+            "high": round(_expit(eta + 1.645 * se), 5),
         }
     result["coefficients"] = dict(
         zip(("intercept", *FEATURES), (round(b, 4) for b in model["beta"]), strict=True)
