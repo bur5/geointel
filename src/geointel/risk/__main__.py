@@ -793,7 +793,7 @@ def main(argv: list[str] | None = None) -> int:
     blended = views.apply_views(
         snapshot, extras.get("views"), now.date(), "internal_armed_conflict"
     )
-    print(f"[views] blended internal conflict onset for {blended} countries")
+    print(f"[views] blended for {blended} countries (blend on: {views.BLEND_ENABLED})")
     snapshot["model_version"] = MODEL_VERSION
     args.out.parent.mkdir(parents=True, exist_ok=True)
     args.out.write_text(json.dumps(snapshot, ensure_ascii=False, separators=(",", ":")))

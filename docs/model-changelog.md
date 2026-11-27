@@ -3,6 +3,15 @@
 Every change that can move a published probability gets a new `MODEL_VERSION`
 (`src/geointel/risk/__init__.py`), an entry here, and a before/after report.
 
+## 1.9.2 — 2026-11-27
+- ViEWS blending switched off. On the live run, `main_dich` was 0.77 for South Africa and 0.98
+  for Brazil, countries without a UCDP state-based conflict, so its threshold is most likely
+  "at least one battle death", not 25 a year. The 1.7.0 blend therefore overstated internal
+  conflict onset (Mexico 89%, Brazil 99%) and lifted several countries to danger level 4.
+  ViEWS stays on country pages for comparison until the definition is confirmed.
+- Humanitarian crises are class B and now give at most danger level 3 (INFORM Severity 4+ → 3).
+  They had given 4, which put Cuba, Honduras, Nepal, Uganda and others at "very high".
+
 ## 1.9.1 — 2026-11-27
 - ViEWS is not blended into internal conflict onset for countries in an active interstate war:
   ViEWS counts all state-based deaths on the territory, so Ukraine showed internal conflict at
