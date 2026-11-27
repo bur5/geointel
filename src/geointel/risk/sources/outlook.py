@@ -50,6 +50,53 @@ def imf_outlook(payloads: Mapping[str, object], reference_year: int) -> dict[str
     return result
 
 
+REGIME_CODES = {
+    "closed autocracy": 0,
+    "electoral autocracy": 1,
+    "electoral democracy": 2,
+    "liberal democracy": 3,
+}
+
+
+def owid_regime_series(text: str) -> dict[str, dict[int, int]]:
+    """V-Dem Regimes of the World from OWID: the value is a label ("Closed autocracy" …),
+    returned as 0 (closed autocracy) … 3 (liberal democracy) per country and year."""
+    rows = list(csv.reader(io.StringIO(text)))
+    if not rows:
+        return {}
+    header = [h.strip().lower() for h in rows[0]]
+    try:
+        code_i, year_i = header.index("code"), header.index("year")
+    except ValueError:
+        return {}
+    value_i = len(header) - 1
+    result: dict[str, dict[int, int]] = {}
+    for row in rows[1:]:
+        try:
+            code, year = row[code_i].upper(), int(row[year_i])
+            label = row[value_i].strip().lower()
+        except (IndexError, ValueError):
+            continue
+        value = REGIME_CODES.get(label)
+        if value is None:
+            try:
+                value = int(float(label))
+            except ValueError:
+                continue
+        code = "XKX" if code == "OWID_KOS" else code
+        if code in universe_codes():
+            result.setdefault(code, {})[year] = value
+    return result
+
+
+def owid_regime_latest(text: str) -> dict[str, dict]:
+    return {
+        code: {"value": series[max(series)], "year": max(series)}
+        for code, series in owid_regime_series(text).items()
+        if series
+    }
+
+
 def owid_latest(text: str) -> dict[str, dict]:
     """Latest value per country from an OWID grapher CSV (Entity, Code, Year, value)."""
     rows = list(csv.reader(io.StringIO(text)))

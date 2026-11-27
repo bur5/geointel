@@ -123,7 +123,7 @@ def load_histories(
         extras["ministries"] = merged
 
     def regimes(path: Path) -> None:
-        extras["regimes"] = outlook.owid_latest(path.read_text())
+        extras["regimes"] = outlook.owid_regime_latest(path.read_text())
 
     def gpr(path: Path) -> None:
         columns, months = outlook.read_gpr_xls(path.read_bytes())

@@ -61,3 +61,16 @@ def test_volcano_named_in_its_region():
 def test_simplified_geometry():
     geo = simplified_geojson(INDEX, "USA")
     assert {f["properties"]["code"] for f in geo["features"]} == {"FL", "MN", "CA"}
+
+
+def test_regime_labels_parse():
+    from geointel.risk.sources import outlook
+
+    text = (
+        "entity,code,year,regime_row_owid\n"
+        "Norway,NOR,2024,Liberal democracy\nNorway,NOR,2025,Liberal democracy\n"
+        "Mali,MLI,2025,Closed autocracy\n"
+    )
+    latest = outlook.owid_regime_latest(text)
+    assert latest["NOR"] == {"value": 3, "year": 2025}
+    assert latest["MLI"]["value"] == 0
