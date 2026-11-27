@@ -209,7 +209,12 @@ NON_POLITICAL = re.compile(
 # Talk about a possible event is not the event (political crisis signs, rule check).
 SPECULATIVE = re.compile(
     r"\b(may|might|could|would|calls? for|urges?|demands?|possible|possibly|mulls?|"
-    r"considers?|threatens?|weighs?|seeks?|proposes?|rumou?rs?|if)\b|\?",
+    r"considers?|threatens?|weighs?|seeks?|proposes?|rumou?rs?|if|"
+    # French, Spanish, Portuguese, German, Russian headlines are classified too.
+    r"évoque|envisage|pourrait|appelle|réclame|éventuel(?:le)?|"
+    r"podría|pide|plantea|posible|evalúa|pode|poderia|possível|"
+    r"könnte|fordert|erwägt|möglich(?:e|en)?|"
+    r"может|могут|призвал[аи]?|возможн\w*|предложил[аи]?)\b|\?",
     re.I,
 )
 EVENT_SIGNS = ("leader_exit", "snap_election", "impeachment")

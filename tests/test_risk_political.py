@@ -105,3 +105,13 @@ def test_speculation_is_not_an_event():
     ]
     out = political_crisis_now(news, date(2026, 11, 27))
     assert set(out) == {"PER"}
+
+
+def test_speculation_in_other_languages():
+    from geointel.risk.sources.newswire import rejected_by_rules
+
+    assert rejected_by_rules(
+        "leader_exit", "Sénégal : Ousmane Sonko évoque la démission de Diomaye Faye"
+    )
+    assert rejected_by_rules("snap_election", "Премьер призвал к досрочным выборам")
+    assert not rejected_by_rules("leader_exit", "Le Premier ministre a démissionné")
