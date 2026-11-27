@@ -1,0 +1,53 @@
+name: Deploy site assistant (Cloudflare Worker)
+on:
+  push:
+    branches: [main]
+    paths: ["worker/**", ".github/workflows/assistant-deploy.yml"]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: "22" }
+      - name: workers.dev subdomain
+        run: |
+          api=https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/workers/subdomain
+          sub=$(curl -s -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" $api | python3 -c "import json,sys; print((json.load(sys.stdin).get('result') or {}).get('subdomain') or '')")
+          if [ -z "$sub" ]; then
+            curl -s -X PUT -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" -H "Content-Type: application/json" \
+              --data '{"subdomain":"geointel-bur5"}' $api | python3 -c "import json,sys; d=json.load(sys.stdin); print('created', d.get('success'), d.get('errors'))"
+            sub=geointel-bur5
+          fi
+          echo "SUBDOMAIN=$sub" >> $GITHUB_ENV
+      - name: KV namespace for rate limits
+        working-directory: worker
+        run: |
+          list=$(npx -y wrangler@3 kv namespace list 2>/dev/null || echo "[]")
+          id=$(echo "$list" | python3 -c "import json,sys; d=json.load(sys.stdin); print(next((n['id'] for n in d if n['title'].endswith('LIMITS')), ''))" 2>/dev/null || true)
+          if [ -z "$id" ]; then
+            out=$(npx -y wrangler@3 kv namespace create LIMITS 2>&1); echo "$out"
+            id=$(echo "$out" | grep -oE '[0-9a-f]{32}' | head -1)
+          fi
+          printf '\n[[kv_namespaces]]\nbinding = "LIMITS"\nid = "%s"\n' "$id" >> wrangler.toml
+          cat wrangler.toml
+      - name: Deploy
+        working-directory: worker
+        run: npx -y wrangler@3 deploy
+      - name: Secret
+        working-directory: worker
+        env:
+          KEY: ${{ secrets.SITE_ASSISTANT_ANTHROPIC_KEY }}
+        run: printf '%s' "$KEY" | npx -y wrangler@3 secret put ANTHROPIC_API_KEY
+      - name: Check
+        run: |
+          url="https://geointel-assistant.$SUBDOMAIN.workers.dev"
+          echo "Assistant URL: $url"
+          sleep 10; curl -s "$url" || true
