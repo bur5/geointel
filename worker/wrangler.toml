@@ -1,0 +1,5 @@
+name = "geointel-assistant"
+main = "worker.js"
+compatibility_date = "2026-11-01"
+workers_dev = true
+# [[kv_namespaces]] is added by the deploy workflow (id looked up or created there).
