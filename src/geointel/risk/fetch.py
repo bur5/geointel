@@ -195,6 +195,24 @@ def _gvp(client: httpx.Client, _year: int) -> tuple[bytes, str, str]:
     return response.content, gvp.URL, f"{count} volcanoes"
 
 
+def _advisories_extra(client: httpx.Client, _year: int) -> tuple[bytes, str, str]:
+    from geointel.risk.sources import advisories_extra as ax
+
+    result, errors = {}, {}
+    for key, url in (("ca", ax.CANADA_URL), ("de", ax.GERMANY_URL)):
+        try:
+            result[key] = _get(client, url).json()
+        except Exception as exc:  # noqa: BLE001 - one ministry failing is not fatal
+            errors[key] = f"{type(exc).__name__}: {str(exc)[:160]}"
+    if not result:
+        raise RuntimeError("; ".join(f"{k}: {v}" for k, v in errors.items()))
+    return (
+        json.dumps({"payloads": result, "errors": errors}).encode(),
+        ax.CANADA_URL,
+        "+".join(sorted(result)),
+    )
+
+
 def _gpr(client: httpx.Client, _year: int) -> tuple[bytes, str, str]:
     return _get(client, outlook.GPR_URL).content, outlook.GPR_URL, "monthly"
 
@@ -906,6 +924,7 @@ def fetch_all(raw_dir: Path, reference_year: int | None = None) -> dict:
         "vdem": ("vdem.csv", lambda c: _vdem(c, year)),
         "gpr": ("gpr.xls", lambda c: _gpr(c, year)),
         "regimes": ("regimes.csv", lambda c: _regimes(c, year)),
+        "advisories_extra": ("advisories_extra.json", lambda c: _advisories_extra(c, year)),
         "elections": ("elections.json", lambda c: _elections(c, year)),
         "fcdo": ("fcdo.json", lambda c: _fcdo(c, year)),
         "milex": ("milex.csv", lambda c: _milex(c, year)),
