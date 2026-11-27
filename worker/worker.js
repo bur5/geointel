@@ -71,6 +71,6 @@ export default {
     }
     const data = await response.json();
     const answer = (data.content || []).filter((c) => c.type === 'text').map((c) => c.text).join('').trim();
-    return new Response(JSON.stringify({ answer }), { headers });
+    return new Response(JSON.stringify({ answer, stop: data.stop_reason, usage: data.usage }), { headers });
   },
 };
