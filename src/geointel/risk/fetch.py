@@ -758,6 +758,7 @@ def _military(client: httpx.Client, _year: int) -> tuple[bytes, str, str]:
 
 def _media(client: httpx.Client, _year: int) -> tuple[bytes, str, str]:
     series = {}
+    failures = []
     for key, query in early.DOC_QUERIES.items():
         for attempt in range(4):
             response = client.get(
@@ -767,7 +768,13 @@ def _media(client: httpx.Client, _year: int) -> tuple[bytes, str, str]:
                 break
             print(f"[media] {key}: 429, waiting")
             time.sleep(20 * (attempt + 1))
-        response.raise_for_status()
+        if response.status_code >= 400:
+            # Keep what the other query returned: the 90-day timeline means one good day a
+            # week is enough, and the daily cache fills the gaps (1.8.0).
+            failures.append(f"{key}: HTTP {response.status_code}")
+            print(f"[media] {key}: HTTP {response.status_code}, skipped today")
+            time.sleep(6)
+            continue
         try:
             body = response.json()
         except ValueError:
@@ -776,10 +783,13 @@ def _media(client: httpx.Client, _year: int) -> tuple[bytes, str, str]:
         series[key] = early.doc_timeline(body)
         print(f"[media] {key}: {len(series[key])} days, {len(response.content)} bytes")
         time.sleep(6)
+    if not series:
+        raise RuntimeError("GDELT DOC refused every query: " + "; ".join(failures))
     return (
         json.dumps({"series": series}).encode(),
         early.DOC_URL,
-        f"{sum(map(len, series.values()))} points",
+        f"{sum(map(len, series.values()))} points"
+        + (f" (skipped {', '.join(failures)})" if failures else ""),
     )
 
 
