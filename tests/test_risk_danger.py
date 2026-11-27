@@ -126,3 +126,18 @@ def test_every_event_type_has_a_resolution_rule():
 
     for spec in EVENT_TYPES:
         assert spec.resolution_ru and spec.resolution_en, spec.key
+
+
+def test_conflict_onset_probability_gives_at_most_level_3():
+    d = country_danger(_country("AZE", {"internal_armed_conflict": _risk(0.28)}))
+    assert d["level"] == 3
+
+
+def test_regional_median_lifts_country_to_4_at_most():
+    from geointel.risk.danger import apply_regional
+
+    d = apply_regional(
+        {"level": 2},
+        {"level_median": 5, "level_max": 5, "max_regions": [], "max_population_share": 0.6},
+    )
+    assert d["level"] == 4 and d["regional"]["median"] == 5

@@ -137,8 +137,10 @@ matching one of the signs, add an object:
 "country" is the state whose own risk the event raises: for a state's own mobilisation,
 protests, strikes, repression or coup it is that state itself, never a rival it fears.
 For migration_tighten and migration_ease it is the state whose own rules change.
-Add "quote": the exact words of the headline that show the sign, and "country_in_text":
-true only if that country (or its capital or leader) is named in the headline.
+Add "quote": the exact words of the headline that show the sign, "country_in_text":
+true only if that country (or its capital or leader) is named in the headline, and "status":
+"happened" (it took place), "announced" (officially decided or ordered), "discussed" (talked
+about, demanded, threatened, possible) or "denied".
 Skip opinion, analysis of the past, fiction, sport, games and anything uncertain.
 Sign keys:
 """
@@ -257,7 +259,12 @@ def parse_reply(text: str, batch: list[dict]) -> list[dict]:
             continue
         if item.get("country_in_text") is False:
             continue
-        if rejected_by_rules(sign, batch[i]["title"]):
+        # Only events that happened or were officially announced count (Fable round 4, 3.7).
+        if str(item.get("status") or "happened").lower() in ("discussed", "denied"):
+            continue
+        if rejected_by_rules(sign, batch[i]["title"]) or rejected_by_rules(
+            sign, str(item.get("quote") or "")
+        ):
             continue
         result.append(
             {

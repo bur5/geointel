@@ -115,3 +115,21 @@ def test_speculation_in_other_languages():
     )
     assert rejected_by_rules("snap_election", "Премьер призвал к досрочным выборам")
     assert not rejected_by_rules("leader_exit", "Le Premier ministre a démissionné")
+
+
+def test_discussed_status_is_dropped():
+    from geointel.risk.sources import newswire
+
+    batch = [
+        {
+            "title": "Opposition demands snap election in Georgia",
+            "date": "2026-11-26",
+            "url": "u",
+            "domain": "d",
+        }
+    ]
+    reply = (
+        '[{"i": 0, "country": "GEO", "sign": "snap_election", "quote": "snap election", '
+        '"country_in_text": true, "status": "discussed"}]'
+    )
+    assert newswire.parse_reply(reply, batch) == []

@@ -3,6 +3,25 @@
 Every change that can move a published probability gets a new `MODEL_VERSION`
 (`src/geointel/risk/__init__.py`), an entry here, and a before/after report.
 
+## 1.10.0 — 2026-11-27 (Fable round 4, priority-1 fixes)
+- War-preparation signs (posture, mobilisation, personnel, medical, logistics, masking,
+  pretexts, intelligence warnings, cyber, airspace closures, Russian-media mobilisation and
+  military keywords) apply to interstate conflict only. British reservist news had raised the
+  UK's internal-conflict probability to 5.35% and its level to 3.
+- Coup groups: the empirical-Bayes prior within a group weighs at most twice a member's mean
+  weighted history (it had hit the 400 cap, giving the US, Thailand and Egypt the same ~7.5%).
+  The "coup in 20 years" group needs coups in 2+ years, so one disputed episode (6 January
+  2021) does not move a stable democracy into it.
+- Danger level: the probability of conflict onset (25+ deaths a year, a minor conflict) gives
+  at most level 3; level 4 comes from a war being fought. The regional population median lifts
+  a country to 4 at most (regions keep their own 5).
+- UCDP: Candidate events present in both the cumulative and the latest file are counted once;
+  windows are 12 and 3 months (were 13 and 4); type of violence is kept — level 5 for a region
+  needs 250+ deaths in 90 days in fighting that involves a state; violence between armed groups
+  or against civilians alone stops at 4.
+- News classifier: each item has a status (happened / announced / discussed / denied); only
+  the first two count; speculation filters also check the quote.
+
 ## 1.9.2 — 2026-11-27
 - ViEWS blending switched off. On the live run, `main_dich` was 0.77 for South Africa and 0.98
   for Brazil, countries without a UCDP state-based conflict, so its threshold is most likely
