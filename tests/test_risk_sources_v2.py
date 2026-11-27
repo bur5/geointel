@@ -293,8 +293,8 @@ def test_region_index_point_in_polygon_and_nearest():
             ]
         }
     )
-    assert index.locate("JPN", 5, 15) == ("East", "Восток")
-    assert index.locate("JPN", 5, -1) == ("West", "Запад")  # offshore, nearest region
+    assert index.locate("JPN", 5, 15)[:2] == ("East", "Восток")
+    assert index.locate("JPN", 5, -1)[:2] == ("West", "Запад")  # offshore, nearest region
     assert index.locate("JPN", 50, 50) is None
     events = [
         {"countries": ["JPN"], "lat": 5, "lon": 5},
