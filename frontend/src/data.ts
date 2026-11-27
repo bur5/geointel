@@ -171,6 +171,7 @@ export type ScenarioRole = 'party' | 'frontline' | 'ally' | 'economic';
 export interface ScenarioAffected { iso3: string; role: ScenarioRole; reason_ru: string; reason_en: string }
 export interface Scenario {
   key: string; title_ru: string; title_en: string; event_ru: string; event_en: string; polarity: 1 | -1;
+  resolution?: { source_ru: string; source_en: string; window: Record<string, { from: string; to: string }> };
   annual: Probability; horizons: Record<HorizonKey, Probability>; confidence: 'low' | 'medium';
   indicator_factor: number; components: ScenarioComponent[]; indicators: ScenarioIndicator[];
   warnings: ScenarioWarning[]; market_candidates: { question: string; p: number; end: string; volume: number; slug: string; inverse?: boolean }[];

@@ -105,3 +105,24 @@ def test_coup_group_shrinkage_lowers_stable_democracies():
     grouped = {r.iso3: r for r in assess_type(history, countries, False, groups)}
     assert grouped["D00"].horizons["10y"].p < world["D00"].horizons["10y"].p
     assert grouped["A00"].horizons["1y"].p >= world["A00"].horizons["1y"].p * 0.9
+
+
+def test_every_scenario_has_a_resolution_source():
+    from datetime import date
+
+    from geointel.risk.resolution import SOURCES, scenario_resolution
+    from geointel.risk.scenarios import CATALOGUE
+
+    for scenario in CATALOGUE:
+        res = scenario_resolution(scenario.key, date(2026, 11, 27))
+        assert res["source_ru"] and res["source_en"], scenario.key
+        assert res["window"]["1y"]["to"] == "2027-11-27"
+        assert scenario.event_ru and scenario.event_en
+    assert set(SOURCES) == {s.key for s in CATALOGUE}
+
+
+def test_every_event_type_has_a_resolution_rule():
+    from geointel.risk.taxonomy import EVENT_TYPES
+
+    for spec in EVENT_TYPES:
+        assert spec.resolution_ru and spec.resolution_en, spec.key

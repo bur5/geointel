@@ -253,7 +253,7 @@ export function scenarioDetail(ctx: ViewContext, s: Scenario, horizonLabels: Rec
   return `<article class="scenario" id="scenario-detail">
     <div class="scenario-head"><h2>${esc(title(s, lang))}</h2>
       <p class="muted-text">${d.confidenceLabel}: ${d.confidence[s.confidence]}.${s.polarity < 0 ? ' ' + d.deescalation : ''}</p>
-      <details open><summary>${d.definition}</summary><p>${esc(lang === 'ru' ? s.event_ru : s.event_en)}</p></details></div>
+      <details open><summary>${d.definition}</summary><p>${esc(lang === 'ru' ? s.event_ru : s.event_en)}</p>${s.resolution ? `<p class="muted-text"><b>${lang === 'ru' ? 'Кто решает, сбылось ли' : 'Who decides whether it happened'}:</b> ${esc(lang === 'ru' ? s.resolution.source_ru : s.resolution.source_en)}<br><b>${lang === 'ru' ? 'Окно проверки' : 'Resolution window'}:</b> ${Object.entries(s.resolution.window).map(([h, w]) => `${h} — ${lang === 'ru' ? 'до' : 'until'} ${w.to}`).join(' · ')}</p>` : ''}</details></div>
     <div class="horizon-grid">${horizons}</div>
     ${alert}
     <div class="scenario-cols">

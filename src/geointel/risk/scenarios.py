@@ -18,6 +18,7 @@ from dataclasses import replace
 from datetime import UTC, date, datetime
 
 from geointel.risk.betamath import beta_ppf
+from geointel.risk.resolution import scenario_resolution
 from geointel.risk.scenario_types import (  # noqa: F401
     EU,
     HORIZON_YEARS,
@@ -1299,6 +1300,7 @@ def build_scenarios(
                 "event_ru": scenario.event_ru,
                 "event_en": scenario.event_en,
                 "polarity": scenario.polarity,
+                "resolution": scenario_resolution(scenario.key, now.date()),
                 **pooled,
                 "indicator_factor": factor,
                 "sign_groups": factor_info["groups"],
