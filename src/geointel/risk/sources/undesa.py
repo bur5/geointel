@@ -47,6 +47,7 @@ def stock(rows: Iterable[list[str]], top: int = 8) -> dict[str, dict]:
     years: list[tuple[int, int]] = []
     totals: dict[str, dict[int, float]] = {}
     dests: dict[str, list[tuple[str, float]]] = {}
+    series_by_dest: dict[str, dict[str, dict[str, int]]] = {}
     for row in rows:
         if header is None:
             lower = [str(c).strip().lower() for c in row]
@@ -77,6 +78,9 @@ def stock(rows: Iterable[list[str]], top: int = 8) -> dict[str, dict]:
         latest = values.get(years[-1][1])
         if dest and latest:
             dests.setdefault(origin, []).append((dest, latest))
+            series_by_dest.setdefault(origin, {})[dest] = {
+                str(y): int(v) for y, v in values.items() if v is not None and y >= 2010
+            }
     out: dict[str, dict] = {}
     for origin, series in totals.items():
         if not series:
@@ -90,6 +94,12 @@ def stock(rows: Iterable[list[str]], top: int = 8) -> dict[str, dict]:
                 [code, int(n)]
                 for code, n in sorted(dests.get(origin, []), key=lambda x: -x[1])[:top]
             ],
+            # Destination series since 2010 for the top destinations: shows where the growth
+            # after 2014 and after 2022 went (net change between UN estimate years).
+            "destinations": {
+                code: series_by_dest.get(origin, {}).get(code, {})
+                for code, _n in sorted(dests.get(origin, []), key=lambda x: -x[1])[:top]
+            },
         }
     return out
 
