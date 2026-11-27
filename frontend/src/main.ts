@@ -405,6 +405,25 @@ function sectionNav() {
   return `<nav class="section-nav" aria-label="${lang === 'ru' ? 'Разделы страницы' : 'Page sections'}">${items.map(([id, label]) => `<a href="#${id}" data-jump="${id}">${label}</a>`).join('')}</nav>`;
 }
 
+function viewsNote(country: CountryEntry, risk: CountryEntry['risks'][string]) {
+  const v = country.external?.views;
+  if (!v) return '';
+  const pct = (p: number) => (p * 100 < 1 ? (p * 100).toFixed(1) : Math.round(p * 100).toString()) + '%';
+  const own = risk.own_horizons?.['1y'];
+  if (lang === 'ru') {
+    const head = `ViEWS (Уппсала, PRIO): вероятность месяца с 25+ погибшими в боях — ${pct(v.p1m)} в этом месяце, ${pct(v.p12m)} за 12 месяцев (диапазон ${pct(v.p12m_low)}–${pct(v.p12m_high)}).`;
+    const tail = risk.model === 'views_blend'
+      ? ` Цифры выше — смесь: 70% ViEWS и 30% нашей модели${own ? ` (наша модель отдельно: ${pct(own.p)} за год)` : ''}.`
+      : ' Конфликт уже идёт, поэтому цифры выше — по нашей модели продолжения; ViEWS показан для сравнения.';
+    return `<p class="basis views-note">${escape(head + tail)}</p>`;
+  }
+  const head = `ViEWS (Uppsala, PRIO): probability of a month with 25+ battle deaths — ${pct(v.p1m)} this month, ${pct(v.p12m)} over 12 months (range ${pct(v.p12m_low)}–${pct(v.p12m_high)}).`;
+  const tail = risk.model === 'views_blend'
+    ? ` The figures above blend 70% ViEWS with 30% our model${own ? ` (our model alone: ${pct(own.p)} per year)` : ''}.`
+    : ' The conflict is already active, so the figures above are our continuation model; ViEWS is shown for comparison.';
+  return `<p class="basis views-note">${escape(head + tail)}</p>`;
+}
+
 function countryPage() {
   const country = byIso().get(selected);
   const horizons = snapshot?.horizons ?? [];
@@ -414,6 +433,7 @@ function countryPage() {
       <p class="question">${escape(questionText(entry.key, risk))}</p>
       <div class="horizon-grid">${horizons.map((h) => `<div><span class="h-label">${escape(lang === 'ru' ? h.label_ru : h.label_en)}</span>${value(risk, h.key, 'lg')}</div>`).join('')}</div>
       <p class="basis">${escape(t().basis(risk.basis.exposure_years, risk.basis.event_years, risk.basis.last_event_year))} ${t().confidence}: ${confidenceText(risk.confidence)}.</p>
+      ${entry.key === 'internal_armed_conflict' ? viewsNote(country!, risk) : ''}
       <details><summary>${t().definition}</summary><p>${escape(lang === 'ru' ? entry.resolution_ru : entry.resolution_en)}</p></details>
     </article>`;
   };
