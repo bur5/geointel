@@ -9,6 +9,9 @@ on:
       bytes:
         description: "How many bytes to print"
         default: "1500"
+      post:
+        description: "Optional JSON body: sends POST with Origin https://bur5.github.io"
+        default: ""
 permissions:
   contents: read
 jobs:
@@ -20,9 +23,14 @@ jobs:
         env:
           URLS: ${{ inputs.urls }}
           BYTES: ${{ inputs.bytes }}
+          POST: ${{ inputs.post }}
         run: |
           for u in $URLS; do
             echo "=== $u"
-            curl -sSL -A "Mozilla/5.0 (GeoIntel probe)" -o /tmp/body -w "status=%{http_code} type=%{content_type} size=%{size_download}\n" --max-time 60 "$u" || echo "curl failed"
+            if [ -n "$POST" ]; then
+              curl -sS -X POST -H "Origin: https://bur5.github.io" -H "Content-Type: application/json" --data "$POST" -o /tmp/body -w "status=%{http_code}\n" --max-time 90 "$u" || echo "curl failed"
+            else
+              curl -sSL -A "Mozilla/5.0 (GeoIntel probe)" -o /tmp/body -w "status=%{http_code} type=%{content_type} size=%{size_download}\n" --max-time 60 "$u" || echo "curl failed"
+            fi
             head -c "$BYTES" /tmp/body | tr -d '\000' ; echo
           done
