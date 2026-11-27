@@ -19,6 +19,7 @@ import { fillRegional } from './regionalView';
 import { humanitarianCard } from './humanitarian';
 import { ask, assistantPanel, clearChat } from './assistant';
 import { trainedSection, type TrainedFile } from './trainedView';
+import { explain } from './explain';
 import { applyTheme, currentTheme, nextTheme, picker, pins, searchBox, themeButton, togglePicker, togglePin, wireSearch } from './ui';
 import { dangerBadge, dangerCard, dangerName, trendChip } from './danger';
 import { BLOCS, REGIONS, groupName, groupNote, groupsOf } from './groups';
@@ -427,6 +428,28 @@ function sectionNav() {
   return `<nav class="section-nav" aria-label="${lang === 'ru' ? 'Разделы страницы' : 'Page sections'}">${items.map(([id, label]) => `<a href="#${id}" data-jump="${id}">${label}</a>`).join('')}</nav>`;
 }
 
+const medianCache = new Map<string, number | null>();
+function typeMedian(key: string, h: HorizonKey): number | null {
+  const id = `${snapshot?.generated_at}|${key}|${h}`;
+  if (!medianCache.has(id)) {
+    const values = (snapshot?.countries ?? []).map((c) => c.risks[key]?.horizons[h]?.p).filter((v): v is number => typeof v === 'number').sort((a, b) => a - b);
+    medianCache.set(id, values.length ? values[Math.floor(values.length / 2)] : null);
+  }
+  return medianCache.get(id)!;
+}
+
+function explainBlock(entry: EventTypeEntry, risk: CountryEntry['risks'][string]) {
+  const h = (snapshot?.horizons ?? []).find((x) => x.key === '1y');
+  const cell = risk.horizons['1y'];
+  if (!h || !cell) return '';
+  const lines = explain({
+    key: entry.key, sphere: (entry.group ?? 'conflict') as 'conflict' | 'natural' | 'society', p: cell.p,
+    horizonLabel: lang === 'ru' ? h.label_ru : h.label_en, median: typeMedian(entry.key, '1y'),
+    p10: risk.horizons['10y']?.p ?? null, active: !!risk.active, lang,
+  });
+  return `<details class="explain"><summary>${lang === 'ru' ? 'Как понимать эти цифры' : 'How to read these numbers'}</summary><ul>${lines.map((l) => `<li>${escape(l)}</li>`).join('')}</ul></details>`;
+}
+
 function viewsNote(country: CountryEntry, risk: CountryEntry['risks'][string]) {
   const v = country.external?.views;
   if (!v) return '';
@@ -454,6 +477,7 @@ function countryPage() {
     return `<article class="risk-block"><div class="risk-head"><h3>${escape(typeLabel(entry))}</h3>${risk.active ? ongoingTag() : ''}</div>
       <p class="question">${escape(questionText(entry.key, risk))}</p>
       <div class="horizon-grid">${horizons.map((h) => `<div><span class="h-label">${escape(lang === 'ru' ? h.label_ru : h.label_en)}</span>${value(risk, h.key, 'lg')}</div>`).join('')}</div>
+      ${explainBlock(entry, risk)}
       <p class="basis">${escape(t().basis(risk.basis.exposure_years, risk.basis.event_years, risk.basis.last_event_year))} ${t().confidence}: ${confidenceText(risk.confidence)}.</p>
       ${entry.key === 'internal_armed_conflict' ? viewsNote(country!, risk) : ''}
       <details><summary>${t().definition}</summary><p>${escape(lang === 'ru' ? entry.resolution_ru : entry.resolution_en)}</p></details>
