@@ -84,3 +84,15 @@ are always reported next to them.
 
 ## Log
 - 2026-11-27: rules written; no run yet.
+- 2026-11-27, run 1 (model 1.10.0, tuning and validation only; holdout not opened). Validation
+  2016–2020, Brier skill score vs the world frequency (95% interval):
+  - internal conflict onset +0.38 (+0.28…+0.51), continuation +0.73;
+  - interstate onset +0.01 (−0.04…+0.08), 7 events;
+  - **coups −0.06 (−0.17…−0.01): the grouped base rate is worse than the plain world
+    frequency**;
+  - mass protests +0.11 (+0.03…+0.20);
+  - earthquakes +0.50, tsunami +0.27;
+  - economic crisis +0.00 (−0.02…+0.03);
+  - humanitarian onset +0.21, continuation +0.79.
+  Danger level: the share of country-years with a war rises with the level in both periods;
+  level 3 from a probability gave 19.0% (12.9–25.1%) against the promised 5–20%.
