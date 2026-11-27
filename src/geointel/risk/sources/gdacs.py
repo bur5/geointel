@@ -143,6 +143,9 @@ def current_alerts(features: Iterable[Mapping], today, days: int = 14) -> dict[s
             "name": event["name"],
             "alert": event["alert"],
             "date": str(props.get("fromdate") or "")[:10],
+            "to": end,
+            "lat": event.get("lat"),
+            "lon": event.get("lon"),
         }
         for code in event["countries"]:
             result.setdefault(code, []).append(item)

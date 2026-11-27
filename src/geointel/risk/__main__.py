@@ -189,6 +189,16 @@ def load_histories(
     def news(path: Path) -> None:
         extras["news_new"] = json.loads(path.read_text()).get("entries", [])
 
+    def cities(path: Path) -> None:
+        from geointel.risk.sources import geonames
+
+        extras["cities"] = geonames.parse(path.read_bytes())
+
+    def volcano_list(path: Path) -> None:
+        from geointel.risk.sources import gvp
+
+        extras["volcanoes"] = gvp.parse(json.loads(path.read_text()))
+
     def admin_regions(path: Path) -> None:
         from geointel.risk.regions import RegionIndex, annotate
 
@@ -229,6 +239,8 @@ def load_histories(
         ("fx", "ExchangeRate-API daily rates", early_raw("fx")),
         ("food", "WFP Global Market Monitor (HDX)", early_raw("food", "food")),
         ("telegram", "Public Telegram channels", early_raw("telegram")),
+        ("geonames", "GeoNames cities15000 (CC BY 4.0)", cities),
+        ("volcanoes", "Smithsonian GVP Holocene volcanoes", volcano_list),
         ("regions", "Natural Earth admin-1 regions", admin_regions),  # must stay last
     ]
     for key, name, loader in loaders:
@@ -664,9 +676,58 @@ def main(argv: list[str] | None = None) -> int:
     )
     signals, scenario_inputs = build_signal_layer(snapshot, extras, sources, now)
     signals["model_version"] = MODEL_VERSION
+    regional = {}
+    if extras.get("region_index") is not None:
+        from geointel.risk.regional import build_regional
+        from geointel.risk.regions import simplified_geojson
+
+        regional = build_regional(
+            extras["region_index"],
+            hazard_events,
+            extras.get("hazard_alerts"),
+            extras.get("cities"),
+            extras.get("volcanoes"),
+            now.year - 1,
+        )
+        (args.out.parent / "regional.json").write_text(
+            json.dumps(
+                {
+                    "generated_at": now.isoformat(),
+                    "model_version": MODEL_VERSION,
+                    "countries": regional,
+                },
+                ensure_ascii=False,
+                separators=(",", ":"),
+            )
+        )
+        shapes = args.out.parent / "regions"
+        shapes.mkdir(exist_ok=True)
+        for code in regional:
+            (shapes / f"{code}.json").write_text(
+                json.dumps(
+                    simplified_geojson(extras["region_index"], code),
+                    ensure_ascii=False,
+                    separators=(",", ":"),
+                )
+            )
+        print(
+            f"[regional] countries={len(regional)} with population="
+            f"{sum(1 for c in regional.values() if c['population_known'])} "
+            f"alerts={sum(1 for c in regional.values() if c['level_max'] > 1)}"
+        )
+        for code in ("USA", "JPN", "IDN", "PHL", "ITA", "CHL"):
+            c = regional.get(code)
+            if c:
+                print(
+                    f"[regional] {code}: median {c['level_median']} max {c['level_max']} "
+                    + "; ".join(
+                        f"{h}: " + ", ".join(f"{r['code']}={r['p_year']}" for r in v["regions"][:3])
+                        for h, v in list(c["hazards"].items())[:3]
+                    )
+                )
     from geointel.risk.danger import apply_danger
 
-    histogram = apply_danger(snapshot, signals, extras.get("war_intensity"))
+    histogram = apply_danger(snapshot, signals, extras.get("war_intensity"), regional)
     print(f"[danger] levels: {histogram}")
     for code in ("RUS", "UKR", "USA", "IND", "SDN", "NOR", "ISR", "MEX"):
         d = signals["countries"].get(code, {}).get("danger")

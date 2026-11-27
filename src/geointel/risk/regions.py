@@ -58,6 +58,7 @@ class RegionIndex:
             names = (
                 props.get("name_en") or props.get("name") or "",
                 props.get("name_ru") or props.get("name_en") or props.get("name") or "",
+                str(props.get("adm1_code") or props.get("name_en") or props.get("name") or ""),
             )
             self.by_country[iso3].append(((min(xs), min(ys), max(xs), max(ys)), rings, names))
 
@@ -118,4 +119,45 @@ def annotate(events: list[dict], index: RegionIndex) -> None:
             continue
         names = index.locate(event["countries"][0], event["lat"], event["lon"])
         if names:
-            event["region_en"], event["region_ru"] = names
+            event["region_en"], event["region_ru"], event["region_code"] = names
+
+
+def _simplify(ring: list[list[float]], max_points: int) -> list[list[float]]:
+    step = max(1, len(ring) // max_points)
+    points = ring[::step]
+    if points[-1] != ring[-1]:
+        points.append(ring[-1])
+    return [[round(x, 3), round(y, 3)] for x, y in points]
+
+
+def region_list(index: "RegionIndex", iso3: str) -> list[dict]:
+    """Regions of a country: code, names and bounding-box centre."""
+    result = []
+    for (x0, y0, x1, y1), _rings, (en, ru, code) in index.by_country.get(iso3, []):
+        result.append(
+            {"code": code, "en": en, "ru": ru, "lon": (x0 + x1) / 2, "lat": (y0 + y1) / 2}
+        )
+    return result
+
+
+def simplified_geojson(index: "RegionIndex", iso3: str, budget: int = 6000) -> dict:
+    """A light GeoJSON of one country's regions for the site (about ``budget`` points)."""
+    feats = index.by_country.get(iso3, [])
+    total = sum(len(r) for _, rings, _ in feats for r in rings) or 1
+    features = []
+    for _bbox, rings, (en, ru, code) in feats:
+        polys = []
+        for ring in rings:
+            share = max(8, int(budget * len(ring) / total))
+            if len(ring) < 4:
+                continue
+            polys.append([_simplify(ring, share)])
+        if polys:
+            features.append(
+                {
+                    "type": "Feature",
+                    "properties": {"code": code, "en": en, "ru": ru},
+                    "geometry": {"type": "MultiPolygon", "coordinates": polys},
+                }
+            )
+    return {"type": "FeatureCollection", "features": features}

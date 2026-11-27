@@ -180,6 +180,21 @@ def _regimes(client: httpx.Client, _year: int) -> tuple[bytes, str, str]:
     return _get(client, url).content, url, outlook.REGIME_SLUG
 
 
+def _geonames(client: httpx.Client, _year: int) -> tuple[bytes, str, str]:
+    from geointel.risk.sources import geonames
+
+    return _get(client, geonames.URL).content, geonames.URL, "cities15000"
+
+
+def _gvp(client: httpx.Client, _year: int) -> tuple[bytes, str, str]:
+    from geointel.risk.sources import gvp
+
+    response = client.get(gvp.URL, timeout=120)
+    response.raise_for_status()
+    count = len(response.json().get("features") or [])
+    return response.content, gvp.URL, f"{count} volcanoes"
+
+
 def _gpr(client: httpx.Client, _year: int) -> tuple[bytes, str, str]:
     return _get(client, outlook.GPR_URL).content, outlook.GPR_URL, "monthly"
 
@@ -913,6 +928,8 @@ def fetch_all(raw_dir: Path, reference_year: int | None = None) -> dict:
         "food": ("food.csv", lambda c: _food(c, year)),
         "telegram": ("telegram.json", lambda c: _telegram(c, year)),
         "regions": ("regions.geojson", lambda c: _regions(c, year)),
+        "geonames": ("geonames.zip", lambda c: _geonames(c, year)),
+        "volcanoes": ("volcanoes.json", lambda c: _gvp(c, year)),
     }
     only = {k for k in os.environ.get("GEOINTEL_SOURCES", "").split(",") if k}
     manifest: dict[str, dict] = {}

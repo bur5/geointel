@@ -252,17 +252,42 @@ def country_danger(
     }
 
 
-def apply_danger(snapshot: Mapping, signals: dict, intensity: Mapping | None = None) -> dict:
+def apply_regional(danger: dict, regional: Mapping | None) -> dict:
+    """The country level is at least the level at which most of the population lives
+    (regional alerts, later regional conflicts); the worst regions are named separately."""
+    if not regional:
+        return danger
+    danger["regional"] = {
+        "median": regional["level_median"],
+        "max": regional["level_max"],
+        "max_regions": regional["max_regions"][:6],
+        "max_population_share": regional["max_population_share"],
+    }
+    if regional["level_median"] > danger["level"]:
+        danger["level"] = regional["level_median"]
+    return danger
+
+
+def apply_danger(
+    snapshot: Mapping,
+    signals: dict,
+    intensity: Mapping | None = None,
+    regional: Mapping | None = None,
+) -> dict:
     """Add ``danger`` to every country entry of ``signals``; returns a level histogram."""
     intensity = intensity or {}
+    regional = regional or {}
     histogram = {level: 0 for level in LEVELS}
     for country in snapshot.get("countries", []):
         entry = signals["countries"].setdefault(country["iso3"], {})
-        entry["danger"] = country_danger(
-            country,
-            entry.get("adjusted"),
-            intensity.get(country["iso3"]),
-            entry.get("alert"),
+        entry["danger"] = apply_regional(
+            country_danger(
+                country,
+                entry.get("adjusted"),
+                intensity.get(country["iso3"]),
+                entry.get("alert"),
+            ),
+            regional.get(country["iso3"]),
         )
         histogram[entry["danger"]["level"]] += 1
     signals["danger_scale"] = {
