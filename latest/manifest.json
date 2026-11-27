@@ -5,8 +5,8 @@
     "version": "26.1",
     "bytes": 45955,
     "file": "ucdp_acd.bin",
-    "seconds": 1.9,
-    "retrieved_at": "2026-11-27T17:28:35.142747+00:00",
+    "seconds": 1.0,
+    "retrieved_at": "2026-11-27T18:11:49.412718+00:00",
     "errors": []
   },
   "coups": {
@@ -16,7 +16,7 @@
     "bytes": 153830,
     "file": "coups.txt",
     "seconds": 0.8,
-    "retrieved_at": "2026-11-27T17:28:35.971265+00:00",
+    "retrieved_at": "2026-11-27T18:11:50.207410+00:00",
     "errors": []
   },
   "usgs": {
@@ -26,15 +26,18 @@
     "bytes": 294613,
     "file": "usgs.csv",
     "seconds": 0.5,
-    "retrieved_at": "2026-11-27T17:28:36.456601+00:00",
+    "retrieved_at": "2026-11-27T18:11:50.679539+00:00",
     "errors": []
   },
   "gdacs": {
-    "status": "failed",
-    "errors": [
-      "TimeoutError: no answer within 360 s"
-    ],
-    "seconds": 360.0
+    "status": "ok",
+    "url": "https://www.gdacs.org/gdacsapi/api/events/geteventlist/SEARCH",
+    "version": "992 features (0 from cache)",
+    "bytes": 1463886,
+    "file": "gdacs.json",
+    "seconds": 385.0,
+    "retrieved_at": "2026-11-27T18:18:15.678066+00:00",
+    "errors": []
   },
   "tsunami": {
     "status": "ok",
@@ -43,7 +46,7 @@
     "bytes": 288499,
     "file": "tsunami.json",
     "seconds": 1.1,
-    "retrieved_at": "2026-11-27T17:34:37.607244+00:00",
+    "retrieved_at": "2026-11-27T18:18:16.803423+00:00",
     "errors": []
   },
   "worldbank": {
@@ -52,8 +55,8 @@
     "version": "WDI",
     "bytes": 4727534,
     "file": "worldbank.json",
-    "seconds": 1.5,
-    "retrieved_at": "2026-11-27T17:34:39.102680+00:00",
+    "seconds": 0.9,
+    "retrieved_at": "2026-11-27T18:18:17.745267+00:00",
     "errors": []
   },
   "fts": {
@@ -62,8 +65,8 @@
     "version": "FTS",
     "bytes": 4368060,
     "file": "fts.json",
-    "seconds": 15.9,
-    "retrieved_at": "2026-11-27T17:34:54.970510+00:00",
+    "seconds": 14.2,
+    "retrieved_at": "2026-11-27T18:18:31.943892+00:00",
     "errors": []
   },
   "advisories": {
@@ -72,8 +75,8 @@
     "version": "218 advisories",
     "bytes": 495758,
     "file": "advisories.json",
-    "seconds": 0.8,
-    "retrieved_at": "2026-11-27T17:34:55.789331+00:00",
+    "seconds": 0.9,
+    "retrieved_at": "2026-11-27T18:18:32.795966+00:00",
     "errors": []
   },
   "exposure": {
@@ -82,8 +85,8 @@
     "version": "WDI structure",
     "bytes": 5772098,
     "file": "exposure.json",
-    "seconds": 1.1,
-    "retrieved_at": "2026-11-27T17:34:56.844807+00:00",
+    "seconds": 8.4,
+    "retrieved_at": "2026-11-27T18:18:41.232049+00:00",
     "errors": []
   },
   "imf": {
@@ -93,7 +96,7 @@
     "bytes": 401301,
     "file": "imf.json",
     "seconds": 2.1,
-    "retrieved_at": "2026-11-27T17:34:58.994425+00:00",
+    "retrieved_at": "2026-11-27T18:18:43.307676+00:00",
     "errors": []
   },
   "vdem": {
@@ -102,8 +105,8 @@
     "version": "electoral-democracy-index",
     "bytes": 1109831,
     "file": "vdem.csv",
-    "seconds": 1.3,
-    "retrieved_at": "2026-11-27T17:35:00.281052+00:00",
+    "seconds": 0.9,
+    "retrieved_at": "2026-11-27T18:18:44.198653+00:00",
     "errors": []
   },
   "gpr": {
@@ -112,8 +115,8 @@
     "version": "monthly",
     "bytes": 2718208,
     "file": "gpr.xls",
-    "seconds": 0.4,
-    "retrieved_at": "2026-11-27T17:35:00.641332+00:00",
+    "seconds": 0.3,
+    "retrieved_at": "2026-11-27T18:18:44.497184+00:00",
     "errors": []
   },
   "regimes": {
@@ -122,8 +125,8 @@
     "version": "political-regime",
     "bytes": 1179482,
     "file": "regimes.csv",
-    "seconds": 0.9,
-    "retrieved_at": "2026-11-27T17:35:01.538268+00:00",
+    "seconds": 0.6,
+    "retrieved_at": "2026-11-27T18:18:45.076268+00:00",
     "errors": []
   },
   "ged": {
@@ -132,8 +135,8 @@
     "version": "33940 annual + 10994 candidate cells",
     "bytes": 3514130,
     "file": "ged.json",
-    "seconds": 2.9,
-    "retrieved_at": "2026-11-27T17:35:04.428047+00:00",
+    "seconds": 2.3,
+    "retrieved_at": "2026-11-27T18:18:47.404543+00:00",
     "errors": []
   },
   "views": {
@@ -142,8 +145,8 @@
     "version": "fatalities003_2026_10_t01",
     "bytes": 99943,
     "file": "views.json",
-    "seconds": 1.8,
-    "retrieved_at": "2026-11-27T17:35:06.216953+00:00",
+    "seconds": 1.9,
+    "retrieved_at": "2026-11-27T18:18:49.259169+00:00",
     "errors": []
   },
   "easa": {
@@ -153,7 +156,7 @@
     "bytes": 6645,
     "file": "easa.json",
     "seconds": 0.2,
-    "retrieved_at": "2026-11-27T17:35:06.388971+00:00",
+    "retrieved_at": "2026-11-27T18:18:49.440985+00:00",
     "errors": []
   },
   "undesa": {
@@ -162,8 +165,8 @@
     "version": "2024",
     "bytes": 53358,
     "file": "undesa.json",
-    "seconds": 5.5,
-    "retrieved_at": "2026-11-27T17:35:11.882655+00:00",
+    "seconds": 3.5,
+    "retrieved_at": "2026-11-27T18:18:52.898902+00:00",
     "errors": []
   },
   "protests": {
@@ -173,7 +176,7 @@
     "bytes": 5448,
     "file": "protests.json",
     "seconds": 1.3,
-    "retrieved_at": "2026-11-27T17:35:13.188552+00:00",
+    "retrieved_at": "2026-11-27T18:18:54.178525+00:00",
     "errors": []
   },
   "irregular": {
@@ -182,8 +185,8 @@
     "version": "since 2022",
     "bytes": 5334,
     "file": "irregular.json",
-    "seconds": 0.4,
-    "retrieved_at": "2026-11-27T17:35:13.635783+00:00",
+    "seconds": 0.6,
+    "retrieved_at": "2026-11-27T18:18:54.813418+00:00",
     "errors": []
   },
   "inform_severity": {
@@ -192,8 +195,8 @@
     "version": "202610",
     "bytes": 2101140,
     "file": "inform_severity.xlsx",
-    "seconds": 31.5,
-    "retrieved_at": "2026-11-27T17:35:45.139289+00:00",
+    "seconds": 20.9,
+    "retrieved_at": "2026-11-27T18:19:15.755832+00:00",
     "errors": []
   },
   "advisories_extra": {
@@ -202,8 +205,8 @@
     "version": "ca+de",
     "bytes": 268397,
     "file": "advisories_extra.json",
-    "seconds": 1.3,
-    "retrieved_at": "2026-11-27T17:35:46.474446+00:00",
+    "seconds": 1.6,
+    "retrieved_at": "2026-11-27T18:19:17.334108+00:00",
     "errors": []
   },
   "elections": {
@@ -212,8 +215,8 @@
     "version": "194 countries",
     "bytes": 160780,
     "file": "elections.json",
-    "seconds": 156.8,
-    "retrieved_at": "2026-11-27T17:38:23.306838+00:00",
+    "seconds": 212.5,
+    "retrieved_at": "2026-11-27T18:22:49.789113+00:00",
     "errors": []
   },
   "fcdo": {
@@ -222,8 +225,8 @@
     "version": "226 countries",
     "bytes": 15460338,
     "file": "fcdo.json",
-    "seconds": 43.6,
-    "retrieved_at": "2026-11-27T17:39:06.882969+00:00",
+    "seconds": 110.0,
+    "retrieved_at": "2026-11-27T18:24:39.807479+00:00",
     "errors": []
   },
   "milex": {
@@ -232,18 +235,18 @@
     "version": "military-expenditure-share-gdp",
     "bytes": 302580,
     "file": "milex.csv",
-    "seconds": 0.6,
-    "retrieved_at": "2026-11-27T17:39:07.524575+00:00",
+    "seconds": 0.7,
+    "retrieved_at": "2026-11-27T18:24:40.492981+00:00",
     "errors": []
   },
   "markets": {
     "status": "ok",
     "url": "https://gamma-api.polymarket.com/public-search",
-    "version": "1418 markets",
-    "bytes": 16356118,
+    "version": "1420 markets",
+    "bytes": 16375523,
     "file": "markets.json",
-    "seconds": 25.5,
-    "retrieved_at": "2026-11-27T17:39:33.068196+00:00",
+    "seconds": 26.3,
+    "retrieved_at": "2026-11-27T18:25:06.829282+00:00",
     "errors": []
   },
   "unhcr": {
@@ -252,8 +255,8 @@
     "version": "2025",
     "bytes": 1976865,
     "file": "unhcr.json",
-    "seconds": 1.4,
-    "retrieved_at": "2026-11-27T17:39:34.489783+00:00",
+    "seconds": 1.3,
+    "retrieved_at": "2026-11-27T18:25:08.156589+00:00",
     "errors": []
   },
   "eurostat": {
@@ -262,8 +265,8 @@
     "version": "since 2023-01",
     "bytes": 21346,
     "file": "eurostat.json",
-    "seconds": 0.5,
-    "retrieved_at": "2026-11-27T17:39:34.954563+00:00",
+    "seconds": 0.7,
+    "retrieved_at": "2026-11-27T18:25:08.866305+00:00",
     "errors": []
   },
   "trade": {
@@ -272,8 +275,8 @@
     "version": "160/203 reporters (key)",
     "bytes": 2616355,
     "file": "trade.json",
-    "seconds": 18.5,
-    "retrieved_at": "2026-11-27T17:39:53.427350+00:00",
+    "seconds": 19.4,
+    "retrieved_at": "2026-11-27T18:25:28.265953+00:00",
     "errors": []
   },
   "gdelt": {
@@ -283,7 +286,7 @@
     "bytes": 12,
     "file": "gdelt.json",
     "seconds": 0.0,
-    "retrieved_at": "2026-11-27T17:39:53.463530+00:00",
+    "retrieved_at": "2026-11-27T18:25:28.285686+00:00",
     "errors": []
   },
   "gpsjam": {
@@ -293,17 +296,17 @@
     "bytes": 13,
     "file": "gpsjam.json",
     "seconds": 0.0,
-    "retrieved_at": "2026-11-27T17:39:53.472393+00:00",
+    "retrieved_at": "2026-11-27T18:25:28.290409+00:00",
     "errors": []
   },
   "metaculus": {
     "status": "ok",
     "url": "https://www.metaculus.com/api/posts/",
     "version": "1 questions",
-    "bytes": 5150901,
+    "bytes": 5155330,
     "file": "metaculus.json",
-    "seconds": 120.9,
-    "retrieved_at": "2026-11-27T17:41:54.420885+00:00",
+    "seconds": 117.3,
+    "retrieved_at": "2026-11-27T18:27:25.613099+00:00",
     "errors": []
   },
   "sentinel": {
@@ -312,36 +315,36 @@
     "version": "13 sites",
     "bytes": 296902,
     "file": "sentinel.json",
-    "seconds": 84.3,
-    "retrieved_at": "2026-11-27T17:43:18.728234+00:00",
+    "seconds": 120.3,
+    "retrieved_at": "2026-11-27T18:29:25.899052+00:00",
     "errors": []
   },
   "media": {
     "status": "ok",
     "url": "https://api.gdeltproject.org/api/v2/doc/doc",
-    "version": "134 points",
-    "bytes": 2635,
+    "version": "67 points (skipped mobilization: HTTP 429)",
+    "bytes": 1302,
     "file": "media.json",
-    "seconds": 36.3,
-    "retrieved_at": "2026-11-27T17:43:55.057466+00:00",
+    "seconds": 309.9,
+    "retrieved_at": "2026-11-27T18:34:35.801898+00:00",
     "errors": []
   },
   "newswire": {
     "status": "ok",
     "url": "https://api.gdeltproject.org/api/v2/doc/doc",
-    "version": "400 headlines, 62 signs, 44398 tokens",
-    "bytes": 56717,
+    "version": "325 headlines, 45 signs, 36057 tokens",
+    "bytes": 41816,
     "file": "newswire.json",
-    "seconds": 386.8,
-    "retrieved_at": "2026-11-27T17:50:21.866557+00:00",
+    "seconds": 498.7,
+    "retrieved_at": "2026-11-27T18:42:54.530012+00:00",
     "errors": []
   },
   "ioda": {
     "status": "failed",
     "errors": [
-      "RuntimeError: https://api.ioda.inetintel.cc.gatech.edu/v2/outages/summary: ConnectError: [SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in violation of protocol (_ssl.c:1011); https://api.ioda.inetintel.cc.gatech.edu/v2/outages/events: HTTPStatusError: Server error '504 Gateway Time-out' for url 'https://api.ioda.inetintel.cc.gatech.edu/v2/outages/events?from=1795132800&until=1795737600&entityType=country'\nFor"
+      "TimeoutError: no answer within 300 s"
     ],
-    "seconds": 286.4
+    "seconds": 300.0
   },
   "firms": {
     "status": "ok",
@@ -350,17 +353,17 @@
     "bytes": 12,
     "file": "firms.json",
     "seconds": 0.0,
-    "retrieved_at": "2026-11-27T17:55:08.277060+00:00",
+    "retrieved_at": "2026-11-27T18:47:54.531909+00:00",
     "errors": []
   },
   "military": {
     "status": "ok",
     "url": "https://api.adsb.lol/v2/mil",
-    "version": "303 positions",
+    "version": "243 positions",
     "bytes": 144,
     "file": "military.json",
-    "seconds": 121.6,
-    "retrieved_at": "2026-11-27T17:57:09.905899+00:00",
+    "seconds": 121.7,
+    "retrieved_at": "2026-11-27T18:49:56.197718+00:00",
     "errors": []
   },
   "fx": {
@@ -370,7 +373,7 @@
     "bytes": 2935,
     "file": "fx.json",
     "seconds": 0.4,
-    "retrieved_at": "2026-11-27T17:57:10.286059+00:00",
+    "retrieved_at": "2026-11-27T18:49:56.581699+00:00",
     "errors": []
   },
   "food": {
@@ -379,18 +382,18 @@
     "version": "3170492 bytes",
     "bytes": 3170492,
     "file": "food.csv",
-    "seconds": 4.8,
-    "retrieved_at": "2026-11-27T17:57:15.107199+00:00",
+    "seconds": 8.4,
+    "retrieved_at": "2026-11-27T18:50:04.963896+00:00",
     "errors": []
   },
   "telegram": {
     "status": "ok",
     "url": "https://t.me/s/",
     "version": "12 channels",
-    "bytes": 7997,
+    "bytes": 8003,
     "file": "telegram.json",
-    "seconds": 79.3,
-    "retrieved_at": "2026-11-27T17:58:34.381994+00:00",
+    "seconds": 79.6,
+    "retrieved_at": "2026-11-27T18:51:24.555089+00:00",
     "errors": []
   },
   "regions": {
@@ -399,8 +402,8 @@
     "version": "ne_10m_admin_1",
     "bytes": 40726851,
     "file": "regions.geojson",
-    "seconds": 4.2,
-    "retrieved_at": "2026-11-27T17:58:38.542435+00:00",
+    "seconds": 0.3,
+    "retrieved_at": "2026-11-27T18:51:24.869233+00:00",
     "errors": []
   },
   "geonames": {
@@ -409,18 +412,18 @@
     "version": "cities15000",
     "bytes": 3368969,
     "file": "geonames.zip",
-    "seconds": 1.6,
-    "retrieved_at": "2026-11-27T17:58:40.160233+00:00",
+    "seconds": 1.5,
+    "retrieved_at": "2026-11-27T18:51:26.393396+00:00",
     "errors": []
   },
   "volcanoes": {
     "status": "ok",
     "url": "https://webservices.volcano.si.edu/geoserver/GVP-VOTW/ows?service=WFS&version=2.0.0&request=GetFeature&typeName=GVP-VOTW:Smithsonian_VOTW_Holocene_Volcanoes&outputFormat=application/json",
     "version": "1209 volcanoes",
-    "bytes": 2433295,
+    "bytes": 2434504,
     "file": "volcanoes.json",
-    "seconds": 0.7,
-    "retrieved_at": "2026-11-27T17:58:40.872927+00:00",
+    "seconds": 0.8,
+    "retrieved_at": "2026-11-27T18:51:27.228041+00:00",
     "errors": []
   }
 }
