@@ -721,7 +721,15 @@ def main(argv: list[str] | None = None) -> int:
     train_cmd = sub.add_parser("train", help="validate and fit the trained base models")
     train_cmd.add_argument("--out", type=Path, default=Path("data/site/trained.json"))
     train_cmd.add_argument("--raw-dir", type=Path, default=Path("data/raw-train"))
+    bb_cmd = sub.add_parser("backtest-base", help="time machine for the base model")
+    bb_cmd.add_argument("--out", type=Path, default=Path("data/site/backtest_base.json"))
+    bb_cmd.add_argument("--raw-dir", type=Path, default=Path("data/raw-backtest"))
     args = parser.parse_args(argv)
+
+    if args.command == "backtest-base":
+        from geointel.risk.backtest_cli import run as run_backtest_base
+
+        return run_backtest_base(args.out, args.raw_dir)
 
     if args.command == "train":
         from geointel.risk.train_cli import run as run_training
