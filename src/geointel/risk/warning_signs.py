@@ -403,15 +403,6 @@ SIGNS: tuple[SignSpec, ...] = (
         auto=True,
     ),
     _s(
-        "procurement_medical",
-        "logistics",
-        1.5,
-        WAR,
-        "Госзакупки: рост закупок крови, носилок, полевых госпиталей",
-        "Public procurement: more blood products, stretchers, field hospitals",
-        auto=True,
-    ),
-    _s(
         "media_mobilization",
         "personnel",
         1.3,

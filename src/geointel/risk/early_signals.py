@@ -136,31 +136,6 @@ def build(
             )
     notes["military"] = f"{len(mil_days)} days"
 
-    # Russian procurement (weekly).
-    weeks = {**_load(cache_in / "zakupki.json").get("weeks", {}), **(raw.get("zakupki") or {})}
-    weeks = dict(sorted(weeks.items())[-40:])
-    _save(cache_out / "zakupki.json", {"weeks": weeks})
-    if len(weeks) >= 12:
-        ordered = sorted(weeks.items())
-        rising = []
-        for term in early.ZAKUPKI_TERMS:
-            values = [w.get(term, 0) for _, w in ordered]
-            recent, base = values[-4:], values[:-4]
-            r = (sum(recent) / 4 + 1) / (sum(base) / len(base) + 1)
-            if r >= 1.5:
-                rising.append(f"{term} ×{r:.1f}")
-        add(
-            "RUS",
-            make_sign(
-                "procurement_medical",
-                "active" if len(rising) >= 2 else "normal",
-                ", ".join(rising) or "без резкого роста",
-                ", ".join(rising) or "no sharp rise",
-                source="zakupki.gov.ru",
-            ),
-        )
-    notes["zakupki"] = f"{len(weeks)} weeks"
-
     # Russian-language media on mobilisation and martial law (GDELT DOC, 90-day series).
     for key, sign in (("mobilization", "media_mobilization"), ("martial_law", "media_martial_law")):
         series = (raw.get("media") or {}).get(key) or {}

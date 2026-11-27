@@ -609,42 +609,6 @@ def _military(client: httpx.Client, _year: int) -> tuple[bytes, str, str]:
     return json.dumps(payload).encode(), used, f"{payload['aircraft']} positions"
 
 
-def _zakupki(client: httpx.Client, _year: int) -> tuple[bytes, str, str]:
-    today = datetime.now(UTC).date()
-    cached = _read_cache("zakupki.json").get("weeks", {})
-    weeks = early.weekly_windows(today, 26)
-    result: dict[str, dict[str, int]] = {}
-    headers = {
-        "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/124 Safari/537.36"
-    }
-    for start, end in weeks:
-        key = start.isoformat()
-        if key in cached and start < weeks[1][0]:
-            continue
-        counts: dict[str, int] = {}
-        for name, term in early.ZAKUPKI_TERMS.items():
-            try:
-                response = client.get(
-                    early.ZAKUPKI_URL,
-                    params=early.zakupki_params(term, start, end),
-                    headers=headers,
-                    timeout=20,
-                )
-            except httpx.TimeoutException as exc:
-                raise RuntimeError(
-                    "zakupki.gov.ru did not answer; it is usually closed to servers outside "
-                    "Russia, where GitHub runs"
-                ) from exc
-            response.raise_for_status()
-            total = early.zakupki_total(response.text)
-            if total is None:
-                raise RuntimeError("could not read the result count (page layout changed?)")
-            counts[name] = total
-            time.sleep(1.5)
-        result[key] = counts
-    return json.dumps({"weeks": result}).encode(), early.ZAKUPKI_URL, f"{len(result)} weeks"
-
-
 def _media(client: httpx.Client, _year: int) -> tuple[bytes, str, str]:
     series = {}
     for key, query in early.DOC_QUERIES.items():
@@ -930,7 +894,6 @@ def fetch_all(raw_dir: Path, reference_year: int | None = None) -> dict:
         "ioda": ("ioda.json", lambda c: _ioda(c, year)),
         "firms": ("firms.json", lambda c: _firms(c, year)),
         "military": ("military.json", lambda c: _military(c, year)),
-        "zakupki": ("zakupki.json", lambda c: _zakupki(c, year)),
         "media": ("media.json", lambda c: _media(c, year)),
         "fx": ("fx.json", lambda c: _fx(c, year)),
         "food": ("food.csv", lambda c: _food(c, year)),

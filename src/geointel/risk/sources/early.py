@@ -3,7 +3,6 @@
 * IODA - country-level internet outages (Georgia Tech), no key;
 * NASA FIRMS - satellite fire detections (free MAP_KEY);
 * airplanes.live - aircraft flagged as military (ADS-B), no key, 1 request/second;
-* zakupki.gov.ru - Russian public procurement search counts for war-related medical goods;
 * GDELT DOC timelines - Russian-language reporting volume on mobilisation and martial law;
 * exchange rates - open.er-api.com daily rates (attribution: exchangerate-api.com);
 * WFP food prices - Global Market Monitor (HDX).
@@ -14,7 +13,6 @@ Every fetched value is treated as data. Counts are compared with each country's 
 import csv
 import io
 import math
-import re
 from collections import defaultdict
 from collections.abc import Callable, Iterable, Mapping
 from datetime import date, timedelta
@@ -26,18 +24,9 @@ IODA_URLS = (
 FIRMS_URL = "https://firms.modaps.eosdis.nasa.gov/api/area/csv/{key}/VIIRS_SNPP_NRT/world/1/{day}"
 MIL_URL = "https://api.airplanes.live/v2/mil"
 MIL_URLS = (MIL_URL, "https://api.adsb.lol/v2/mil")
-ZAKUPKI_URL = "https://zakupki.gov.ru/epz/order/extendedsearch/results.html"
 DOC_URL = "https://api.gdeltproject.org/api/v2/doc/doc"
 FX_URL = "https://open.er-api.com/v6/latest/USD"
 HDX_PACKAGE = "https://data.humdata.org/api/3/action/package_show?id=global-market-monitor"
-
-# Russian procurement terms that rise before large-scale fighting (medical preparation).
-ZAKUPKI_TERMS = {
-    "blood": "компоненты крови",
-    "field_hospital": "полевой госпиталь",
-    "stretchers": "носилки",
-    "tourniquet": "кровоостанавливающий жгут",
-}
 
 # Russian-language media volume on legal and manpower steps towards war.
 # GDELT DOC searches the machine translation into English, so terms are English even for
@@ -182,27 +171,7 @@ BOX_COUNTRIES = {
 
 
 # --------------------------------------------------------------------------------------
-# Russian procurement
-
-
-def zakupki_params(term: str, start: date, end: date) -> dict[str, str]:
-    return {
-        "searchString": term,
-        "morphology": "on",
-        "fz44": "on",
-        "fz223": "on",
-        "publishDateFrom": start.strftime("%d.%m.%Y"),
-        "publishDateTo": end.strftime("%d.%m.%Y"),
-        "recordsPerPage": "_10",
-    }
-
-
-def zakupki_total(html: str) -> int | None:
-    match = re.search(r"search-results__total[^>]*>\s*([^<]+)<", html)
-    if not match:
-        return None
-    digits = re.sub(r"[^\d]", "", match.group(1))
-    return int(digits) if digits else None
+# Date helpers
 
 
 def weekly_windows(today: date, weeks: int) -> list[tuple[date, date]]:
