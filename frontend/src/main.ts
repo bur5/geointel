@@ -16,6 +16,7 @@ import { drawCountryMap, drawMap, neighboursOf } from './map';
 import { businessVerdict, levelLabel, relocationHorizon, relocationLevelLabel, relocationNote, relocationVerdict, spillover, travelVerdict } from './insights';
 import { alertCard } from './alerts';
 import { fillRegional } from './regionalView';
+import { humanitarianCard } from './humanitarian';
 import { applyTheme, currentTheme, nextTheme, picker, pins, searchBox, themeButton, togglePicker, togglePin, wireSearch } from './ui';
 import { dangerBadge, dangerCard, dangerName, trendChip } from './danger';
 import { BLOCS, REGIONS, groupName, groupNote, groupsOf } from './groups';
@@ -480,6 +481,7 @@ function implications(country: CountryEntry) {
   const lines = spillover(country, neighbourCountries(country), (c) => countryName(c), lang);
   return `<section class="section"><div class="section-head"><h2>${t().implicationsTitle}</h2><p>${t().implicationsLead}</p></div>
     ${countryAlert(country)}
+    ${humanitarianCard(country.humanitarian_severity, lang, escape)}
     <div class="verdicts">${verdictCard(t().forTravel, 'travel', travel, travelExtra)}${verdictCard(t().forBusiness, 'business', businessOf(country))}${relocationCard(country)}
       <article class="verdict"><h3>${t().forOthers}</h3><ul>${lines.map((l) => `<li>${escape(l)}</li>`).join('')}</ul>
       ${groupsOf(country.iso3).filter((g) => g.kind === 'bloc').length ? `<h4 class="sub">${t().memberOf}</h4><p class="muted-text">${groupsOf(country.iso3).filter((g) => g.kind === 'bloc').map((g) => escape(groupName(g, lang)) + (groupNote(g, lang) ? ` — ${escape(groupNote(g, lang)!)}` : '')).join('<br>')}</p>` : ''}</article></div></section>

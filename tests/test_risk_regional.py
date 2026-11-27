@@ -99,3 +99,54 @@ def test_ged_links_and_region_levels():
     ]
     levels = ucdp_ged.region_levels(items, INDEX.locate, date(2026, 11, 27))["USA"]
     assert levels["FL"]["level"] == 5 and levels["CA"]["level"] == 4 and "MN" not in levels
+
+
+def _xlsx(rows):
+    import io
+    import zipfile
+
+    def cell(ref, v):
+        return f'<c r="{ref}" t="inlineStr"><is><t>{v}</t></is></c>'
+
+    body = "".join(
+        f'<row r="{i + 1}">'
+        + "".join(cell(f"{chr(65 + j)}{i + 1}", v) for j, v in enumerate(r))
+        + "</row>"
+        for i, r in enumerate(rows)
+    )
+    ns = 'xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"'
+    rel = 'xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"'
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w") as z:
+        z.writestr(
+            "xl/workbook.xml",
+            f'<workbook {ns} {rel}><sheets><sheet name="Crises" '
+            'sheetId="1" r:id="rId1"/></sheets></workbook>',
+        )
+        z.writestr(
+            "xl/_rels/workbook.xml.rels",
+            '<Relationships xmlns="http://schemas.'
+            'openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" '
+            'Target="worksheets/sheet1.xml"/></Relationships>',
+        )
+        z.writestr(
+            "xl/worksheets/sheet1.xml", f"<worksheet {ns}><sheetData>{body}</sheetData></worksheet>"
+        )
+    return buf.getvalue()
+
+
+def test_inform_severity_parse():
+    from geointel.risk.sources import inform_severity
+
+    payload = _xlsx(
+        [
+            ["INFORM Severity"],
+            ["Crisis name", "ISO3", "INFORM Severity Index", "INFORM Severity category", "Impact"],
+            ["Sudan conflict", "SDN", "4.9", "Very High", "5"],
+            ["Sudan floods", "SDN", "3.1", "High", "3"],
+            ["Haiti", "HTI", "4,2", "Very High", "4"],
+        ]
+    )
+    parsed = inform_severity.parse(payload)
+    assert parsed["SDN"]["score"] == 4.9 and parsed["SDN"]["crisis"] == "Sudan conflict"
+    assert parsed["HTI"]["score"] == 4.2 and parsed["HTI"]["impact"] == 4.0

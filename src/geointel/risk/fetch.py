@@ -243,6 +243,15 @@ def _ged(client: httpx.Client, year: int) -> tuple[bytes, str, str]:
     )
 
 
+def _inform_severity(client: httpx.Client, _year: int) -> tuple[bytes, str, str]:
+    from geointel.risk.sources import inform_severity as inf
+
+    url = inf.latest_resource(_get(client, inf.PACKAGE).json())
+    if not url:
+        raise RuntimeError("no INFORM Severity file on HDX")
+    return _get(client, url).content, url, url.rsplit("/", 1)[-1][:6]
+
+
 def _gpr(client: httpx.Client, _year: int) -> tuple[bytes, str, str]:
     return _get(client, outlook.GPR_URL).content, outlook.GPR_URL, "monthly"
 
@@ -955,6 +964,7 @@ def fetch_all(raw_dir: Path, reference_year: int | None = None) -> dict:
         "gpr": ("gpr.xls", lambda c: _gpr(c, year)),
         "regimes": ("regimes.csv", lambda c: _regimes(c, year)),
         "ged": ("ged.json", lambda c: _ged(c, year)),
+        "inform_severity": ("inform_severity.xlsx", lambda c: _inform_severity(c, year)),
         "advisories_extra": ("advisories_extra.json", lambda c: _advisories_extra(c, year)),
         "elections": ("elections.json", lambda c: _elections(c, year)),
         "fcdo": ("fcdo.json", lambda c: _fcdo(c, year)),

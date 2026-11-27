@@ -108,6 +108,13 @@ def load_histories(
     def democracy(path: Path) -> None:
         extras["democracy"] = outlook.owid_latest(path.read_text())
 
+    def severity(path: Path) -> None:
+        from geointel.risk.sources import inform_severity
+
+        extras["severity"] = inform_severity.parse(path.read_bytes())
+        top = sorted(extras["severity"].items(), key=lambda kv: -kv[1]["score"])[:8]
+        print("[severity] " + ", ".join(f"{k}:{v['score']} {v['crisis'][:30]}" for k, v in top))
+
     def ged(path: Path) -> None:
         extras["ged"] = json.loads(path.read_text())
 
@@ -237,6 +244,7 @@ def load_histories(
         ("vdem", outlook.VDEM_SOURCE, democracy),
         ("regimes", outlook.REGIME_SOURCE, regimes),
         ("ged", "UCDP GED and Candidate events", ged),
+        ("inform_severity", "INFORM Severity Index (EC JRC)", severity),
         ("advisories_extra", "Global Affairs Canada; Auswärtiges Amt travel advice", ministries),
         ("gpr", outlook.GPR_SOURCE, gpr),
         ("elections", elections.SOURCE, votes),
