@@ -25,23 +25,29 @@ test.beforeEach(async ({ page }) => {
   await page.route('**/data/accuracy.json', (route) => route.fulfill({ body: accuracy, contentType: 'application/json' }));
 });
 
+async function pickType(page: import('@playwright/test').Page, key: string) {
+  await page.locator('[data-picker-toggle]').click();
+  await page.locator(`[data-pick="${key}"]`).click();
+}
+
 test('overview renders live snapshot with map and ranking', async ({ page }) => {
   const errors: string[] = [];
   page.on('pageerror', (error) => errors.push(error.message));
   await page.setViewportSize({ width: 1440, height: 1000 });
   await page.goto('/');
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Где в мире сейчас опаснее всего');
+  await pickType(page, 'internal_armed_conflict');
   await expect(page.locator('#map path.country.active').first()).toBeVisible();
   await expect(page.locator('.ranking button')).not.toHaveCount(0);
   await shoot(page, 'overview-desktop');
   await page.getByRole('button', { name: '10 лет' }).click();
   await expect(page.getByRole('button', { name: '10 лет' })).toHaveAttribute('aria-pressed', 'true');
-  await page.locator('[data-field="type"]').selectOption('major_earthquake');
+  await pickType(page, 'major_earthquake');
   await expect(page.locator('#map')).toBeVisible();
-  await page.locator('[data-field="type"]').selectOption('view_travel');
+  await pickType(page, 'view_travel');
   await expect(page.locator('#map path.country.v-critical').first()).toBeVisible();
   await shoot(page, 'overview-travel');
-  await page.locator('[data-field="type"]').selectOption('internal_armed_conflict');
+  await pickType(page, 'internal_armed_conflict');
   await page.getByRole('button', { name: 'Блокам' }).click();
   await expect(page.locator('.group-card').first()).toBeVisible();
   await shoot(page, 'overview-blocs');

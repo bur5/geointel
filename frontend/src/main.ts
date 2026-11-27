@@ -15,8 +15,9 @@ import { dictionaries } from './i18n';
 import { drawCountryMap, drawMap, neighboursOf } from './map';
 import { businessVerdict, levelLabel, relocationHorizon, relocationLevelLabel, relocationNote, relocationVerdict, spillover, travelVerdict } from './insights';
 import { alertCard } from './alerts';
-import { dangerCard } from './danger';
 import { fillRegional } from './regionalView';
+import { applyTheme, currentTheme, nextTheme, picker, pins, searchBox, themeButton, togglePicker, togglePin, wireSearch } from './ui';
+import { dangerBadge, dangerCard, dangerName, trendChip } from './danger';
 import { BLOCS, REGIONS, groupName, groupNote, groupsOf } from './groups';
 import type { Group } from './groups';
 import type { Level, Verdict } from './insights';
@@ -40,7 +41,9 @@ const stored = (key: string) => { try { return localStorage.getItem(key); } catc
 const store = (key: string, value: string) => { try { localStorage.setItem(key, value); } catch { /* ignore */ } };
 
 let lang: Lang = (new URLSearchParams(location.search).get('lang') ?? stored('geointel.lang')) === 'en' ? 'en' : 'ru';
-let eventType = stored('geointel.type') ?? 'internal_armed_conflict';
+let eventType = stored('geointel.type') ?? 'view_danger';
+let theme = currentTheme();
+applyTheme(theme);
 let horizon: HorizonKey = (stored('geointel.horizon') as HorizonKey | null) ?? '1y';
 let selected = stored('geointel.country') ?? 'UKR';
 let lens: 'countries' | 'regions' | 'blocs' = (stored('geointel.lens') as 'regions' | 'blocs' | null) ?? 'countries';
@@ -60,7 +63,7 @@ let btCase = stored('geointel.btcase') ?? 'ukraine_2022';
 let currentScenario = stored('geointel.scenario') ?? 'russia_nato';
 let chainEvent: ChainEvent = (stored('geointel.chain') as ChainEvent | null) ?? 'conflict';
 let migMode: 'hosted' | 'abroad' = stored('geointel.migmode') === 'abroad' ? 'abroad' : 'hosted';
-const VIEWS = ['view_travel', 'view_business'] as const;
+const VIEWS = ['view_danger', 'view_travel', 'view_business'] as const;
 const isView = (key: string) => (VIEWS as readonly string[]).includes(key);
 const levelClass = (level: Level) => (['', 'low', 'elevated', 'high', 'critical'] as const)[level];
 
@@ -115,6 +118,7 @@ const travelOf = (c: CountryEntry) => { const v = travelVerdict(c, labelOf, lang
 const businessOf = (c: CountryEntry) => { const v = businessVerdict(c, labelOf, lang, hazardsData); return { ...v, level: floorLevel(v.level, c) }; };
 const viewVerdict = (c: CountryEntry): Verdict => (eventType === 'view_travel' ? travelOf(c) : businessOf(c));
 const viewKind = () => (eventType === 'view_travel' ? 'travel' : 'business') as 'travel' | 'business';
+const dangerLevelOf = (c: CountryEntry) => dangerOf(c)?.level ?? 0;
 const relocBadge = (level: Level) =>
   `<span class="level level-${levelClass(level)}" title="${escape(relocationHorizon('mid', lang))}"><b>${level}</b>${escape(relocationLevelLabel(level, lang))}</span>`;
 const levelBadge = (kind: 'travel' | 'business', level: Level) =>
@@ -183,16 +187,24 @@ function summarySentences(country: CountryEntry | undefined, h: HorizonKey): str
   return lines.map((line) => `<p>${escape(line)}</p>`).join('') + `<p class="caveat">${t().summaryCaveat}</p>`;
 }
 
-function typeSelect() {
+const dangerNote = () => (lang === 'ru'
+  ? 'Уровень опасности 1–5: насколько опасно в стране сейчас (войны, конфликты, перевороты, кризисы; бедствия — по регионам) с учётом рекомендаций МИД.'
+  : 'Danger level 1–5: how dangerous the country is now (wars, conflicts, coups, crises; hazards by region), with foreign-ministry advice.');
+
+function pickGroups() {
   const groups = [['conflict', t().groupConflict], ['natural', t().groupNatural], ['society', t().groupSociety]] as const;
-  return groups.map(([group, label]) => {
-    const options = (snapshot?.event_types ?? []).filter((e) => (e.group ?? 'conflict') === group).map((entry) => {
-      const suffix = !entry.modeled ? ` (${t().notModeled})` : !entry.available ? ` (${t().unavailable})` : '';
-      return `<option value="${entry.key}"${entry.key === eventType ? ' selected' : ''}${entry.available ? '' : ' disabled'}>${escape(typeLabel(entry) + suffix)}</option>`;
-    }).join('');
-    return options ? `<optgroup label="${escape(label)}">${options}</optgroup>` : '';
-  }).join('') + `<optgroup label="${escape(t().groupViews)}">${VIEWS.map((key) =>
-    `<option value="${key}"${key === eventType ? ' selected' : ''}>${escape(key === 'view_travel' ? t().viewTravel : t().viewBusiness)}</option>`).join('')}</optgroup>`;
+  const views = { label: escape(t().groupViews), items: [
+    { key: 'view_danger', label: lang === 'ru' ? 'Уровень опасности' : 'Danger level' },
+    { key: 'view_travel', label: escape(t().viewTravel) },
+    { key: 'view_business', label: escape(t().viewBusiness) },
+  ] };
+  return [views, ...groups.map(([group, label]) => ({
+    label: escape(label),
+    items: (snapshot?.event_types ?? []).filter((e) => (e.group ?? 'conflict') === group).map((e) => ({
+      key: e.key, label: escape(typeLabel(e)), disabled: !e.available,
+      note: !e.modeled ? escape(t().notModeled) : !e.available ? escape(t().unavailable) : undefined,
+    })),
+  }))].filter((g) => g.items.length);
 }
 
 function horizonSwitch() {
@@ -220,6 +232,9 @@ function stats() {
 }
 
 function legend() {
+  if (eventType === 'view_danger') {
+    return `<div class="legend">${[1, 2, 3, 4, 5].map((l) => `<span class="legend-key"><i class="sw-d${l}"></i>${l} — ${escape(dangerName(l, lang))}</span>`).join('')}<span class="legend-key"><i class="swatch-none"></i>${t().legendNoData}</span></div>`;
+  }
   if (isView(eventType)) {
     const kind = viewKind();
     return `<div class="legend">${([1, 2, 3, 4] as Level[]).map((l) => `<span class="legend-key"><i class="sw-${levelClass(l)}"></i>${l} — ${escape(levelLabel(kind, l, lang))}</span>`).join('')}</div>`;
@@ -236,8 +251,8 @@ function legend() {
 function mapBlock() {
   return `<section class="map-card" aria-label="${escape(isView(eventType) ? t().groupViews : typeLabel(typeEntry(eventType)))}">
     <div class="toolbar">
-      <label class="select"><span>${t().eventType}</span><select data-field="type">${typeSelect()}</select></label>
-      ${isView(eventType) ? `<p class="toolbar-note">${eventType === 'view_travel' ? t().viewTravelNote : t().viewBusinessNote}</p>` : `<div class="toolbar-group"><span>${t().horizon}</span>${horizonSwitch()}</div>`}
+      ${picker(t().eventType, eventType, pickGroups())}
+      ${isView(eventType) ? `<p class="toolbar-note">${eventType === 'view_danger' ? dangerNote() : eventType === 'view_travel' ? t().viewTravelNote : t().viewBusinessNote}</p>` : `<div class="toolbar-group"><span>${t().horizon}</span>${horizonSwitch()}</div>`}
     </div>
     <div class="map-stage" id="map"><svg viewBox="0 0 900 440" role="img" tabindex="0" aria-label="${escape(typeLabel(typeEntry(eventType)))}">
       <defs><pattern id="hatch" patternUnits="userSpaceOnUse" width="6" height="6" patternTransform="rotate(45)">
@@ -316,6 +331,9 @@ function briefPanel() {
 }
 
 function ranking() {
+  if (eventType === 'view_danger') {
+    return `<div class="legend">${[1, 2, 3, 4, 5].map((l) => `<span class="legend-key"><i class="sw-d${l}"></i>${l} — ${escape(dangerName(l, lang))}</span>`).join('')}<span class="legend-key"><i class="swatch-none"></i>${t().legendNoData}</span></div>`;
+  }
   if (isView(eventType)) {
     const kind = viewKind();
     const rows = (snapshot?.countries ?? []).map((c) => ({ c, v: viewVerdict(c) }))
@@ -336,12 +354,51 @@ function ranking() {
       <span class="rank-name">${escape(countryName(c))}${r.active ? ongoingTag() : ''}</span>${value(r, horizon)}</button></li>`).join('')}</ol></section>`;
 }
 
+function pinnedStrip() {
+  const list = pins().map((iso) => byIso().get(iso)).filter((c): c is CountryEntry => !!c);
+  const title = lang === 'ru' ? 'Мои страны' : 'My countries';
+  if (!list.length) {
+    return `<section class="pinned empty"><h2>${title}</h2><p class="muted-text">${lang === 'ru' ? 'Добавьте страны кнопкой «☆ В мои страны» на странице страны — здесь будет их уровень опасности и что изменилось.' : 'Add countries with the "☆ My countries" button on a country page to see their danger level and changes here.'}</p></section>`;
+  }
+  return `<section class="pinned"><h2>${title}</h2><div class="pinned-row">${list.map((c) => {
+    const d = dangerOf(c);
+    return `<button type="button" class="pin-card" data-select="${c.iso3}"><span class="pin-name">${escape(countryName(c))}</span>
+      ${d ? dangerBadge(d.level, lang) + trendChip(d, lang) : '<span class="muted-text small">…</span>'}</button>`;
+  }).join('')}</div></section>`;
+}
+
 function overview() {
   const grouped = lens !== 'countries' && !isView(eventType);
   return `<section class="hero"><h1>${t().heroTitle}</h1><p>${t().heroLead}</p>${stats()}</section>
+    ${pinnedStrip()}
     ${lensSwitch()}
     <div class="explorer">${mapBlock()}${grouped ? groupPanel() : briefPanel()}</div>
     ${grouped ? groupGrid() : ranking()}`;
+}
+
+function pinButton(iso3: string) {
+  const on = pins().includes(iso3);
+  const label = lang === 'ru' ? (on ? '★ В моих странах' : '☆ В мои страны') : (on ? '★ In my countries' : '☆ My countries');
+  return `<button type="button" class="pin-button" data-pin="${iso3}" aria-pressed="${on}">${label}</button>`;
+}
+
+function countryHero(country: CountryEntry) {
+  const d = dangerOf(country);
+  const reloc = relocationParts(country)[1];
+  const tile = (title: string, badge: string) => `<div class="hero-tile"><span>${title}</span>${badge}</div>`;
+  return `<div class="country-hero">
+    <div class="hero-level">${d ? `<span class="hero-caption">${lang === 'ru' ? 'Уровень опасности' : 'Danger level'}</span>${dangerBadge(d.level, lang)}${trendChip(d, lang)}` : ''}</div>
+    ${tile(t().forTravel, levelBadge('travel', travelOf(country).level))}
+    ${tile(t().forBusiness, levelBadge('business', businessOf(country).level))}
+    ${tile(t().forRelocation, relocBadge(reloc.level))}
+  </div>`;
+}
+
+function sectionNav() {
+  const items = lang === 'ru'
+    ? [['alert-card', 'Что это значит'], ['regional', 'Регионы'], ['country-signals', 'Признаки'], ['country-scenarios', 'Сценарии'], ['country-links', 'Связи'], ['hazards', 'Бедствия'], ['country-migration', 'Миграция'], ['all-risks', 'Все риски']]
+    : [['alert-card', 'What it means'], ['regional', 'Regions'], ['country-signals', 'Signs'], ['country-scenarios', 'Scenarios'], ['country-links', 'Links'], ['hazards', 'Hazards'], ['country-migration', 'Migration'], ['all-risks', 'All risks']];
+  return `<nav class="section-nav" aria-label="${lang === 'ru' ? 'Разделы страницы' : 'Page sections'}">${items.map(([id, label]) => `<a href="#${id}" data-jump="${id}">${label}</a>`).join('')}</nav>`;
 }
 
 function countryPage() {
@@ -368,9 +425,11 @@ function countryPage() {
   }).join('');
   return `<section class="page-head country-head">
       <label class="select compact"><span>${t().searchCountry}</span><select data-field="country">${countryOptions()}</select></label>
-      <h1>${escape(countryName(country, selected))}</h1>
+      <div class="country-title"><h1>${escape(countryName(country, selected))}</h1>${country ? pinButton(country.iso3) : ''}</div>
+      ${country ? countryHero(country) : ''}
       <div class="lead-summary"><h2>${t().summaryTitle}</h2>${summarySentences(country, '1y')}</div>
     </section>
+    ${country ? sectionNav() : ''}
     ${country ? implications(country) : ''}
     <section class="section" id="regional" aria-live="polite"></section>
     <section class="section" id="country-signals">${countrySignals(viewContext(), signalsData, country)}</section>
@@ -379,7 +438,7 @@ function countryPage() {
     <section class="section hazards" id="hazards" aria-live="polite"><div class="section-head"><h2>${t().hazardsTitle}</h2><p>${t().hazardsLead}</p></div>
       <div class="loading-inline">${t().hazardsLoading}</div></section>
     <section class="section" id="country-migration">${migrationSection(viewContext(), selected, linksData)}</section>
-    <section class="section"><div class="section-head"><h2>${t().allRisks}</h2><p>${t().intervalText}</p></div><div class="risk-blocks">${blocks}</div></section>`;
+    <section class="section" id="all-risks"><div class="section-head"><h2>${t().allRisks}</h2><p>${t().intervalText}</p></div><div class="risk-blocks">${blocks}</div></section>`;
 }
 
 function verdictCard(title: string, kind: 'travel' | 'business', v: Verdict, extra = '') {
@@ -588,10 +647,14 @@ function render() {
       <a class="brand" href="#overview" aria-label="${t().brand}"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><ellipse cx="12" cy="12" rx="4.2" ry="10"/><path d="M2 12h20"/></svg><span>${t().brand}</span></a>
       <nav aria-label="Primary">${pages.map(([key, label]) =>
         `<a href="#${key}"${key === page ? ' aria-current="page"' : ''}>${t()[label]}</a>`).join('')}</nav>
-      <div class="topbar-meta">${snapshot ? `<span class="updated">${t().updated} ${formatDate(snapshot.generated_at)}</span>` : ''}<button type="button" class="lang" data-lang>${t().langSwitch}</button></div>
+      <div class="topbar-meta">${snapshot ? searchBox(lang) : ''}${snapshot ? `<span class="updated">${t().updated} ${formatDate(snapshot.generated_at)}</span>` : ''}${themeButton(theme, lang)}<button type="button" class="lang" data-lang>${t().langSwitch}</button></div>
     </header>
     <main id="workspace" tabindex="-1">${body(page)}</main>
     <footer class="footer">${t().brand}. ${t().summaryCaveat} Natural Earth.</footer>`;
+  if (snapshot) {
+    wireSearch(root, () => (snapshot?.countries ?? []).map((c) => ({ iso3: c.iso3, name: countryName(c), level: dangerLevelOf(c) || undefined })),
+      (iso) => { selectCountry(iso); if (currentPage() !== 'country') location.hash = '#country'; else window.scrollTo(0, 0); }, lang);
+  }
   if (page === 'country' && snapshot) {
     void fillHazards(selected);
     const iso = selected;
@@ -605,6 +668,7 @@ function render() {
     updateMapSelection = drawMap(map, [...shapes].find(([, iso]) => iso === selected)?.[0] ?? '',
       (key) => {
         const country = countries.get(shapes.get(key) ?? '');
+        if (eventType === 'view_danger') return country && dangerLevelOf(country) ? 'd-' + dangerLevelOf(country) : '';
         if (isView(eventType)) return country ? 'v-' + levelClass(viewVerdict(country).level) : '';
         const group = lens !== 'countries' ? currentGroup() : undefined;
         if (group && !group.members.includes(country?.iso3 ?? '')) return 'dimmed';
@@ -616,6 +680,7 @@ function render() {
         const country = countries.get(shapes.get(key) ?? '');
         const risk = country?.risks[eventType];
         const label = country ? countryName(country) : fallback;
+        if (country && eventType === 'view_danger') { const d = dangerLevelOf(country); return d ? `${label}: ${d} — ${dangerName(d, lang)}` : label; }
         if (country && isView(eventType)) return `${label}: ${viewVerdict(country).level} — ${levelLabel(viewKind(), viewVerdict(country).level, lang)}`;
         if (!risk) return label + ': ' + t().legendNoData.toLowerCase();
         const v = risk.horizons[horizon];
@@ -691,6 +756,15 @@ function selectCountry(iso3: string) {
 
 root.addEventListener('click', (event) => {
   const target = event.target as HTMLElement;
+  if (target.closest('[data-theme-cycle]')) { theme = nextTheme(theme); applyTheme(theme); render(); return; }
+  if (target.closest('[data-picker-toggle]')) { togglePicker(root); return; }
+  const pick = target.closest<HTMLElement>('[data-pick]')?.dataset.pick;
+  if (pick) { eventType = pick; store('geointel.type', pick); render(); return; }
+  if (!target.closest('.picker')) togglePicker(root, false);
+  const pin = target.closest<HTMLElement>('[data-pin]')?.dataset.pin;
+  if (pin) { togglePin(pin); render(); return; }
+  const jump = target.closest<HTMLElement>('[data-jump]')?.dataset.jump;
+  if (jump) { event.preventDefault(); root.querySelector(`#${jump}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' }); return; }
   const select = target.closest<HTMLElement>('[data-select]')?.dataset.select;
   if (select) {
     selectCountry(select);
@@ -748,6 +822,7 @@ root.addEventListener('change', (event) => {
 });
 
 root.addEventListener('keydown', (event) => {
+  if (event.key === 'Escape') togglePicker(root, false);
   const node = (event.target as Element).closest?.('g[data-select]') as SVGGElement | null;
   if (node && (event.key === 'Enter' || event.key === ' ')) {
     event.preventDefault();
