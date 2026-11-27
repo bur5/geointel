@@ -34,6 +34,13 @@ def test_political_crisis_detection_counts_outlets_and_window():
             "url": "4",
         },
         {"date": "2026-11-21", "country": "ITA", "sign": "unrest", "domain": "e.com", "url": "5"},
+        {
+            "date": "2026-11-21",
+            "country": "RUS",
+            "sign": "elite_split",
+            "domain": "f.com",
+            "url": "6",
+        },
     ]
     out = political_crisis_now(news, date(2026, 11, 27))
     assert set(out) == {"FRA", "PER"}
