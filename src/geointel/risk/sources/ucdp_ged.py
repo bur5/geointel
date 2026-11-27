@@ -38,8 +38,14 @@ def links(html: str) -> dict[str, str | None]:
     }
 
 
-def cells(text: str, min_year: int) -> list[dict]:
-    """Deaths by country, 0.1° cell and month (events from ``min_year`` on)."""
+CELLS_VERSION = 2  # cells carry the UCDP type of violence (1.10.0)
+STATE_BASED = 1  # 1 state-based, 2 non-state (e.g. cartels fighting each other), 3 one-sided
+
+
+def cells(text: str, min_year: int, seen: set | None = None) -> list[dict]:
+    """Deaths by country, 0.1° cell, month and UCDP type of violence (events from
+    ``min_year`` on). ``seen`` collects event ids so that an event present in two files
+    (the cumulative and the latest Candidate release) is counted once."""
     acc: dict[tuple, float] = defaultdict(float)
     for row in csv.DictReader(io.StringIO(text)):
         try:
@@ -50,14 +56,23 @@ def cells(text: str, min_year: int) -> list[dict]:
             continue
         if year < min_year:
             continue
+        event_id = str(row.get("id") or "").strip()
+        if seen is not None and event_id:
+            if event_id in seen:
+                continue
+            seen.add(event_id)
         month = str(row.get("date_start") or "")[:7] or f"{year}-01"
         code = resolve_country_name(str(row.get("country") or ""))
         if not code:
             continue
-        acc[(code, round(lat, 1), round(lon, 1), month)] += deaths
+        try:
+            kind = int(row.get("type_of_violence") or STATE_BASED)
+        except ValueError:
+            kind = STATE_BASED
+        acc[(code, round(lat, 1), round(lon, 1), month, kind)] += deaths
     return [
-        {"iso3": c, "lat": la, "lon": lo, "month": m, "deaths": round(d, 1)}
-        for (c, la, lo, m), d in acc.items()
+        {"iso3": c, "lat": la, "lon": lo, "month": m, "type": k, "deaths": round(d, 1)}
+        for (c, la, lo, m, k), d in acc.items()
     ]
 
 
@@ -76,26 +91,33 @@ def region_levels(items: Iterable[Mapping], locate, today: date) -> dict[str, di
     """
     recent: dict[tuple[str, str], float] = defaultdict(float)
     year: dict[tuple[str, str], float] = defaultdict(float)
+    state_recent: dict[tuple[str, str], float] = defaultdict(float)
     for item in items:
         y, m = int(item["month"][:4]), int(item["month"][5:7])
+        # Months back from the current one: 0..11 is twelve months, 0..2 three months
+        # (the windows were one month too long before 1.10.0, Fable round 4 #6).
         age = (today.year - y) * 12 + today.month - m
-        if age > 12 or age < 0:
+        if age >= 12 or age < 0:
             continue
         found = locate(item["iso3"], item["lat"], item["lon"])
         if not found:
             continue
         key = (item["iso3"], found[2])
         year[key] += item["deaths"]
-        if age <= 3:
+        if age < 3:
             recent[key] += item["deaths"]
+            if int(item.get("type", STATE_BASED)) == STATE_BASED:
+                state_recent[key] += item["deaths"]
     out: dict[str, dict[str, dict]] = defaultdict(dict)
     for key, deaths in year.items():
         r = recent.get(key, 0.0)
+        # Level 5 ("war zone") only from fighting that involves a state; violence between
+        # armed groups (cartels) or attacks on civilians alone stop at 4 (Fable round 4, #8).
         level = (
             5
-            if r >= 250
+            if state_recent.get(key, 0.0) >= 250
             else 4
-            if r >= 50 or deaths >= 150
+            if r >= 50 or deaths >= 150 or r >= 250
             else 3
             if deaths >= 25
             else 2

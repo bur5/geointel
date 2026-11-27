@@ -56,6 +56,8 @@ HAZARD_CAP = 1
 # Countries whose current interstate wars are fought abroad (expeditionary strikes).
 EXPEDITIONARY = frozenset({"USA", "GBR", "FRA", "CAN", "AUS"})
 
+ONSET_CAP = 3
+REGIONAL_FLOOR_CAP = 4
 WAR_KIND = {"interstate_conflict": "interstate", "internal_armed_conflict": "internal"}
 
 NAMES = {
@@ -207,6 +209,11 @@ def country_danger(
             continue
         p12 = annualised(horizons)
         level = type_level(risk, p12)
+        if risk in WAR_KIND:
+            # The forecast event is 25+ battle deaths a year, a minor conflict. Its probability
+            # must not rank above an ongoing minor conflict, so it gives at most level 3; level
+            # 4 comes from a war actually being fought (Fable round 4, #4; 1.10.0).
+            level = min(level, ONSET_CAP)
         if risk in HAZARDS:
             raw = 1 + sum(1 for x in THRESHOLDS[CLASS[risk]] if p12 >= x)
             if raw > 1:
@@ -265,8 +272,13 @@ def apply_regional(danger: dict, regional: Mapping | None) -> dict:
         "max_regions": regional["max_regions"][:6],
         "max_population_share": regional["max_population_share"],
     }
-    if regional["level_median"] > danger["level"]:
-        danger["level"] = regional["level_median"]
+    # Until levels are computed on a population grid, first-level regions are too coarse to
+    # make a whole country "extreme": fighting in part of Oromia and Amhara put all of
+    # Ethiopia at 5. The regional floor lifts a country to 4 at most; regions keep their own
+    # level 5 on the map (Fable round 4, 3.3; 1.10.0).
+    floor = min(regional["level_median"], REGIONAL_FLOOR_CAP)
+    if floor > danger["level"]:
+        danger["level"] = floor
     return danger
 
 

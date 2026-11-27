@@ -827,6 +827,7 @@ def main(argv: list[str] | None = None) -> int:
                 json.dumps(
                     {
                         "ged_url": ged_payload.get("ged_url"),
+                        "version": ged_payload.get("version"),
                         "annual": ged_payload.get("annual", []),
                     },
                     separators=(",", ":"),

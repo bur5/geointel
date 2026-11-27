@@ -128,7 +128,11 @@ def transition_counts(
     return Counts(s01, t01), Counts(s11, t11)
 
 
-def fit_prior(counts: Iterable[Counts], fallback: BetaPrior | None = None) -> BetaPrior:
+def fit_prior(
+    counts: Iterable[Counts],
+    fallback: BetaPrior | None = None,
+    max_strength: float = 400.0,
+) -> BetaPrior:
     """Method-of-moments Beta prior across countries (empirical Bayes)."""
     usable = [c for c in counts if c.trials >= 1.0]
     if not usable:
@@ -139,7 +143,7 @@ def fit_prior(counts: Iterable[Counts], fallback: BetaPrior | None = None) -> Be
     sampling_var = fmean([mean * (1 - mean) / c.trials for c in usable])
     between = max(observed_var - sampling_var, mean * (1 - mean) / 400)
     strength = mean * (1 - mean) / between - 1
-    strength = min(max(strength, 2.0), 400.0)
+    strength = min(max(strength, 2.0), max_strength)
     return BetaPrior(mean * strength, (1 - mean) * strength)
 
 
@@ -201,12 +205,20 @@ def group_priors(
     for iso3, c in counts.items():
         if iso3 in groups:
             members.setdefault(groups[iso3], []).append(c)
-    return {
-        g: fit_prior(cs, fallback)
-        if sum(1 for c in cs if c.trials >= 1.0) >= MIN_GROUP_COUNTRIES
-        else fallback
-        for g, cs in members.items()
-    }
+    # Within a small group the spread between countries is often not detectable against
+    # sampling noise; the prior then hit the 400 cap and every member got the same number
+    # (US, Thailand and Egypt all ~7.5% a year for coups). The prior may weigh at most twice
+    # a member's typical weighted history, so a country's own record still counts
+    # (Fable round 4, #2; 1.10.0).
+    out = {}
+    for g, cs in members.items():
+        usable = [c for c in cs if c.trials >= 1.0]
+        if len(usable) < MIN_GROUP_COUNTRIES:
+            out[g] = fallback
+            continue
+        cap = max(2.0, 2.0 * fmean(c.trials for c in usable))
+        out[g] = fit_prior(usable, fallback, max_strength=cap)
+    return out
 
 
 def assess_type(

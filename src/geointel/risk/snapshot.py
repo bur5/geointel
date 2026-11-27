@@ -12,12 +12,15 @@ SCHEMA = "geointel-risk-snapshot-v1"
 
 def coup_groups(history: TypeHistory, regimes: dict) -> dict[str, str]:
     """Group countries by V-Dem Regimes of the World (0 closed autocracy … 3 liberal
-    democracy) and whether a coup or attempt happened in the last 20 years."""
+    democracy) and whether coups or attempts happened in 2+ of the last 20 years."""
     recent_from = history.end_year - 19
     groups = {}
     for iso3, item in regimes.items():
         regime = int(round(float(item["value"])))
-        recent = any(y >= recent_from for y in history.years_with_event.get(iso3, ()))
+        # Two or more coup years in 20 years: one disputed episode (the Cline Center codes
+        # 6 January 2021 as an attempt) must not move a stable democracy into the coup group;
+        # the episode stays in the country's own history (Fable round 4, #3; 1.10.0).
+        recent = sum(1 for y in history.years_with_event.get(iso3, ()) if y >= recent_from) >= 2
         groups[iso3] = f"{regime}|{'coup20' if recent else 'none20'}"
     return groups
 

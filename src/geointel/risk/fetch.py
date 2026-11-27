@@ -235,7 +235,8 @@ def _ged(client: httpx.Client, year: int) -> tuple[bytes, str, str]:
     urls = ucdp_ged.links(_get(client, ucdp_ged.DOWNLOADS).text)
     cached = _read_cache("ged_cells.json")
     min_year = year - ucdp_ged.YEARS_KEPT
-    if urls["ged"] and cached.get("ged_url") == urls["ged"]:
+    fresh_cache = cached.get("version") == ucdp_ged.CELLS_VERSION
+    if urls["ged"] and cached.get("ged_url") == urls["ged"] and fresh_cache:
         annual = cached.get("annual", [])
     elif urls["ged"]:
         text = ucdp_ged.read_zip_csv(_get(client, urls["ged"]).content)
@@ -243,13 +244,20 @@ def _ged(client: httpx.Client, year: int) -> tuple[bytes, str, str]:
     else:
         annual = cached.get("annual", [])
     candidate = []
-    for key in ("candidate_cumulative", "candidate_latest"):
+    seen: set = set()  # the cumulative and the latest Candidate files overlap (Fable #7)
+    for key in ("candidate_latest", "candidate_cumulative"):
         if urls[key]:
             try:
-                candidate += ucdp_ged.cells(_get(client, urls[key]).text, min_year)
+                candidate += ucdp_ged.cells(_get(client, urls[key]).text, min_year, seen)
             except Exception as exc:  # noqa: BLE001 - annual data still useful
                 print(f"[ged] {key} failed: {type(exc).__name__}")
-    payload = {"ged_url": urls["ged"], "annual": annual, "candidate": candidate, "urls": urls}
+    payload = {
+        "ged_url": urls["ged"],
+        "version": ucdp_ged.CELLS_VERSION,
+        "annual": annual,
+        "candidate": candidate,
+        "urls": urls,
+    }
     return (
         json.dumps(payload).encode(),
         urls["ged"] or ucdp_ged.DOWNLOADS,
