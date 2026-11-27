@@ -1,0 +1,79 @@
+from geointel.risk.danger import apply_danger, country_danger, lower_median, type_level
+
+
+def _country(iso3="AAA", risks=None, us=None, uk=None, **extra):
+    base = {
+        "iso3": iso3,
+        "risks": risks or {},
+        "advisory": {"level": us, "summary": ""} if us else None,
+        "advisory_uk": {"level": uk, "restrictions": []} if uk else None,
+    }
+    base.update(extra)
+    return base
+
+
+def _risk(p1y, p1m=0.0, active=False):
+    return {"active": active, "horizons": {"1m": {"p": p1m}, "1y": {"p": p1y}}}
+
+
+def test_thresholds_by_class():
+    assert type_level("internal_armed_conflict", 0.013) == 1
+    assert type_level("internal_armed_conflict", 0.03) == 2
+    assert type_level("internal_armed_conflict", 0.22) == 4
+    assert type_level("coup_attempt", 0.2) == 3
+    assert type_level("economic_crisis", 0.9) == 2  # class C never above 2
+
+
+def test_hazards_do_not_raise_country_level():
+    d = country_danger(_country(risks={"tropical_cyclone": _risk(0.9), "flood": _risk(0.8)}))
+    assert d["level"] == 1
+    assert {x["risk"] for x in d["drivers"]} == {"tropical_cyclone", "flood"}
+    assert all(x["regional"] for x in d["drivers"])
+
+
+def test_war_is_a_fact_and_abroad_is_lower():
+    war = {"interstate_conflict": {"active": True}}
+    assert country_danger(_country("RUS", war), intensity={"interstate": 2})["level"] == 4
+    assert country_danger(_country("USA", war), intensity={"interstate": 2})["level"] == 2
+    minor_internal = {"internal_armed_conflict": {"active": True}}
+    assert country_danger(_country("IND", minor_internal), intensity={"internal": 1})["level"] == 2
+
+
+def test_ministries_raise_one_step_only_and_never_lower():
+    calm = _country(us=4, uk=4)
+    d = country_danger(calm)
+    assert d["model_level"] == 1 and d["level"] == 2 and d["raised_by_ministries"]
+    assert d["divergence"] == 3
+    war = _country("RUS", {"interstate_conflict": {"active": True}}, us=1, uk=1)
+    assert country_danger(war, intensity={"interstate": 2})["level"] == 4
+
+
+def test_lower_median_ignores_single_strict_ministry():
+    assert lower_median([1, 1, 4]) == 1
+    assert lower_median([2, 4]) == 2
+    assert lower_median([]) is None
+
+
+def test_monthly_spike_counts():
+    d = country_danger(_country(risks={"coup_attempt": _risk(0.02, p1m=0.02)}))
+    assert d["level"] == 3  # 2% a month ≈ 24% a year
+
+
+def test_trend_is_separate_from_level():
+    d = country_danger(_country(), alert={"ratio": 2.0, "risk": "coup_attempt"})
+    assert d["level"] == 1 and d["trend"]["direction"] == "up"
+
+
+def test_foreigner_risks_from_advisory_text():
+    c = _country(us=4)
+    c["advisory"]["summary"] = "Risk of wrongful detention and terrorism."
+    keys = [f["key"] for f in country_danger(c)["foreigners"]]
+    assert keys == ["detention", "terrorism"]
+
+
+def test_apply_danger_histogram():
+    snapshot = {"countries": [_country("AAA"), _country("BBB", us=4, uk=4)]}
+    signals = {"countries": {}}
+    hist = apply_danger(snapshot, signals)
+    assert hist[1] == 1 and hist[2] == 1
+    assert signals["danger_scale"]["hazard_cap"] == 1

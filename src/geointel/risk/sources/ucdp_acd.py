@@ -12,6 +12,11 @@ from geointel.risk.taxonomy import EventType
 SOURCE = "UCDP/PRIO Armed Conflict Dataset"
 INTERNAL_TYPES = {"3", "4"}
 INTERSTATE_TYPE = "2"
+# UCDP codes the US campaign against al-Qaida (2001 onwards) as an intrastate conflict located
+# in the USA, although the fighting took place abroad. Counting it as internal war on US soil
+# gave the USA a 10% yearly onset risk. Until geocoded events (UCDP GED) decide where fighting
+# happens, these countries' "internal" years are taken only from type-3 conflicts.
+TRANSNATIONAL_GOVERNMENTS = frozenset({"USA"})
 
 
 def read_csv_bytes(payload: bytes) -> str:
@@ -45,6 +50,8 @@ def parse(
         if kind in INTERNAL_TYPES:
             for label in _split(row.get("location", "")):
                 code = resolve_country_name(label)
+                if code in TRANSNATIONAL_GOVERNMENTS and kind != "3":
+                    continue
                 if code:
                     internal[code].add(year)
                 else:
@@ -92,4 +99,34 @@ def dyad_years(text: str, start_year: int = 1946) -> dict[frozenset[str], set[in
             for b in side_b:
                 if a != b:
                     result[frozenset((a, b))].add(year)
+    return dict(result)
+
+
+def latest_intensity(text: str) -> dict[str, dict[str, int]]:
+    """Highest UCDP intensity (1 = 25–999 battle deaths, 2 = war, 1,000+) in the latest year,
+    per country, separately for internal and interstate conflicts."""
+    rows = list(csv.DictReader(io.StringIO(text)))
+    if not rows:
+        return {}
+    last = max(int(r["year"]) for r in rows)
+    result: dict[str, dict[str, int]] = defaultdict(dict)
+    for row in rows:
+        if int(row["year"]) != last:
+            continue
+        kind = str(row.get("type_of_conflict", "")).strip()
+        try:
+            level = int(row.get("intensity_level") or 0)
+        except ValueError:
+            continue
+        if kind in INTERNAL_TYPES:
+            labels, key = _split(row.get("location", "")), "internal"
+        elif kind == INTERSTATE_TYPE:
+            labels = _split(row.get("side_a", "")) + _split(row.get("side_b", ""))
+            key = "interstate"
+        else:
+            continue
+        for label in labels:
+            code = resolve_country_name(label)
+            if code:
+                result[code][key] = max(result[code].get(key, 0), level)
     return dict(result)

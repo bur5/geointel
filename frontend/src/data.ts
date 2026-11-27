@@ -1,4 +1,5 @@
 import type { AlertInfo } from './alerts';
+import type { DangerInfo } from './danger';
 export type Lang = 'ru' | 'en';
 export type HorizonKey = '1m' | '1y' | '5y' | '10y';
 
@@ -229,7 +230,7 @@ export interface SignSpec {
   automated: boolean; expires_days: number;
 }
 export interface AdjustedRisk { factor: number; signs: string[]; groups: string[]; combo: boolean; horizons?: Record<HorizonKey, Probability> }
-export interface CountrySignals { signs: Sign[]; adjusted: Record<string, AdjustedRisk>; active: number; max_factor: number; alert?: AlertInfo }
+export interface CountrySignals { signs: Sign[]; adjusted: Record<string, AdjustedRisk>; active: number; max_factor: number; alert?: AlertInfo; danger?: DangerInfo }
 export interface SignalsFile {
   schema: string; generated_at: string; catalogue: SignSpec[];
   groups: Record<string, { ru: string; en: string }>;
