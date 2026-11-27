@@ -47,6 +47,7 @@ def test_undesa_stock_from_table_rows(monkeypatch):
     assert ukr["year"] == 2024 and ukr["total"] == 9_800_000
     assert ukr["series"]["1990"] == 5_500_000
     assert ukr["top"][0] == ["POL", 1_500_000]
+    assert ukr["destinations"]["POL"] == {"2020": 300_000, "2024": 1_500_000}
 
 
 def test_irregular_labels_never_zero():

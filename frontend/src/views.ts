@@ -448,6 +448,7 @@ export function migrationSection(ctx: ViewContext, iso3: string, data: LinksFile
       ${x.per_1000 !== undefined ? `<p class="muted-text small">${d.perThousand(num(x.per_1000, lang))}</p>` : ''}
       ${first && first !== String(x.year) ? `<p class="muted-text small">${lang === 'ru' ? `в ${first} году: ` : `in ${first}: `}${formatPeople(x.series[first], lang)}</p>` : ''}
       ${diasporaPeriods(x.series, lang)}
+      ${destinationTable(x.destinations, ctx)}
       <h4 class="sub">${d.whereTo}</h4>${list(x.top.map(([iso3, n]) => ({ iso3, n })))}
       <p class="muted-text small">${lang === 'ru' ? `Оценка ООН (UN DESA) на середину ${x.year} года: все эмигранты, не только беженцы. Для многих стран оценка модельная.` : `UN DESA estimate for mid-${x.year}: all emigrants, not only refugees. Modelled for many countries.`}</p></article>`);
   }
@@ -511,6 +512,20 @@ function diasporaPeriods(series: Record<string, number>, lang: Lang) {
   if (!rows.length) return '';
   return `<h4 class="sub">${lang === 'ru' ? 'Как менялось число уехавших' : 'Change in the number abroad'}</h4><ul class="plain small">${rows.join('')}</ul>
     <p class="muted-text small">${lang === 'ru' ? 'Разница между оценками ООН: это чистое изменение (уехавшие минус вернувшиеся и умершие), а не число уехавших за период.' : 'Difference between UN estimates: a net change (left minus returned and died), not the number who left in the period.'}</p>`;
+}
+
+function destinationTable(dest: Record<string, Record<string, number>> | undefined, ctx: ViewContext) {
+  const { esc, lang } = ctx;
+  if (!dest || !Object.keys(dest).length) return '';
+  const cols = ['2015', '2020', '2024'];
+  const fmt = (n: number | undefined) => (n === undefined ? '—' : formatPeople(n, lang));
+  const rows = Object.entries(dest).map(([iso3, s]) => {
+    const d = s['2024'] !== undefined && s['2015'] !== undefined ? s['2024'] - s['2015'] : undefined;
+    return `<tr><th scope="row"><button type="button" class="link" data-select="${iso3}">${esc(ctx.name(iso3))}</button></th>${cols.map((c) => `<td class="numcell">${fmt(s[c])}</td>`).join('')}<td class="numcell ${d !== undefined && d > 0 ? 'up' : 'down'}">${d === undefined ? '—' : (d >= 0 ? '+' : '−') + formatPeople(Math.abs(d), lang)}</td></tr>`;
+  }).join('');
+  return `<details class="dest-table"><summary>${lang === 'ru' ? 'По странам назначения: 2015 → 2024' : 'By destination: 2015 → 2024'}</summary>
+    <table class="table"><thead><tr><th>${lang === 'ru' ? 'Страна' : 'Country'}</th>${cols.map((c) => `<th>${c}</th>`).join('')}<th>${lang === 'ru' ? 'с 2015' : 'since 2015'}</th></tr></thead><tbody>${rows}</tbody></table>
+    <p class="muted-text small">${lang === 'ru' ? 'Оценки ООН на середину года; для многих стран назначения модельные. Изменение с 2015 года — ближайшее к «уехавшим после 2014 года», но это чистое изменение, а не поток.' : 'UN mid-year estimates, modelled for many destinations. The change since 2015 is the closest to "left after 2014" but is a net change, not a flow.'}</p></details>`;
 }
 
 export const migrationClass = (v: number | undefined) =>

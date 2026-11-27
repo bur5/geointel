@@ -205,7 +205,7 @@ export interface MigrationEntry {
   year?: number; hosted?: number; hosted_from?: Count[]; abroad?: number; abroad_in?: Count[]; idps?: number;
   hosted_per_1000?: number; abroad_per_1000?: number;
   asylum_eu?: { months: string[]; values: number[]; last12: number; change: number | null };
-  diaspora?: { year: number; total: number; per_1000?: number; series: Record<string, number>; top: [string, number][] };
+  diaspora?: { year: number; total: number; per_1000?: number; series: Record<string, number>; top: [string, number][]; destinations?: Record<string, Record<string, number>> };
   irregular?: { kind: 'estimate' | 'indirect' | 'none'; low?: number; high?: number; years?: string; sources?: [string, string][]; note_ru?: string; note_en?: string; year?: string; found?: number; series?: [string, number][]; source?: string; url?: string };
   policy?: { d90: number; d365: number; entries: { date: string; sign: 'migration_tighten' | 'migration_ease'; summary_ru: string; summary_en: string; url: string; domain: string }[] };
 }

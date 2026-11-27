@@ -699,3 +699,6 @@ td.up, td.down { margin-left: 0; }
 .explain { margin: 6px 0 2px; }
 .explain summary { cursor: pointer; font-size: 13px; color: var(--accent, inherit); }
 .explain ul { margin: 6px 0 0; padding-left: 18px; font-size: 13px; line-height: 1.5; }
+.dest-table { margin-top: 8px; }
+.dest-table summary { cursor: pointer; font-size: 13px; }
+.dest-table .table { font-size: 13px; margin-top: 6px; }
