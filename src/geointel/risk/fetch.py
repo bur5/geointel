@@ -99,10 +99,20 @@ def _event_id(feature: dict) -> str:
 
 
 def _gdacs(client: httpx.Client, reference_year: int) -> tuple[bytes, str, str]:
-    features: list[dict] = []
+    # Past years do not change: they come from yesterday's file (published under cache/), and
+    # only the last two years are fetched again. A full refetch took 3–6 minutes and timed out.
+    recent_from = reference_year - 1
+    cached = [
+        f
+        for f in (_read_cache("gdacs.json").get("features") or [])
+        if str((f.get("properties") or {}).get("fromdate") or "")[:4].isdigit()
+        and int(str(f["properties"]["fromdate"])[:4]) < recent_from
+    ]
+    features: list[dict] = list(cached)
     failures = []
     for hazard in gdacs.HAZARDS:
-        for year in range(gdacs.FIRST_YEAR[hazard], reference_year + 1):
+        first = recent_from if cached else gdacs.FIRST_YEAR[hazard]
+        for year in range(max(first, gdacs.FIRST_YEAR[hazard]), reference_year + 1):
             seen: set = set()
             for page in range(1, 20):
                 try:
@@ -118,10 +128,14 @@ def _gdacs(client: httpx.Client, reference_year: int) -> tuple[bytes, str, str]:
                 if len(batch) < 100 or not (ids - seen):
                     break
                 seen |= ids
-    if failures and not features:
+    if failures and len(features) == len(cached):
         raise RuntimeError("; ".join(failures[:5]))
     payload = {"features": features, "failures": failures}
-    return json.dumps(payload).encode(), gdacs.API, f"{len(features)} features"
+    return (
+        json.dumps(payload).encode(),
+        gdacs.API,
+        f"{len(features)} features ({len(cached)} from cache)",
+    )
 
 
 def _ncei(client: httpx.Client, _year: int) -> tuple[bytes, str, str]:
@@ -1023,7 +1037,7 @@ def _trade_keyed(client: httpx.Client, reference_year: int, key: str) -> tuple[b
 # limit, and once the whole step has used its budget the remaining jobs are skipped and
 # reported as failed (their last good data stays in the cache where a cache exists).
 DEFAULT_JOB_LIMIT = 300
-JOB_LIMIT_SECONDS = {"newswire": 900, "elections": 420, "gdacs": 360, "media": 360, "trade": 600}
+JOB_LIMIT_SECONDS = {"newswire": 900, "elections": 420, "gdacs": 720, "media": 360, "trade": 600}
 TOTAL_BUDGET_SECONDS = 50 * 60
 
 
