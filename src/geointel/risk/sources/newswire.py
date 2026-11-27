@@ -171,6 +171,8 @@ def request_body(batch: list[dict]) -> dict:
     return {
         "model": MODEL,
         "max_tokens": 4000,
+        # Classification needs no extended thinking; it would eat the token budget.
+        "thinking": {"type": "disabled"},
         "system": system,
         "messages": [{"role": "user", "content": user}],
     }
