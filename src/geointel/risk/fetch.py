@@ -379,22 +379,42 @@ def _elections(client: httpx.Client, _year: int) -> tuple[bytes, str, str]:
             if r["iso3"]["value"].upper() in universe_codes()
         }
     )
-    bindings, failures = [], 0
-    deadline = time.monotonic() + 420  # never let elections hold up the daily run
-    for start in range(0, len(pairs), 12):
+    # Wikidata is sometimes slow: fetch in batches until a deadline, starting from a different
+    # batch each day, and keep yesterday's results for countries not reached today.
+    cached: dict[str, list] = {}
+    for b in (_read_cache("elections.json").get("results") or {}).get("bindings") or []:
+        cached.setdefault(str((b.get("iso3") or {}).get("value", "")).upper(), []).append(b)
+    batches = [pairs[i : i + 12] for i in range(0, len(pairs), 12)]
+    shift = datetime.now(UTC).toordinal() % max(len(batches), 1)
+    batches = batches[shift:] + batches[:shift]
+    fresh: dict[str, list] = {}
+    failures = 0
+    deadline = time.monotonic() + 300  # below the 420 s job limit, so partial results survive
+    for batch in batches:
         if time.monotonic() > deadline:
             failures += 1
             break
-        query = elections.BATCH_QUERY % elections.batch_values(pairs[start : start + 12])
+        query = elections.BATCH_QUERY % elections.batch_values(batch)
         try:
-            bindings.extend(_sparql(client, query)["results"]["bindings"])
-        except Exception:  # noqa: BLE001 - a failed batch only loses those countries
+            rows = _sparql(client, query)["results"]["bindings"]
+        except Exception:  # noqa: BLE001 - a failed batch only loses those countries today
             failures += 1
+            continue
+        for _qid, iso3 in batch:
+            fresh[iso3] = []
+        for b in rows:
+            fresh.setdefault(str((b.get("iso3") or {}).get("value", "")).upper(), []).append(b)
         time.sleep(1)
+    merged = {**cached, **fresh}
+    bindings = [b for rows in merged.values() for b in rows]
     if not bindings:
         raise RuntimeError(f"no election data ({failures} failed batches)")
     payload = {"results": {"bindings": bindings}, "failed_batches": failures}
-    return json.dumps(payload).encode(), elections.ENDPOINT, f"{len(pairs)} countries"
+    return (
+        json.dumps(payload).encode(),
+        elections.ENDPOINT,
+        f"{len(fresh)} of {len(pairs)} countries refreshed today",
+    )
 
 
 def _fcdo(client: httpx.Client, _year: int) -> tuple[bytes, str, str]:
