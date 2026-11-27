@@ -696,3 +696,6 @@ td.up, td.down { margin-left: 0; }
 .political-list > li { padding: 12px 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--card, transparent); }
 .political-list > li > .link { font-weight: 600; margin-right: 8px; }
 .political-list ul { margin: 6px 0 0; }
+.explain { margin: 6px 0 2px; }
+.explain summary { cursor: pointer; font-size: 13px; color: var(--accent, inherit); }
+.explain ul { margin: 6px 0 0; padding-left: 18px; font-size: 13px; line-height: 1.5; }
