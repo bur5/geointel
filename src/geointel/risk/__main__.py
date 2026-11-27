@@ -272,6 +272,29 @@ def _load(path: Path) -> dict | list:
         return {}
 
 
+STALE_DAYS = 3  # a daily source that has not answered for this long is shown as outdated
+
+
+def source_freshness(previous: dict, sources: list[dict], now) -> dict:
+    """Last successful download per source, kept across runs, and whether it is stale."""
+    result = {}
+    for source in sources:
+        key = source["key"]
+        last_ok = (previous.get(key) or {}).get("last_ok")
+        if source.get("status") == "ok":
+            last_ok = source.get("retrieved_at") or now.isoformat()
+        age = None
+        if last_ok:
+            age = (now - datetime.fromisoformat(last_ok)).total_seconds() / 86400
+        result[key] = {
+            "status": source.get("status"),
+            "last_ok": last_ok,
+            "age_days": None if age is None else round(age, 1),
+            "stale": age is None or age > STALE_DAYS,
+        }
+    return result
+
+
 def build_signal_layer(snapshot: dict, extras: dict, sources: list[dict], now) -> tuple[dict, dict]:
     """Merge daily caches, compute warning signs per country and inputs for scenarios."""
     from geointel.risk.scenarios import CATALOGUE
@@ -282,6 +305,8 @@ def build_signal_layer(snapshot: dict, extras: dict, sources: list[dict], now) -
     cache_out.mkdir(parents=True, exist_ok=True)
     today = now.date()
     status = {s["key"]: s["status"] for s in sources}
+    freshness = source_freshness(_load(cache_in / "freshness.json"), sources, now)
+    (cache_out / "freshness.json").write_text(json.dumps(freshness, separators=(",", ":")))
 
     # GDELT
     days = gdelt.merge_days(
@@ -398,6 +423,7 @@ def build_signal_layer(snapshot: dict, extras: dict, sources: list[dict], now) -
         )
         signals["countries"][code]["trend"] = trends.get(code, {})
     signals["dyads"] = dyad_trend
+    signals["freshness"] = freshness
     top = sorted(signals["countries"].items(), key=lambda kv: -kv[1]["max_factor"])[:15]
     print("[signals] top: " + ", ".join(f"{k} x{v['max_factor']:.2f}" for k, v in top))
     for code, item in top[:12]:

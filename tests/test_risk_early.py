@@ -153,7 +153,7 @@ def test_early_signals_build_and_persistence(tmp_path):
     boosted = warning_signs.apply_persistence(country, entry, {"internet_outage"})
     fresh = warning_signs.apply_persistence(country, entry, set(), {"internet_outage": 1})
     confirmed = warning_signs.apply_persistence(country, entry, set(), {"internet_outage": 3})
-    assert factor(boosted) > factor(confirmed) == factor(entry) > factor(fresh)
+    assert factor(boosted) == factor(confirmed) == factor(entry) > factor(fresh)
     # slow official data (exchange rates) is not discounted as a one-day spike
     tur = warning_signs.country_entry({"iso3": "TUR", "risks": {}}, signs["TUR"])
     assert warning_signs.apply_persistence({"iso3": "TUR", "risks": {}}, tur, set(), {}) is tur

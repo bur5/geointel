@@ -29,10 +29,18 @@ HUMANITARIAN = "humanitarian_crisis"
 COUP = "coup_attempt"
 
 AUTO_CAP = (1 / 3, 3.0)  # automated signals together
-HARD_CAP = (1 / 3, 500.0)  # curated hard signs together
-TOTAL_CAP = (1 / 4, 500.0)
+SIGN_CAP = 10.0  # no single sign (curated entry included) moves the odds more than ×10
+# The total factor is capped by the stage of preparation the signs show (model 1.4.0):
+# without signs of the last stages the odds cannot rise more than ×5 (stage 0–1), ×20 with
+# personnel or logistics signs (stage 2), ×100 with final signs (stage 3). ×100 stays below
+# what open forecasters implied in mid-February 2022 (×200–450): the rest must come from
+# markets and official assessments, not from our signs alone.
+STAGE_CAPS = {0: 5.0, 1: 5.0, 2: 20.0, 3: 100.0}
+TOTAL_FLOOR = 1 / 4
+HARD_CAP = (1 / 3, STAGE_CAPS[3])  # kept for the published "caps" block
+TOTAL_CAP = (TOTAL_FLOOR, STAGE_CAPS[3])
 COMBO_GROUPS = {"posture", "personnel", "final", "pretext", "cyber", "logistics"}
-COMBO_LR = 1.5  # three or more of these groups active at once
+COMBO_LR = 1.0  # removed in 1.4.0: multiplying signs already rewards several groups
 
 
 @dataclass(frozen=True)
@@ -288,7 +296,7 @@ SIGNS: tuple[SignSpec, ...] = (
     _s(
         "gps_jamming",
         "hybrid",
-        1.3,
+        1.0,  # observation only until a with/without test shows value (1.4.0)
         (INTERSTATE,),
         "Рост глушения GPS над страной",
         "Rise in GPS interference over the country",
@@ -369,7 +377,7 @@ SIGNS: tuple[SignSpec, ...] = (
     _s(
         "satellite_change",
         "posture",
-        1.25,
+        1.0,  # observation only until a with/without test shows value (1.4.0)
         (INTERSTATE,),
         "Радарный спутник: резкий рост металла на объекте (с учётом сезона, эксперимент)",
         "Radar satellite: sharp rise in metal at a site (season-adjusted, experimental)",
@@ -396,7 +404,7 @@ SIGNS: tuple[SignSpec, ...] = (
     _s(
         "military_air",
         "posture",
-        1.15,
+        1.0,  # observation only until a with/without test shows value (1.4.0)
         (INTERSTATE,),
         "Больше военных самолётов в соседнем воздушном пространстве",
         "More military aircraft in nearby airspace",
@@ -944,23 +952,48 @@ def combine(
         if spec is None or risk not in spec.applies or sign.get("status") != "active":
             continue
         lr = sign.get("lr", spec.lr) ** sign.get("strength", 1.0)
-        if spec.automated:
+        # Machine-classified news entries (curated=False) are automated evidence even when
+        # the sign itself is a curated kind: a model reading headlines is not a human check.
+        automated = spec.automated or sign.get("curated") is False
+        if automated:
             lr **= auto_power
+        lr = min(max(lr, 1 / SIGN_CAP), SIGN_CAP)
         if sign["key"] not in best or abs(math.log(lr)) > abs(math.log(best[sign["key"]]["lr"])):
-            best[sign["key"]] = {"lr": lr, "auto": spec.automated, "group": spec.group}
-    auto = math.prod(v["lr"] for v in best.values() if v["auto"])
-    hard = math.prod(v["lr"] for v in best.values() if not v["auto"])
+            best[sign["key"]] = {"lr": lr, "auto": automated, "group": spec.group}
+    # Signs of one group often report the same event (news, Telegram and GDELT counts), so
+    # within a group only the strongest raising and the strongest lowering sign count.
+    per_group: dict[tuple[str, bool, bool], float] = {}
+    for item in best.values():
+        key = (item["group"], item["auto"], item["lr"] >= 1)
+        current = per_group.get(key, 1.0)
+        if abs(math.log(item["lr"])) > abs(math.log(current)):
+            per_group[key] = item["lr"]
+    auto = math.prod(lr for (_, is_auto, _), lr in per_group.items() if is_auto)
+    hard = math.prod(lr for (_, is_auto, _), lr in per_group.items() if not is_auto)
     auto = min(max(auto, AUTO_CAP[0]), auto_cap or AUTO_CAP[1])
     groups = {v["group"] for v in best.values() if v["lr"] > 1} & COMBO_GROUPS
-    combo = COMBO_LR if len(groups) >= 3 else 1.0
-    hard = min(max(hard * combo, HARD_CAP[0]), HARD_CAP[1])
-    factor = min(max(auto * hard, TOTAL_CAP[0]), TOTAL_CAP[1])
+    stage = sign_stage(groups)
+    cap = STAGE_CAPS[stage]
+    factor = min(max(auto * hard, TOTAL_FLOOR), cap)
     return {
         "factor": round(factor, 3),
         "signs": sorted(best),
         "groups": sorted(groups),
-        "combo": combo > 1,
+        "combo": False,
+        "stage": stage,
+        "cap": cap,
     }
+
+
+def sign_stage(groups: Iterable[str]) -> int:
+    present = set(groups)
+    if "final" in present:
+        return 3
+    if present & {"personnel", "logistics"}:
+        return 2
+    if present & {"posture", "pretext", "cyber"}:
+        return 1
+    return 0
 
 
 def adjust(p: float, factor: float) -> float:
@@ -1291,7 +1324,7 @@ def country_alert(adjusted: Mapping[str, Mapping]) -> dict:
     return best
 
 
-PERSISTENCE_STRENGTH = 1.25
+PERSISTENCE_STRENGTH = 1.0  # removed in 1.4.0: a long-burning signal is more often background
 FRESH_STRENGTH = 0.5
 CONFIRM_DAYS = 3  # active on at least this many of the last five days
 # Automated signs built from slow official data (not daily spikes) keep their full strength.

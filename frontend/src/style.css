@@ -546,3 +546,4 @@ td.up, td.down { margin-left: 0; }
 .trend-chip.trend-down { color: #2f8a50; border-color: #b6dcc3; }
 .driver-list { list-style: none; padding: 0; margin: 6px 0 10px; display: grid; gap: 6px; }
 .note-line { border-left: 3px solid var(--line); padding-left: 10px; color: var(--muted); }
+.stale { color: #b3261e; font-size: 13px; }

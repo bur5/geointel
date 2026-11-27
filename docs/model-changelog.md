@@ -3,6 +3,29 @@
 Every change that can move a published probability gets a new `MODEL_VERSION`
 (`src/geointel/risk/__init__.py`), an entry here, and a before/after report.
 
+## 1.4.0 — 2026-11-27
+- Warning signs: within a group only the strongest raising and lowering sign count (news,
+  Telegram and GDELT often report one event); no single sign moves the odds more than ×10;
+  the total is capped by the stage of preparation (×5 without personnel/logistics/final signs,
+  ×20 at stage 2, ×100 at stage 3) instead of ×500; the ×1.5 combination bonus and the ×1.25
+  persistence bonus are removed.
+- Machine-classified news signs count as automated evidence (smaller caps), whatever the sign.
+  The classifier must quote the headline and name the country; answers failing these rule
+  checks are dropped. "Airspace" now means closures for expected military action only.
+- Military aircraft (ADS-B), GPS jamming and radar changes became observations (×1) until a
+  with/without test shows they help.
+- Official assessments: range mid-points and several judgements are averaged in log-odds
+  (the geometric mean of probabilities biased results down).
+- Scenario pool: a logarithmic pool is reported next to the linear one; the range is the 90%
+  interval of the component mixture with an uncertain sign factor (Monte Carlo) and contains
+  both pools.
+- Russia–NATO trees: year 1 is calibrated to the monthly profile shown as "1 year"; a
+  sensitivity table shows how 5- and 10-year results move with each assumption, and the
+  published 5/10-year ranges include these spreads.
+- Data freshness: the last successful download of every source is kept across runs and shown;
+  sources silent for more than 3 days are marked outdated. IODA requests are retried; Russian
+  media timelines are fetched before the headline classifier so GDELT's limit is not spent.
+
 ## 1.3.0 — 2026-11-27
 - Coups: countries are shrunk towards similar countries — V-Dem Regimes of the World (4 types)
   × coup or attempt in the last 20 years — instead of the world mean, which gave every country

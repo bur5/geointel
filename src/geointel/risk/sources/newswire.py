@@ -94,7 +94,8 @@ SIGN_HELP = {
     "legal": "recognition of breakaway areas, acts authorising use of force",
     "staged": "staged or false-flag incidents",
     "diplomatic": "embassy evacuations, citizens told to leave, documents destroyed",
-    "airspace": "airspace closures or warnings to aviation for military reasons",
+    "airspace": "a government closes its airspace or issues aviation warnings because of expected "
+    "military action (not drones, balloons, smuggling, weather or accidents)",
     "cyber": "destructive cyberattacks on government or critical systems",
     "economic_prep": "export bans, stockpiling or sanction-proofing ahead of conflict",
     "hybrid": "sabotage, cable damage, airspace or border violations by another state",
@@ -116,6 +117,8 @@ matching one of the signs, add an object:
  "summary_en": "<one factual sentence in English, max 160 chars>"}
 "country" is the state whose own risk the event raises: for a state's own mobilisation,
 protests, strikes, repression or coup it is that state itself, never a rival it fears.
+Add "quote": the exact words of the headline that show the sign, and "country_in_text":
+true only if that country (or its capital or leader) is named in the headline.
 Skip opinion, analysis of the past, fiction, sport, games and anything uncertain.
 Sign keys:
 """
@@ -173,6 +176,10 @@ def request_body(batch: list[dict]) -> dict:
     }
 
 
+def _norm(text: str) -> str:
+    return re.sub(r"\W+", " ", text.lower()).strip()
+
+
 def parse_reply(text: str, batch: list[dict]) -> list[dict]:
     match = re.search(r"\[.*\]", text, re.S)
     if not match:
@@ -191,6 +198,13 @@ def parse_reply(text: str, batch: list[dict]) -> list[dict]:
         if not isinstance(i, int) or not 0 <= i < len(batch):
             continue
         if country not in universe or sign not in SIGN_HELP or not batch[i]["date"]:
+            continue
+        # Rule checks on the model's answer: the quoted words must really be in the headline,
+        # and the country must be named in it (not inferred as a rival or a target).
+        quote = _norm(str(item.get("quote") or ""))
+        if quote and quote not in _norm(batch[i]["title"]):
+            continue
+        if item.get("country_in_text") is False:
             continue
         result.append(
             {

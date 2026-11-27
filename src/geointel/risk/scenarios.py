@@ -8,7 +8,9 @@ Components (each shown separately on the site):
 * ``market`` - a matching Polymarket price, converted to an annual hazard.
 
 Components are pooled as a weighted average (a linear opinion pool, which does not let one
-extreme source dominate); the indicator panel then nudges the odds by a bounded factor.
+extreme source dominate); a logarithmic pool is reported alongside, and the range is the 90%
+interval of the mixture with an uncertain sign factor (Monte Carlo). The indicator panel then
+nudges the odds by a bounded factor.
 Nothing here is calibrated yet and every scenario says so.
 """
 
@@ -1126,7 +1128,9 @@ def scenario_factor(signs: list[dict], polarity: int, risk: str = "interstate_co
 
 def official_component(scenario: Scenario, today: date) -> dict | None:
     """Published judgements from the last 400 days, each mapped by its wording to a range and
-    annualised; several judgements are combined by the geometric mean of their mid-points."""
+    annualised; the middle of a range and several judgements are combined by averaging
+    log-odds (symmetric for "will" and "will not", unlike the geometric mean of probabilities
+    used before 1.4.0, which biased results down)."""
     from geointel.risk.warning_signs import ESTIMATIVE
 
     usable = sorted(
@@ -1143,7 +1147,7 @@ def official_component(scenario: Scenario, today: date) -> dict | None:
     mids, lows, highs, parts_ru, parts_en = [], [], [], [], []
     for a in usable:
         low, high = ESTIMATIVE[a.phrase]
-        mids.append(_p_to_hazard(math.sqrt(low * high), a.years))
+        mids.append(_p_to_hazard(_expit((_logit(low) + _logit(high)) / 2), a.years))
         lows.append(_p_to_hazard(low, a.years))
         highs.append(_p_to_hazard(high, a.years))
         parts_ru.append(
@@ -1154,9 +1158,9 @@ def official_component(scenario: Scenario, today: date) -> dict | None:
             f'{a.source}, {a.date}: "{a.quote_en}" — "{a.phrase}" = {low * 100:.0f}–'
             f"{high * 100:.0f}% over {a.years:g} year(s)."
         )
-    annual = math.exp(sum(math.log(max(m, 1e-5)) for m in mids) / len(mids))
-    note_ru = " Оценки объединены средним геометрическим." if len(usable) > 1 else ""
-    note_en = " Judgements combined by geometric mean." if len(usable) > 1 else ""
+    annual = _expit(sum(_logit(m) for m in mids) / len(mids))
+    note_ru = " Оценки объединены средним логарифмов шансов." if len(usable) > 1 else ""
+    note_en = " Judgements combined by averaging log-odds." if len(usable) > 1 else ""
     return {
         "kind": "official",
         "annual": round(annual, 4),
@@ -1205,13 +1209,43 @@ def community_component(
     )
 
 
+MC_SAMPLES = 4000
+Z90 = 1.645
+FACTOR_SPREAD = 0.5  # the log of the sign factor is uncertain by ±50% (1 sd)
+
+
+def mixture_range(components: list[dict], factor: float, seed: int = 7) -> tuple[float, float]:
+    """5th and 95th percentiles of the linear pool as a mixture of logit-normal components
+    (each component's low–high read as its 90% interval), with an uncertain sign factor."""
+    import random
+
+    rng = random.Random(seed)
+    weights = [c["weight"] for c in components]
+    params = []
+    for c in components:
+        mu = _logit(c["annual"])
+        width = _logit(max(c["high"], c["annual"])) - _logit(min(c["low"], c["annual"]))
+        params.append((mu, max(width / (2 * Z90), 0.05)))
+    log_factor = math.log(factor)
+    samples = []
+    for _ in range(MC_SAMPLES):
+        mu, sd = rng.choices(params, weights)[0]
+        f = rng.gauss(log_factor, abs(log_factor) * FACTOR_SPREAD) if log_factor else 0.0
+        samples.append(_expit(rng.gauss(mu, sd) + f))
+    samples.sort()
+    return samples[int(0.05 * MC_SAMPLES)], samples[int(0.95 * MC_SAMPLES) - 1]
+
+
 def pool(components: list[dict], factor: float) -> dict:
+    """Linear opinion pool (the published number) plus a logarithmic pool shown alongside;
+    the range is the 90% interval of the mixture and always contains both pools (1.4.0)."""
     total = sum(c["weight"] for c in components)
     mean = sum(c["weight"] * c["annual"] for c in components) / total  # linear opinion pool
     annual = _expit(_logit(mean) + math.log(factor))
-    low = min(c["low"] for c in components)
-    high = max(c["high"] for c in components)
-    low, high = min(low, annual), max(high, annual)
+    log_mean = _expit(sum(c["weight"] * _logit(c["annual"]) for c in components) / total)
+    log_pool = _expit(_logit(log_mean) + math.log(factor))
+    low, high = mixture_range(components, factor)
+    low, high = min(low, annual, log_pool), max(high, annual, log_pool)
     spread = max(c["annual"] for c in components) / max(min(c["annual"] for c in components), 1e-4)
     confidence = "medium" if len(components) >= 3 and spread < 3 else "low"
     horizons = {
@@ -1223,7 +1257,12 @@ def pool(components: list[dict], factor: float) -> dict:
         for h, y in HORIZON_YEARS.items()
     }
     return {
-        "annual": {"p": round(annual, 4), "low": round(low, 4), "high": round(high, 4)},
+        "annual": {
+            "p": round(annual, 4),
+            "low": round(low, 4),
+            "high": round(high, 4),
+            "log_pool": round(log_pool, 4),
+        },
         "horizons": horizons,
         "confidence": confidence,
     }

@@ -20,7 +20,7 @@ The multipliers themselves are GeoIntel judgement and are shown on the site next
 """
 
 import math
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 MONTHS = 120
 
@@ -128,10 +128,11 @@ def simulate(
     ceasefire_annual: float,
     us_weak_annual: float,
     sign_factor: float = 1.0,
+    ramp: Ramp | None = None,
 ) -> dict[str, object]:
     """``annual`` is the hazard without warning signs; ``sign_factor`` (today's signs) fades
     with a half-life of six months."""
-    ramp = RAMPS[key]
+    ramp = ramp or RAMPS[key]
     monthly = -math.log(max(1 - annual, 1e-6)) / 12
     fade = [sign_factor ** (0.5 ** (m / SIGN_HALF_LIFE_MONTHS)) for m in range(MONTHS)]
     cease_dist = _coarse(_event_months(ceasefire_annual))
@@ -184,6 +185,75 @@ def simulate(
     }
 
 
+SENSITIVITY_RU = {
+    "annual": "Нынешний годовой риск (пул источников), вдвое ниже или выше",
+    "rearm_share": "Доля роста угрозы, которую не перекрывает перевооружение Европы",
+    "ceasefire": "Годовая вероятность прекращения огня в Украине",
+    "us_weak": "Годовая вероятность ослабления гарантий США",
+    "cease_ramp": "Рост угрозы после прекращения огня (оценки разведок)",
+    "us_ramp": "Рост угрозы при ослаблении гарантий США",
+}
+SENSITIVITY_EN = {
+    "annual": "Current yearly risk (pooled sources), halved or doubled",
+    "rearm_share": "Share of the threat increase not offset by European rearmament",
+    "ceasefire": "Yearly probability of a ceasefire in Ukraine",
+    "us_weak": "Yearly probability of weaker US guarantees",
+    "cease_ramp": "Threat growth after a ceasefire (intelligence timelines)",
+    "us_ramp": "Threat growth if US guarantees weaken",
+}
+
+
+def sensitivity(key: str, annual: float, cease: float, weak: float, factor: float) -> list[dict]:
+    """How the 5- and 10-year results move when each judgement parameter is set to the low
+    and high end of a plausible range (one at a time)."""
+    ramp = RAMPS[key]
+    scaled = lambda pts, k: tuple((x, 1 + (y - 1) * k) for x, y in pts)  # noqa: E731
+    variants = {
+        "rearm_share": (
+            (0.25, replace(ramp, rearm_share=0.25), cease, weak),
+            (0.75, replace(ramp, rearm_share=0.75), cease, weak),
+        ),
+        "ceasefire": (
+            (cease / 2, ramp, cease / 2, weak),
+            (min(cease * 1.5, 0.95), ramp, min(cease * 1.5, 0.95), weak),
+        ),
+        "us_weak": (
+            (weak / 2, ramp, cease, weak / 2),
+            (min(weak * 2, 0.95), ramp, cease, min(weak * 2, 0.95)),
+        ),
+        "cease_ramp": (
+            (0.5, replace(ramp, cease_points=scaled(ramp.cease_points, 0.5)), cease, weak),
+            (1.5, replace(ramp, cease_points=scaled(ramp.cease_points, 1.5)), cease, weak),
+        ),
+        "us_ramp": (
+            (1.0, replace(ramp, us_weak=1.0), cease, weak),
+            (2.0, replace(ramp, us_weak=ramp.us_weak * 4 / 3), cease, weak),
+        ),
+    }
+    rows = []
+    annuals = {"annual": (annual / 2, min(annual * 2, 0.99))}
+    variants["annual"] = (
+        (annual / 2, ramp, cease, weak),
+        (min(annual * 2, 0.99), ramp, cease, weak),
+    )
+    for name, ((lo_v, lo_r, lo_c, lo_w), (hi_v, hi_r, hi_c, hi_w)) in variants.items():
+        lo_a, hi_a = annuals.get(name, (annual, annual))
+        lo = simulate(key, lo_a, lo_c, lo_w, factor, lo_r)
+        hi = simulate(key, hi_a, hi_c, hi_w, factor, hi_r)
+        rows.append(
+            {
+                "param": name,
+                "label_ru": SENSITIVITY_RU[name],
+                "label_en": SENSITIVITY_EN[name],
+                "values": [round(lo_v, 3), round(hi_v, 3)],
+                "p5y": [lo["p5y"], hi["p5y"]],
+                "p10y": [lo["p10y"], hi["p10y"]],
+            }
+        )
+    rows.sort(key=lambda r: -abs(r["p10y"][1] - r["p10y"][0]))
+    return rows
+
+
 def apply_trees(scenarios: list[dict]) -> None:
     """Replace constant-hazard 5- and 10-year figures of tree scenarios with tree results."""
     by_key = {s["key"]: s for s in scenarios}
@@ -196,16 +266,27 @@ def apply_trees(scenarios: list[dict]) -> None:
         factor = item.get("indicator_factor") or 1.0
         base = _base_annual(item)
         scale = base / max(item["annual"]["p"], 1e-9)
+        # The first year must equal what the site shows for "1 year" (the monthly profile);
+        # the tree only shapes the following years (1.4.0: they disagreed, 5.8% vs 6.9%).
+        target = (item.get("horizons", {}).get("1y") or {}).get("p")
+        calib = 1.0
+        if target:
+            first = simulate(key, min(item["annual"]["p"] * scale, 0.99), cease, weak, factor)
+            calib = target / max(first["p1y"], 1e-9)
         runs = {
-            name: simulate(key, min(item["annual"][name] * scale, 0.99), cease, weak, factor)
+            name: simulate(
+                key, min(item["annual"][name] * scale * calib, 0.99), cease, weak, factor
+            )
             for name in ("p", "low", "high")
         }
+        sens = sensitivity(key, min(item["annual"]["p"] * scale * calib, 0.99), cease, weak, factor)
         for horizon, field in (("5y", "p5y"), ("10y", "p10y")):
             mid = runs["p"][field]
+            spread = [v for r in sens for v in r[field]]
             item["horizons"][horizon] = {
                 "p": mid,
-                "low": min(runs["low"][field], mid),
-                "high": max(runs["high"][field], mid),
+                "low": min(runs["low"][field], mid, *spread),
+                "high": max(runs["high"][field], mid, *spread),
             }
         item["tree"] = {
             "inputs": {
@@ -214,9 +295,11 @@ def apply_trees(scenarios: list[dict]) -> None:
                 "sign_factor": factor,
                 "ceasefire_annual": round(cease, 4),
                 "us_weak_annual": round(weak, 4),
+                "year1_calibration": round(calib, 3),
             },
             "yearly": runs["p"]["yearly"],
             "branches": runs["p"]["branches"],
+            "sensitivity": sens,
             "basis_ru": BASIS_RU,
             "basis_en": BASIS_EN,
         }
