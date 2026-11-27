@@ -113,10 +113,11 @@ SIGN_HELP = {
     "unrest": "mass protests, riots, nationwide strikes",
     "repression": "crackdowns, opposition leaders arrested, emergency rule",
     "elite_split": "coup attempt, mutiny, open split between army and government",
-    "leader_exit": "a head of government or state leaves office outside the normal schedule "
-    "(resignation, lost no-confidence vote, removal, death in office)",
-    "snap_election": "an early national election is called",
-    "impeachment": "an impeachment or removal vote passes at least one chamber",
+    "leader_exit": "a head of government or state has actually left office outside the normal "
+    "schedule (resignation, lost no-confidence vote, removal, death in office); not threats, "
+    "calls, proposals or speculation",
+    "snap_election": "an early national election has actually been called (not proposed)",
+    "impeachment": "an impeachment or removal vote has passed at least one chamber",
     "emergency_rule": "a nationwide state of emergency or martial law declared for political "
     "reasons (not disasters or epidemics)",
     "migration_tighten": "a government adopts or announces stricter immigration, asylum, visa or "
@@ -197,6 +198,14 @@ def request_body(batch: list[dict]) -> dict:
     }
 
 
+# Emergencies declared for weather, disasters or disease are not political (rule check).
+NON_POLITICAL = re.compile(
+    r"storm|hurricane|typhoon|cyclone|flood|snow|blizzard|wildfire|fire|earthquake|drought|"
+    r"heat|weather|epidemic|outbreak|cholera|virus|disease|power outage|water",
+    re.I,
+)
+
+
 def _norm(text: str) -> str:
     return re.sub(r"\W+", " ", text.lower()).strip()
 
@@ -226,6 +235,8 @@ def parse_reply(text: str, batch: list[dict]) -> list[dict]:
         if quote and quote not in _norm(batch[i]["title"]):
             continue
         if item.get("country_in_text") is False:
+            continue
+        if sign == "emergency_rule" and NON_POLITICAL.search(batch[i]["title"]):
             continue
         result.append(
             {

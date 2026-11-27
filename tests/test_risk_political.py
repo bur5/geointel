@@ -46,3 +46,21 @@ def test_political_crisis_detection_counts_outlets_and_window():
     assert set(out) == {"FRA", "PER"}
     assert out["FRA"]["confirmed"] and out["FRA"]["outlets"] == 2
     assert not out["PER"]["confirmed"]
+
+
+def test_weather_emergency_is_not_political():
+    from geointel.risk.sources import newswire
+
+    batch = [
+        {
+            "title": "New York declares state of emergency over winter storm",
+            "date": "2026-11-26",
+            "url": "u",
+            "domain": "d",
+        }
+    ]
+    reply = (
+        '[{"i": 0, "country": "USA", "sign": "emergency_rule", '
+        '"quote": "declares state of emergency", "country_in_text": true}]'
+    )
+    assert newswire.parse_reply(reply, batch) == []
