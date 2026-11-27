@@ -19,6 +19,7 @@ export interface Outlook { growth?: Record<string, number>; inflation?: Record<s
 export interface Gpr { latest_month: string; latest: number; baseline_mean: number; ratio_12m: number | null; months: string[]; values: number[] }
 export interface Election { date: string; precision: 'day' | 'month' | 'year'; kind: 'presidential' | 'parliamentary' | 'referendum'; name_en: string; name_ru: string | null; wikidata: string }
 export interface CountryEntry {
+  humanitarian_severity?: import('./humanitarian').Severity | null;
   iso3: string; iso2: string; numeric: string | null; name: string;
   risks: Record<string, Risk>;
   advisory?: Advisory | null;

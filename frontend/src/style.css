@@ -668,3 +668,9 @@ td.up, td.down { margin-left: 0; }
   .updated { display: none; }
 }
 @media (max-width: 560px) { .country-hero { grid-template-columns: 1fr; } .search { display: none; } }
+
+/* Humanitarian card */
+.hum-card { border: 1px solid var(--line); border-left-width: 6px; border-radius: 12px; padding: 14px 18px; margin: 16px 0; background: var(--surface); }
+.hum-card h3 { font-size: 16px; margin-bottom: 6px; }
+.hum-card.hum-1 { border-left-color: #8fb8a0; } .hum-card.hum-2 { border-left-color: #d9b100; }
+.hum-card.hum-3 { border-left-color: #e07b00; } .hum-card.hum-4 { border-left-color: #9b1c31; }
