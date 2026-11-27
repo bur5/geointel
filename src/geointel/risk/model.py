@@ -186,10 +186,40 @@ def _horizons(function, low_args, mid_args, high_args) -> dict[str, HorizonProba
     }
 
 
+MIN_GROUP_COUNTRIES = 8
+# 10-year horizon: weight of the group rate. The rest is the world rate, a crude allowance
+# for a change of regime within 10 years (0.8 gave stable democracies ~4%, implausibly high).
+GROUP_LONG_MIX = 0.95
+
+
+def group_priors(
+    counts: Mapping[str, Counts], groups: Mapping[str, str], fallback: BetaPrior
+) -> dict[str, BetaPrior]:
+    """Empirical-Bayes prior per group of similar countries (falls back to the world prior
+    when a group has fewer than ``MIN_GROUP_COUNTRIES`` members with data)."""
+    members: dict[str, list[Counts]] = {}
+    for iso3, c in counts.items():
+        if iso3 in groups:
+            members.setdefault(groups[iso3], []).append(c)
+    return {
+        g: fit_prior(cs, fallback)
+        if sum(1 for c in cs if c.trials >= 1.0) >= MIN_GROUP_COUNTRIES
+        else fallback
+        for g, cs in members.items()
+    }
+
+
 def assess_type(
-    history: TypeHistory, countries: Mapping[str, int | None], persistent: bool
+    history: TypeHistory,
+    countries: Mapping[str, int | None],
+    persistent: bool,
+    groups: Mapping[str, str] | None = None,
 ) -> list[CountryRisk]:
-    """Assess every country in ``countries`` (iso3 -> first independent year or None)."""
+    """Assess every country in ``countries`` (iso3 -> first independent year or None).
+
+    ``groups`` (non-persistent types only) shrinks each country towards similar countries
+    instead of the world: iso3 -> group key. Countries without a group use the world prior.
+    """
     results: list[CountryRisk] = []
     if persistent:
         transitions = {
@@ -200,6 +230,7 @@ def assess_type(
     else:
         simple = {iso3: bernoulli_counts(history, iso3, f) for iso3, f in countries.items()}
         prior = fit_prior(simple.values())
+        by_group = group_priors(simple, groups, prior) if groups else {}
 
     for iso3, first in countries.items():
         years = history.years_with_event.get(iso3, frozenset())
@@ -224,9 +255,19 @@ def assess_type(
                 question = Question.ONSET_WITHIN
                 horizons = _horizons(onset_within, (p01.low,), (p01.mean,), (p01.high,))
         else:
-            estimate = posterior(prior, simple[iso3])
+            group_prior = by_group.get((groups or {}).get(iso3, ""), prior)
+            estimate = posterior(group_prior, simple[iso3])
             question = Question.ONSET_WITHIN
             horizons = _horizons(onset_within, (estimate.low,), (estimate.mean,), (estimate.high,))
+            if group_prior is not prior and "10y" in horizons:
+                world = posterior(prior, simple[iso3])
+                w = GROUP_LONG_MIX
+                g10, years10 = horizons["10y"], next(h.years for h in HORIZONS if h.key == "10y")
+                horizons["10y"] = HorizonProbability(
+                    p=w * g10.p + (1 - w) * onset_within(world.mean, years10),
+                    low=w * g10.low + (1 - w) * onset_within(world.low, years10),
+                    high=w * g10.high + (1 - w) * onset_within(world.high, years10),
+                )
         results.append(
             CountryRisk(
                 iso3=iso3,

@@ -9,6 +9,8 @@ from geointel.risk.countries import resolve_country_name, universe_codes
 IMF_SOURCE = "IMF World Economic Outlook (DataMapper)"
 IMF_INDICATORS = {"growth": "NGDP_RPCH", "inflation": "PCPIPCH", "debt": "GGXWDG_NGDP"}
 VDEM_SOURCE = "V-Dem electoral democracy index (via Our World in Data)"
+REGIME_SLUG = "political-regime"  # V-Dem Regimes of the World via Our World in Data
+REGIME_SOURCE = "V-Dem Regimes of the World (via Our World in Data)"
 VDEM_SLUGS = ("electoral-democracy-index", "liberal-democracy-index")
 GPR_SOURCE = "Caldara & Iacoviello Geopolitical Risk Index (country-specific)"
 GPR_URL = "https://www.matteoiacoviello.com/gpr_files/data_gpr_export.xls"

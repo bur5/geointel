@@ -175,6 +175,11 @@ def _vdem(client: httpx.Client, _year: int) -> tuple[bytes, str, str]:
     return _download_first(client, [(outlook.owid_url(slug), slug) for slug in outlook.VDEM_SLUGS])
 
 
+def _regimes(client: httpx.Client, _year: int) -> tuple[bytes, str, str]:
+    url = outlook.owid_url(outlook.REGIME_SLUG)
+    return _get(client, url).content, url, outlook.REGIME_SLUG
+
+
 def _gpr(client: httpx.Client, _year: int) -> tuple[bytes, str, str]:
     return _get(client, outlook.GPR_URL).content, outlook.GPR_URL, "monthly"
 
@@ -879,6 +884,7 @@ def fetch_all(raw_dir: Path, reference_year: int | None = None) -> dict:
         "imf": ("imf.json", lambda c: _imf(c, year)),
         "vdem": ("vdem.csv", lambda c: _vdem(c, year)),
         "gpr": ("gpr.xls", lambda c: _gpr(c, year)),
+        "regimes": ("regimes.csv", lambda c: _regimes(c, year)),
         "elections": ("elections.json", lambda c: _elections(c, year)),
         "fcdo": ("fcdo.json", lambda c: _fcdo(c, year)),
         "milex": ("milex.csv", lambda c: _milex(c, year)),

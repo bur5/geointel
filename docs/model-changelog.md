@@ -3,6 +3,12 @@
 Every change that can move a published probability gets a new `MODEL_VERSION`
 (`src/geointel/risk/__init__.py`), an entry here, and a before/after report.
 
+## 1.3.0 — 2026-11-27
+- Coups: countries are shrunk towards similar countries — V-Dem Regimes of the World (4 types)
+  × coup or attempt in the last 20 years — instead of the world mean, which gave every country
+  at least 21% over 10 years. The 10-year horizon mixes in 5% of the world rate as an
+  allowance for regime change. Groups with fewer than 8 countries fall back to the world prior.
+
 ## 1.2.0 — 2026-11-27
 - Absolute danger level 1–5 per country (`danger.py`), separate from the relative trend arrow.
   Severity classes A/B/C with class thresholds on the 12-month probability (1-month ×12 when

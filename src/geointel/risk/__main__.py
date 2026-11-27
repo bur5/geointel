@@ -108,6 +108,9 @@ def load_histories(
     def democracy(path: Path) -> None:
         extras["democracy"] = outlook.owid_latest(path.read_text())
 
+    def regimes(path: Path) -> None:
+        extras["regimes"] = outlook.owid_latest(path.read_text())
+
     def gpr(path: Path) -> None:
         columns, months = outlook.read_gpr_xls(path.read_bytes())
         extras["gpr"] = outlook.gpr_country_series(columns, months)
@@ -205,6 +208,7 @@ def load_histories(
         ("exposure", exposure.SOURCE, structure),
         ("imf", outlook.IMF_SOURCE, imf),
         ("vdem", outlook.VDEM_SOURCE, democracy),
+        ("regimes", outlook.REGIME_SOURCE, regimes),
         ("gpr", outlook.GPR_SOURCE, gpr),
         ("elections", elections.SOURCE, votes),
         ("fcdo", fcdo.SOURCE, uk_travel),

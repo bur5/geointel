@@ -8,6 +8,20 @@ from geointel.risk.model import METHOD_NAME, TypeHistory, assess_type
 from geointel.risk.taxonomy import EVENT_TYPES, HORIZONS, EventType
 
 SCHEMA = "geointel-risk-snapshot-v1"
+
+
+def coup_groups(history: TypeHistory, regimes: dict) -> dict[str, str]:
+    """Group countries by V-Dem Regimes of the World (0 closed autocracy … 3 liberal
+    democracy) and whether a coup or attempt happened in the last 20 years."""
+    recent_from = history.end_year - 19
+    groups = {}
+    for iso3, item in regimes.items():
+        regime = int(round(float(item["value"])))
+        recent = any(y >= recent_from for y in history.years_with_event.get(iso3, ()))
+        groups[iso3] = f"{regime}|{'coup20' if recent else 'none20'}"
+    return groups
+
+
 CHANGE_THRESHOLD = 0.02
 
 METHOD = {
@@ -67,7 +81,11 @@ def build_snapshot(
                 records=history.records,
                 unresolved_labels=history.unresolved_labels,
             )
-            for item in assess_type(history, first_years, spec.persistent_state):
+            groups = None
+            if spec.key == EventType.COUP_ATTEMPT and (extras or {}).get("regimes"):
+                groups = coup_groups(history, extras["regimes"])
+                entry["grouping"] = "regime type (V-Dem RoW) x coup in last 20 years"
+            for item in assess_type(history, first_years, spec.persistent_state, groups):
                 risks[item.iso3][spec.key.value] = {
                     "question": item.question.value,
                     "active": item.active,
