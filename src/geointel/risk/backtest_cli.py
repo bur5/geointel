@@ -58,6 +58,12 @@ def run(out: Path, raw_dir: Path) -> int:
                     f"[backtest] {key} {period} {state}: n={s['n']} events={s['events']} "
                     f"BSS vs world={s['bss_vs_world']} vs last year={s['bss_vs_last_year']}"
                 )
+    for label, periods in (result.get("coup_variants") or {}).items():
+        for period, s in periods.items():
+            print(
+                f"[backtest] coups [{label}] {period}: BSS vs world={s['bss_vs_world']} "
+                f"brier={s['brier']} log={s['log_score']}"
+            )
     for period, d in result["danger"].items():
         print(f"[backtest] danger {period}: order_ok={d['order_ok']} band={d['band_level3']}")
     return 0

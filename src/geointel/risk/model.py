@@ -196,6 +196,11 @@ MIN_GROUP_COUNTRIES = 8
 GROUP_LONG_MIX = 0.95
 
 
+# How many times a member's mean weighted history the group prior may weigh (1.10.0: 2,
+# Fable round 4 #2). Chosen on the time machine's tuning period (docs/backtest-rules.md).
+GROUP_PRIOR_CAP_MULT = 2.0
+
+
 def group_priors(
     counts: Mapping[str, Counts], groups: Mapping[str, str], fallback: BetaPrior
 ) -> dict[str, BetaPrior]:
@@ -216,7 +221,7 @@ def group_priors(
         if len(usable) < MIN_GROUP_COUNTRIES:
             out[g] = fallback
             continue
-        cap = max(2.0, 2.0 * fmean(c.trials for c in usable))
+        cap = max(2.0, GROUP_PRIOR_CAP_MULT * fmean(c.trials for c in usable))
         out[g] = fit_prior(usable, fallback, max_strength=cap)
     return out
 

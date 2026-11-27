@@ -15,6 +15,7 @@ from dataclasses import replace
 from statistics import fmean
 
 from geointel.risk.model import (
+    GROUP_PRIOR_CAP_MULT,
     MIN_GROUP_COUNTRIES,
     Counts,
     TypeHistory,
@@ -100,6 +101,7 @@ def forecasts(
     issue_year: int,
     lag: int,
     groups: Mapping[str, str] | None = None,
+    cap_mult: float | None = None,
 ) -> dict[str, dict]:
     """P(event in ``issue_year``) per country from data up to ``issue_year - lag``.
 
@@ -137,7 +139,8 @@ def forecasts(
                 members.setdefault(groups[iso3], []).append(c)
         for g, cs in members.items():
             if len(cs) >= MIN_GROUP_COUNTRIES:
-                cap = max(2.0, 2.0 * fmean(c.trials for c in cs))
+                mult = GROUP_PRIOR_CAP_MULT if cap_mult is None else cap_mult
+                cap = 400.0 if mult >= 1e8 else max(2.0, mult * fmean(c.trials for c in cs))
                 group_prior[g] = fit_prior(cs, world, max_strength=cap)
     for iso3, first in countries.items():
         if not exposure(known, first, iso3):
@@ -276,15 +279,17 @@ def run_type(
     persistent: bool,
     years: Iterable[int],
     regime_series: Mapping[str, Mapping[int, int]] | None = None,
+    variant: tuple[bool, float | None] = (True, None),
 ) -> list[dict]:
+    """``variant`` (coups): (use regime groups, prior cap multiplier or None for default)."""
     lag = LAG.get(key, 2)
     records = []
     for year in years:
         groups = None
-        if key == EventType.COUP_ATTEMPT and regime_series:
+        if key == EventType.COUP_ATTEMPT and regime_series and variant[0]:
             known = as_of(history, year - lag)
             groups = coup_groups_as_of(known, regimes_as_of(regime_series, year - REGIME_LAG))
-        fc = forecasts(history, first_years, persistent, year, lag, groups)
+        fc = forecasts(history, first_years, persistent, year, lag, groups, variant[1])
         refs = references(history, first_years, year, lag)
         for iso3, item in fc.items():
             y = outcome(history, iso3, year)
