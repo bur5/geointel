@@ -330,6 +330,24 @@ def _protests(client: httpx.Client, _year: int) -> tuple[bytes, str, str]:
     return json.dumps(payload).encode(), url, f"to {payload['last']}"
 
 
+def _radar(client: httpx.Client, _year: int) -> tuple[bytes, str, str]:
+    from geointel.risk.sources import radar
+
+    token = os.environ.get("CLOUDFLARE_RADAR_TOKEN")
+    if not token:
+        raise RuntimeError("CLOUDFLARE_RADAR_TOKEN is not set")
+    response = client.get(
+        radar.OUTAGES_URL,
+        params={"dateRange": "28d", "limit": "200", "format": "json"},
+        headers={"Authorization": f"Bearer {token}"},
+        timeout=60,
+    )
+    response.raise_for_status()
+    records = radar.outages(response.json())
+    payload = {"outages": records}
+    return json.dumps(payload).encode(), radar.OUTAGES_URL, f"{len(records)} outages in 28 days"
+
+
 def _gpr(client: httpx.Client, _year: int) -> tuple[bytes, str, str]:
     return _get(client, outlook.GPR_URL).content, outlook.GPR_URL, "monthly"
 
@@ -1107,6 +1125,7 @@ def fetch_all(raw_dir: Path, reference_year: int | None = None) -> dict:
         "media": ("media.json", lambda c: _media(c, year)),
         "newswire": ("newswire.json", lambda c: _newswire(c, year)),
         "ioda": ("ioda.json", lambda c: _ioda(c, year)),
+        "radar": ("radar.json", lambda c: _radar(c, year)),
         "firms": ("firms.json", lambda c: _firms(c, year)),
         "military": ("military.json", lambda c: _military(c, year)),
         "fx": ("fx.json", lambda c: _fx(c, year)),
