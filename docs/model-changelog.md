@@ -3,6 +3,16 @@
 Every change that can move a published probability gets a new `MODEL_VERSION`
 (`src/geointel/risk/__init__.py`), an entry here, and a before/after report.
 
+## 1.5.0 — 2026-11-27
+- Regional layer (`regional.py`): for every first-level region, how often each natural
+  hazard struck it (empirical Bayes across the country's regions), named volcanoes that erupted
+  since 1900 (Smithsonian GVP), the highest recorded tsunami wave, and a current level from
+  active GDACS alerts located in the region (orange 3, red 4).
+- Population per region from GeoNames cities of 15,000+; a country's danger level is at least
+  the population-weighted median of its regional levels, and the worst regions are named with
+  the share of the population living there — a cyclone in Florida no longer paints Minnesota.
+- New files: `regional.json` and light per-country region shapes `regions/<ISO3>.json`.
+
 ## 1.4.0 — 2026-11-27
 - Warning signs: within a group only the strongest raising and lowering sign count (news,
   Telegram and GDELT often report one event); no single sign moves the odds more than ×10;

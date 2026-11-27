@@ -547,3 +547,11 @@ td.up, td.down { margin-left: 0; }
 .driver-list { list-style: none; padding: 0; margin: 6px 0 10px; display: grid; gap: 6px; }
 .note-line { border-left: 3px solid var(--line); padding-left: 10px; color: var(--muted); }
 .stale { color: #b3261e; font-size: 13px; }
+
+/* Regional view */
+.regional-grid { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 18px; align-items: start; }
+.regional-map svg { width: 100%; height: auto; background: var(--water, #eef3f7); border-radius: 12px; }
+.regional-hazards { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px 20px; }
+.regional-hazards h4 { margin: 0; font-size: 14px; }
+.regional-hazards ul { margin: 4px 0 0; padding-left: 18px; }
+@media (max-width: 760px) { .regional-grid { grid-template-columns: 1fr; } }

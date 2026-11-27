@@ -16,6 +16,7 @@ import { drawCountryMap, drawMap, neighboursOf } from './map';
 import { businessVerdict, levelLabel, relocationHorizon, relocationLevelLabel, relocationNote, relocationVerdict, spillover, travelVerdict } from './insights';
 import { alertCard } from './alerts';
 import { dangerCard } from './danger';
+import { fillRegional } from './regionalView';
 import { BLOCS, REGIONS, groupName, groupNote, groupsOf } from './groups';
 import type { Group } from './groups';
 import type { Level, Verdict } from './insights';
@@ -371,6 +372,7 @@ function countryPage() {
       <div class="lead-summary"><h2>${t().summaryTitle}</h2>${summarySentences(country, '1y')}</div>
     </section>
     ${country ? implications(country) : ''}
+    <section class="section" id="regional" aria-live="polite"></section>
     <section class="section" id="country-signals">${countrySignals(viewContext(), signalsData, country)}</section>
     <section class="section" id="country-scenarios">${countryScenarios(viewContext(), scenariosData, selected)}</section>
     <section class="section" id="country-links">${linksSection(viewContext(), selected, chainEvent, neighbourCodes(selected), linksData)}</section>
@@ -590,7 +592,11 @@ function render() {
     </header>
     <main id="workspace" tabindex="-1">${body(page)}</main>
     <footer class="footer">${t().brand}. ${t().summaryCaveat} Natural Earth.</footer>`;
-  if (page === 'country' && snapshot) void fillHazards(selected);
+  if (page === 'country' && snapshot) {
+    void fillHazards(selected);
+    const iso = selected;
+    void fillRegional(root, iso, lang, (p) => percent(p, lang), escape, () => currentPage() === 'country' && selected === iso);
+  }
   drawExtraMaps();
   const map = root.querySelector<HTMLElement>('#map');
   if (map && snapshot) {
