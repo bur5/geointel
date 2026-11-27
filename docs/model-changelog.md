@@ -3,6 +3,15 @@
 Every change that can move a published probability gets a new `MODEL_VERSION`
 (`src/geointel/risk/__init__.py`), an entry here, and a before/after report.
 
+## 1.9.0 — 2026-11-27
+- Regional conflict levels recalibrated. The 1.6.0 rule (5+ deaths in 90 days → level 5)
+  put 43 countries' regions, including ordinary criminal-violence regions, at the top level and
+  lifted 14 countries to 5 through the population median. New rule: 5 = 250+ deaths in the last
+  90 days (a war zone now); 4 = 50+ in 90 days or 150+ in 12 months; 3 = 25+ in 12 months;
+  2 = 5+ in 12 months.
+- UK FCDO: "against all travel to all other regions" counts as the whole country (Ukraine
+  was read as level 2).
+
 ## 1.8.0 — 2026-11-27
 - Mass protests get a base-rate model: Mass Mobilization (Clark & Regan, CC0), country-years
   with a protest against the government of more than 10,000 people, 1990–2020. Countries outside

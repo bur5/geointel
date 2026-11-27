@@ -93,12 +93,14 @@ def test_ged_links_and_region_levels():
     assert urls["candidate_latest"].endswith("v26_0_10.csv")
     assert urls["candidate_cumulative"].endswith("v26_01_26_09.csv")
     items = [
-        {"iso3": "USA", "lat": 27.0, "lon": -82.0, "month": "2026-10", "deaths": 6},
-        {"iso3": "USA", "lat": 36.0, "lon": -120.0, "month": "2026-01", "deaths": 30},
+        {"iso3": "USA", "lat": 27.0, "lon": -82.0, "month": "2026-10", "deaths": 260},
+        {"iso3": "USA", "lat": 36.0, "lon": -120.0, "month": "2026-01", "deaths": 160},
         {"iso3": "USA", "lat": 45.0, "lon": -93.0, "month": "2024-01", "deaths": 100},
     ]
     levels = ucdp_ged.region_levels(items, INDEX.locate, date(2026, 11, 27))["USA"]
     assert levels["FL"]["level"] == 5 and levels["CA"]["level"] == 4 and "MN" not in levels
+    few = [{"iso3": "USA", "lat": 27.0, "lon": -82.0, "month": "2026-10", "deaths": 6}]
+    assert ucdp_ged.region_levels(few, INDEX.locate, date(2026, 11, 27))["USA"]["FL"]["level"] == 2
 
 
 def _xlsx(rows):
