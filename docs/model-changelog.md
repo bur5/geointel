@@ -3,6 +3,16 @@
 Every change that can move a published probability gets a new `MODEL_VERSION`
 (`src/geointel/risk/__init__.py`), an entry here, and a before/after report.
 
+## 1.6.0 — 2026-11-27
+- Regional conflicts: UCDP GED (annual, last 3 years) and UCDP Candidate (monthly) events
+  located in first-level regions. 5+ deaths in fighting or attacks in the last 90 days → level 5
+  for the region; 25+ in 12 months → 4; 5+ in 12 months → 3. These feed the population-weighted
+  country level and are named on the country page.
+- Coups: V-Dem regime types are parsed from OWID labels (the 1.3.0 grouping was silently off).
+- Trained base models (`trained.py`, monthly workflow) with pre-registered forward validation;
+  a type is switched on only if it beats the base rate (95% CI of the Brier skill score > 0).
+- Canada and Germany travel advice join the US and UK in the foreign-ministry median.
+
 ## 1.5.0 — 2026-11-27
 - Regional layer (`regional.py`): for every first-level region, how often each natural
   hazard struck it (empirical Bayes across the country's regions), named volcanoes that erupted

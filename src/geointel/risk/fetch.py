@@ -213,6 +213,36 @@ def _advisories_extra(client: httpx.Client, _year: int) -> tuple[bytes, str, str
     )
 
 
+def _ged(client: httpx.Client, year: int) -> tuple[bytes, str, str]:
+    """GED annual cells (re-downloaded only when a new GED version appears) plus the
+    current UCDP Candidate months."""
+    from geointel.risk.sources import ucdp_ged
+
+    urls = ucdp_ged.links(_get(client, ucdp_ged.DOWNLOADS).text)
+    cached = _read_cache("ged_cells.json")
+    min_year = year - ucdp_ged.YEARS_KEPT
+    if urls["ged"] and cached.get("ged_url") == urls["ged"]:
+        annual = cached.get("annual", [])
+    elif urls["ged"]:
+        text = ucdp_ged.read_zip_csv(_get(client, urls["ged"]).content)
+        annual = ucdp_ged.cells(text, min_year)
+    else:
+        annual = cached.get("annual", [])
+    candidate = []
+    for key in ("candidate_cumulative", "candidate_latest"):
+        if urls[key]:
+            try:
+                candidate += ucdp_ged.cells(_get(client, urls[key]).text, min_year)
+            except Exception as exc:  # noqa: BLE001 - annual data still useful
+                print(f"[ged] {key} failed: {type(exc).__name__}")
+    payload = {"ged_url": urls["ged"], "annual": annual, "candidate": candidate, "urls": urls}
+    return (
+        json.dumps(payload).encode(),
+        urls["ged"] or ucdp_ged.DOWNLOADS,
+        f"{len(annual)} annual + {len(candidate)} candidate cells",
+    )
+
+
 def _gpr(client: httpx.Client, _year: int) -> tuple[bytes, str, str]:
     return _get(client, outlook.GPR_URL).content, outlook.GPR_URL, "monthly"
 
@@ -924,6 +954,7 @@ def fetch_all(raw_dir: Path, reference_year: int | None = None) -> dict:
         "vdem": ("vdem.csv", lambda c: _vdem(c, year)),
         "gpr": ("gpr.xls", lambda c: _gpr(c, year)),
         "regimes": ("regimes.csv", lambda c: _regimes(c, year)),
+        "ged": ("ged.json", lambda c: _ged(c, year)),
         "advisories_extra": ("advisories_extra.json", lambda c: _advisories_extra(c, year)),
         "elections": ("elections.json", lambda c: _elections(c, year)),
         "fcdo": ("fcdo.json", lambda c: _fcdo(c, year)),

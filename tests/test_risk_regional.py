@@ -74,3 +74,28 @@ def test_regime_labels_parse():
     latest = outlook.owid_regime_latest(text)
     assert latest["NOR"] == {"value": 3, "year": 2025}
     assert latest["MLI"]["value"] == 0
+
+
+def test_ged_links_and_region_levels():
+    from datetime import date
+
+    from geointel.risk.sources import ucdp_ged
+
+    html = (
+        '<a href="https://ucdp.uu.se/downloads/ged/ged251-csv.zip">'
+        '<a href="https://ucdp.uu.se/downloads/ged/ged261-csv.zip">'
+        '<a href="https://ucdp.uu.se/downloads/candidateged/GEDEvent_v26_01_26_09.csv">'
+        '<a href="https://ucdp.uu.se/downloads/candidateged/GEDEvent_v26_0_9.csv">'
+        '<a href="https://ucdp.uu.se/downloads/candidateged/GEDEvent_v26_0_10.csv">'
+    )
+    urls = ucdp_ged.links(html)
+    assert urls["ged"].endswith("ged261-csv.zip")
+    assert urls["candidate_latest"].endswith("v26_0_10.csv")
+    assert urls["candidate_cumulative"].endswith("v26_01_26_09.csv")
+    items = [
+        {"iso3": "USA", "lat": 27.0, "lon": -82.0, "month": "2026-10", "deaths": 6},
+        {"iso3": "USA", "lat": 36.0, "lon": -120.0, "month": "2026-01", "deaths": 30},
+        {"iso3": "USA", "lat": 45.0, "lon": -93.0, "month": "2024-01", "deaths": 100},
+    ]
+    levels = ucdp_ged.region_levels(items, INDEX.locate, date(2026, 11, 27))["USA"]
+    assert levels["FL"]["level"] == 5 and levels["CA"]["level"] == 4 and "MN" not in levels
