@@ -4,6 +4,10 @@ on:
   schedule:
     - cron: "17 5 * * *" # daily, 05:17 UTC
   workflow_dispatch:
+    inputs:
+      send_digest:
+        description: "Send the Telegram digest from this manual run (true/false)"
+        default: "false"
   # A push to main only rebuilds the site from the latest published data (a few minutes);
   # new data and model changes arrive with the daily run or a manual run. Pull requests are
   # checked by CI only: a full data run per PR used about a third of the Actions minutes.
@@ -92,7 +96,7 @@ jobs:
           python -m geointel.risk accuracy --history-dir data/history --today data/site/scenarios.json --out data/site/accuracy.json
 
       - name: Telegram digest (only if the Owner set up a bot)
-        if: github.event_name == 'schedule' && github.ref == 'refs/heads/main'
+        if: github.ref == 'refs/heads/main' && (github.event_name == 'schedule' || inputs.send_digest == 'true')
         continue-on-error: true
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
