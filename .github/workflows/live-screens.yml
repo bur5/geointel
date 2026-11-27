@@ -10,7 +10,7 @@ on:
         description: "light dark newyear"
         default: "light dark"
 permissions:
-  contents: read
+  contents: write
 jobs:
   shots:
     runs-on: ubuntu-latest
@@ -48,7 +48,17 @@ jobs:
           await browser.close();
           JS
           node shoot.mjs
-      - uses: actions/upload-artifact@v4
-        with:
-          name: live-screens
-          path: shots/*.png
+      - uses: actions/checkout@v4
+        with: { path: repo }
+      - name: Store in the screens branch (artifacts cannot be downloaded by the developer)
+        run: |
+          cd repo
+          git config user.name "geointel-bot"
+          git config user.email "geointel-bot@users.noreply.github.com"
+          if git ls-remote --exit-code --heads origin screens >/dev/null; then
+            git fetch --depth=1 origin screens && git checkout -B screens FETCH_HEAD
+          else
+            git checkout --orphan screens && git rm -rfq .
+          fi
+          rm -f *.png && cp ../shots/*.png .
+          git add -A && git commit -qm "Screenshots $(date -u +%Y-%m-%dT%H:%M)" && git push origin screens
