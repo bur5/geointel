@@ -263,6 +263,34 @@ def build(
             )
         notes["radar"] = f"{len(outage_records)} outages in 28 days"
 
+    # Joint War Committee listed areas: listed = shown; newly listed (first seen in our own
+    # archive within 60 days) = active. The first run has no history, so nothing is "new".
+    listed = raw.get("jwc")
+    if isinstance(listed, dict) and listed.get("areas"):
+        from geointel.risk.sources import jwc
+
+        state = jwc.with_first_seen(listed, _load(cache_in / "jwc.json") or None, today)
+        _save(cache_out / "jwc.json", state)
+        for code, item in state["areas"].items():
+            first = state["first_seen"].get(code)
+            new = bool(first) and (today - date.fromisoformat(first)).days <= 60
+            part_ru = " (только часть вод)" if item["partial"] else ""
+            part_en = " (some waters only)" if item["partial"] else ""
+            add(
+                code,
+                make_sign(
+                    "war_risk_listed",
+                    "active" if new else "normal",
+                    f"{state.get('circular') or 'JWC'}{part_ru}"
+                    + (f", впервые в списке {first}" if new else ""),
+                    f"{state.get('circular') or 'JWC'}{part_en}"
+                    + (f", newly listed {first}" if new else ""),
+                    source=jwc.SOURCE,
+                    url=jwc.URL,
+                ),
+            )
+        notes["jwc"] = f"{len(state['areas'])} listed countries ({state.get('circular')})"
+
     # EASA conflict zone bulletins: an active bulletin is shown; a new or revised one in the
     # last 30 days is marked active. Observation only (multiplier 1).
     bulletins = raw.get("easa")
