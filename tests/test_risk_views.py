@@ -27,7 +27,8 @@ def test_compact_and_country_view():
     assert views.country_view(data["MLI"], date(2026, 9, 1)) is None
 
 
-def test_apply_views_blends_only_onset_and_keeps_order():
+def test_apply_views_blends_only_onset_and_keeps_order(monkeypatch):
+    monkeypatch.setattr(views, "BLEND_ENABLED", True)
     months = {f"2026-{m:02d}": 0.05 for m in range(11, 13)}
     months.update({f"2027-{m:02d}": 0.05 for m in range(1, 13)})
 
@@ -66,7 +67,8 @@ def test_apply_views_blends_only_onset_and_keeps_order():
     assert snapshot["event_types"][0]["views"]["countries"] == 1
 
 
-def test_views_not_blended_for_a_country_at_interstate_war():
+def test_views_not_blended_for_a_country_at_interstate_war(monkeypatch):
+    monkeypatch.setattr(views, "BLEND_ENABLED", True)
     months = {f"2026-{m:02d}": 0.99 for m in range(11, 13)}
     months.update({f"2027-{m:02d}": 0.99 for m in range(1, 13)})
     cell = {"p": 0.05, "low": 0.03, "high": 0.08}
@@ -88,3 +90,19 @@ def test_views_not_blended_for_a_country_at_interstate_war():
     ukr = snapshot["countries"][0]
     assert ukr["risks"]["internal_armed_conflict"]["horizons"]["1y"]["p"] == 0.05
     assert ukr["external"]["views"]["skipped"] == "interstate_war"
+
+
+def test_views_shown_but_not_blended_by_default():
+    months = {f"2026-{m:02d}": 0.9 for m in range(11, 13)}
+    months.update({f"2027-{m:02d}": 0.9 for m in range(1, 13)})
+    cell = {"p": 0.05, "low": 0.03, "high": 0.08}
+    risk = {
+        "question": "onset_within",
+        "horizons": {h: dict(cell) for h in ("1m", "1y", "5y", "10y")},
+    }
+    snapshot = {"countries": [{"iso3": "ZAF", "risks": {"internal_armed_conflict": risk}}]}
+    payload = {"run": "r", "countries": {"ZAF": months}}
+    assert views.apply_views(snapshot, payload, date(2026, 11, 2), "internal_armed_conflict") == 0
+    zaf = snapshot["countries"][0]
+    assert zaf["risks"]["internal_armed_conflict"]["horizons"]["1y"]["p"] == 0.05
+    assert zaf["external"]["views"]["skipped"] == "definition"

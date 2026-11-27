@@ -456,20 +456,20 @@ function viewsNote(country: CountryEntry, risk: CountryEntry['risks'][string]) {
   const pct = (p: number) => (p * 100 < 1 ? (p * 100).toFixed(1) : Math.round(p * 100).toString()) + '%';
   const own = risk.own_horizons?.['1y'];
   if (lang === 'ru') {
-    const head = `ViEWS (Уппсала, PRIO): вероятность месяца с 25+ погибшими в боях — ${pct(v.p1m)} в этом месяце, ${pct(v.p12m)} за 12 месяцев (диапазон ${pct(v.p12m_low)}–${pct(v.p12m_high)}).`;
+    const head = `ViEWS (Уппсала, PRIO), для сравнения: вероятность боевых потерь в стране — ${pct(v.p1m)} в этом месяце, ${pct(v.p12m)} за 12 месяцев (диапазон ${pct(v.p12m_low)}–${pct(v.p12m_high)}).`;
     const tail = risk.model === 'views_blend'
       ? ` Цифры выше — смесь: 70% ViEWS и 30% нашей модели${own ? ` (наша модель отдельно: ${pct(own.p)} за год)` : ''}.`
       : v.skipped === 'interstate_war'
-        ? ' ViEWS считает все бои на территории страны, включая войну с другим государством, поэтому для внутреннего конфликта здесь не используется; цифры выше — по нашей модели.'
-        : ' Конфликт уже идёт, поэтому цифры выше — по нашей модели продолжения; ViEWS показан для сравнения.';
+        ? ' ViEWS считает все бои на территории, включая войну с другим государством, поэтому в наш расчёт не входит.'
+        : ' Порог события у ViEWS, по-видимому, ниже нашего (возможно, хотя бы один погибший в бою, а не 25 за год), поэтому в наш расчёт не входит, пока определение не подтверждено.';
     return `<p class="basis views-note">${escape(head + tail)}</p>`;
   }
-  const head = `ViEWS (Uppsala, PRIO): probability of a month with 25+ battle deaths — ${pct(v.p1m)} this month, ${pct(v.p12m)} over 12 months (range ${pct(v.p12m_low)}–${pct(v.p12m_high)}).`;
+  const head = `ViEWS (Uppsala, PRIO), for comparison: probability of battle deaths in the country — ${pct(v.p1m)} this month, ${pct(v.p12m)} over 12 months (range ${pct(v.p12m_low)}–${pct(v.p12m_high)}).`;
   const tail = risk.model === 'views_blend'
     ? ` The figures above blend 70% ViEWS with 30% our model${own ? ` (our model alone: ${pct(own.p)} per year)` : ''}.`
     : v.skipped === 'interstate_war'
-      ? ' ViEWS counts all fighting on the territory, including a war with another state, so it is not used for internal conflict here; the figures above are our model.'
-      : ' The conflict is already active, so the figures above are our continuation model; ViEWS is shown for comparison.';
+      ? ' ViEWS counts all fighting on the territory, including a war with another state, so it is not used in our figures.'
+      : ' The ViEWS event threshold appears lower than ours (possibly one battle death, not 25 a year), so it is not used in our figures until the definition is confirmed.';
   return `<p class="basis views-note">${escape(head + tail)}</p>`;
 }
 

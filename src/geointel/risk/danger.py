@@ -113,11 +113,13 @@ def war_level(iso3: str, kind: str, intensity: int) -> int:
 
 
 def severity_level(severity: Mapping | None) -> int:
-    """INFORM Severity 1–5 → danger level; without severity data an active appeal is 2."""
+    """INFORM Severity 1–5 → danger level (4+ → 3, else 2); without severity data 2."""
+    # Humanitarian crises are severity class B: at most level 3 (1.9.2). INFORM scores a
+    # crisis, which often affects some regions or groups, not the whole country.
     score = (severity or {}).get("score")
     if score is None:
         return 2
-    return 4 if score >= 4 else 3 if score >= 3 else 2
+    return 3 if score >= 4 else 2
 
 
 def ministry_levels(country: Mapping) -> list[dict]:

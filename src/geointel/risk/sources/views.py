@@ -21,6 +21,11 @@ API = "https://api.viewsforecasting.org"
 RUN_RE = re.compile(r"^fatalities(\d{3})_(\d{4})_(\d{2})_t01$")
 VIEWS_WEIGHT = 0.7
 EPS = 1e-4
+# 1.9.2: blending is off. ``main_dich`` turned out to be far above the 25-deaths-a-year
+# reading for countries without a UCDP state-based conflict (South Africa 0.77, Brazil 0.98),
+# so its threshold is most likely "at least one death", not 25. Until the definition is
+# confirmed ViEWS is shown for comparison only.
+BLEND_ENABLED = False
 
 
 def latest_run(runs: Iterable[str]) -> str | None:
@@ -138,6 +143,9 @@ def apply_views(snapshot: dict, payload: Mapping | None, today: date, key: str) 
         if not view:
             continue
         country.setdefault("external", {})["views"] = {**view, "run": run}
+        if not BLEND_ENABLED:
+            country["external"]["views"]["skipped"] = "definition"
+            continue
         if risk.get("question") != "onset_within":
             continue
         # ViEWS counts every state-based battle death on the territory, including an interstate
