@@ -108,6 +108,9 @@ def load_histories(
     def democracy(path: Path) -> None:
         extras["democracy"] = outlook.owid_latest(path.read_text())
 
+    def ged(path: Path) -> None:
+        extras["ged"] = json.loads(path.read_text())
+
     def ministries(path: Path) -> None:
         from geointel.risk.sources import advisories_extra as ax
 
@@ -233,6 +236,7 @@ def load_histories(
         ("imf", outlook.IMF_SOURCE, imf),
         ("vdem", outlook.VDEM_SOURCE, democracy),
         ("regimes", outlook.REGIME_SOURCE, regimes),
+        ("ged", "UCDP GED and Candidate events", ged),
         ("advisories_extra", "Global Affairs Canada; Auswärtiges Amt travel advice", ministries),
         ("gpr", outlook.GPR_SOURCE, gpr),
         ("elections", elections.SOURCE, votes),
@@ -709,6 +713,37 @@ def main(argv: list[str] | None = None) -> int:
         from geointel.risk.regional import build_regional
         from geointel.risk.regions import simplified_geojson
 
+        conflict_levels = {}
+        ged_payload = extras.get("ged")
+        if ged_payload:
+            from geointel.risk.sources import ucdp_ged
+
+            cache_out = _cache_dirs()[1]
+            cache_out.mkdir(parents=True, exist_ok=True)
+            (cache_out / "ged_cells.json").write_text(
+                json.dumps(
+                    {
+                        "ged_url": ged_payload.get("ged_url"),
+                        "annual": ged_payload.get("annual", []),
+                    },
+                    separators=(",", ":"),
+                )
+            )
+            conflict_levels = ucdp_ged.region_levels(
+                [*ged_payload.get("annual", []), *ged_payload.get("candidate", [])],
+                extras["region_index"].locate,
+                now.date(),
+            )
+            print(
+                f"[regional] conflict regions: "
+                f"{sum(len(v) for v in conflict_levels.values())} in {len(conflict_levels)} "
+                f"countries; level 5: "
+                + ", ".join(
+                    f"{c}:{sum(1 for x in v.values() if x['level'] == 5)}"
+                    for c, v in sorted(conflict_levels.items())
+                    if any(x["level"] == 5 for x in v.values())
+                )[:400]
+            )
         regional = build_regional(
             extras["region_index"],
             hazard_events,
@@ -716,6 +751,7 @@ def main(argv: list[str] | None = None) -> int:
             extras.get("cities"),
             extras.get("volcanoes"),
             now.year - 1,
+            conflict_levels,
         )
         (args.out.parent / "regional.json").write_text(
             json.dumps(
