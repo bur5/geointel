@@ -9,6 +9,32 @@ UNHCR_SOURCE = "UNHCR Refugee Population Statistics (api.unhcr.org)"
 UNHCR_URL = "https://api.unhcr.org/population/v1/population/"
 EUROSTAT_SOURCE = "Eurostat migr_asyappctzm (first-time asylum applicants, monthly)"
 EUROSTAT_URL = "https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/migr_asyappctzm"
+IRREGULAR_SOURCE = "Eurostat migr_eipre (third-country nationals found illegally present)"
+IRREGULAR_URL = "https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/migr_eipre"
+# Countries with published estimates of the number of irregular residents. Estimates differ
+# by method, so the range spans the sources; the year is the reference year of the estimates.
+IRREGULAR_ESTIMATES: dict[str, dict] = {
+    "USA": {
+        "low": 14_000_000,
+        "high": 15_800_000,
+        "years": "2023–2024",
+        "sources": [
+            [
+                "Pew Research Center, 2023: 14.0M",
+                "https://www.pewresearch.org/race-and-ethnicity/2025/08/21/u-s-unauthorized-immigrant-population-reached-a-record-14-million-in-2023/",
+            ],
+            [
+                "Center for Migration Studies, 2024: 14.6M",
+                "https://cmsny.org/research-and-policy/data/",
+            ],
+            ["Migration Policy Institute, 2024: 15.8M", "https://www.migrationpolicy.org/"],
+        ],
+        "note_ru": "После 2024 года число могло снизиться из-за отъездов и депортаций; "
+        "свежих полных оценок нет, источники расходятся.",
+        "note_en": "The number may have fallen after 2024 because of departures and "
+        "deportations; no complete newer estimates, and sources disagree.",
+    },
+}
 # Eurostat uses EL for Greece and UK for the United Kingdom.
 EUROSTAT_GEO = {"EL": "GRC", "UK": "GBR"}
 
@@ -148,3 +174,82 @@ def merge_pages(pages: Iterable[Mapping]) -> list[dict]:
     for page in pages:
         rows.extend(page.get("items") or [])
     return rows
+
+
+def irregular_params(since: int) -> dict[str, str]:
+    return {
+        "format": "JSON",
+        "lang": "EN",
+        "reason": "TOTAL",
+        "apprehen": "TOTAL",
+        "citizen": "TOTAL",
+        "sex": "T",
+        "age": "TOTAL",
+        "unit": "PER",
+        "sinceTimePeriod": str(since),
+    }
+
+
+def irregular_found(series: Mapping[str, list[tuple[str, float]]]) -> dict[str, dict]:
+    """Latest annual count of people found illegally present, per reporting country."""
+    out: dict[str, dict] = {}
+    for code, points in series.items():
+        points = [(t, v) for t, v in points if v is not None]
+        if not points:
+            continue
+        year, value = points[-1]
+        out[code] = {"year": year, "found": int(value), "series": [[t, int(v)] for t, v in points]}
+    return out
+
+
+def irregular_label(code: str, found: Mapping[str, dict] | None) -> dict:
+    """One of three honest labels; never a zero for a country without data."""
+    estimate = IRREGULAR_ESTIMATES.get(code)
+    if estimate:
+        return {"kind": "estimate", **estimate}
+    item = (found or {}).get(code)
+    if item:
+        return {"kind": "indirect", "source": IRREGULAR_SOURCE, "url": IRREGULAR_URL, **item}
+    return {"kind": "none"}
+
+
+POLICY_SIGNS = {"migration_tighten": 1, "migration_ease": -1}
+
+
+def policy_journal(cache: Iterable[dict], news: Iterable[dict], keep_from: str) -> list[dict]:
+    """News-classified immigration policy changes, kept for 400 days (deduplicated by URL)."""
+    seen: set[tuple] = set()
+    out = []
+    for entry in [*news, *cache]:
+        if entry.get("sign") not in POLICY_SIGNS or entry.get("date", "") < keep_from:
+            continue
+        key = (entry.get("url"), entry.get("country"), entry.get("sign"))
+        if key in seen:
+            continue
+        seen.add(key)
+        out.append(
+            {
+                k: entry.get(k)
+                for k in ("date", "country", "sign", "summary_ru", "summary_en", "url", "domain")
+            }
+        )
+    return sorted(out, key=lambda e: e["date"], reverse=True)
+
+
+def policy_summary(journal: Iterable[dict], today) -> dict[str, dict]:
+    """Direction of policy changes per country over 3 and 12 months: >0 tighter, <0 easier."""
+    from datetime import date
+
+    out: dict[str, dict] = {}
+    for entry in journal:
+        code = entry["country"]
+        age = (today - date.fromisoformat(entry["date"])).days
+        item = out.setdefault(code, {"d90": 0, "d365": 0, "entries": []})
+        weight = POLICY_SIGNS[entry["sign"]]
+        if age <= 90:
+            item["d90"] += weight
+        if age <= 365:
+            item["d365"] += weight
+        if len(item["entries"]) < 6:
+            item["entries"].append(entry)
+    return out

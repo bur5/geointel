@@ -4,7 +4,7 @@ Borders and bloc memberships are added on the site from the map topology and the
 this module publishes the data-driven links as ``links.json``.
 """
 
-from collections.abc import Mapping
+from collections.abc import Iterable, Mapping
 from datetime import UTC, datetime
 
 SCHEMA = "geointel-links-v1"
@@ -92,6 +92,10 @@ def build_links(
     displacement: Mapping[str, dict] | None,
     asylum: Mapping[str, dict] | None,
     profiles: Mapping[str, dict] | None = None,
+    diaspora: Mapping[str, dict] | None = None,
+    irregular: Mapping[str, dict] | None = None,
+    policy: Mapping[str, dict] | None = None,
+    universe: Iterable[str] = (),
     sources: list[dict] | None = None,
     generated_at: datetime | None = None,
 ) -> dict:
@@ -113,6 +117,18 @@ def build_links(
         entry(code)["migration"] = migration
     for code, trend in (asylum or {}).items():
         entry(code).setdefault("migration", {})["asylum_eu"] = trend
+    for code, data in (diaspora or {}).items():
+        item = dict(data)
+        population = (profiles.get(code) or {}).get("population", {}).get("value")
+        if population:
+            item["per_1000"] = round(data["total"] / population * 1000, 1)
+        entry(code).setdefault("migration", {})["diaspora"] = item
+    from geointel.risk.sources.migration import irregular_label
+
+    for code in {*universe, *(irregular or {})}:
+        entry(code).setdefault("migration", {})["irregular"] = irregular_label(code, irregular)
+    for code, item in (policy or {}).items():
+        entry(code).setdefault("migration", {})["policy"] = item
     return {
         "schema": SCHEMA,
         "generated_at": (generated_at or datetime.now(UTC)).isoformat(),
