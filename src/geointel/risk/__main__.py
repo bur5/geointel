@@ -359,13 +359,10 @@ def source_freshness(previous: dict, sources: list[dict], now) -> dict:
     return result
 
 
-POLITICAL_CRISIS_SIGNS = (
-    "leader_exit",
-    "snap_election",
-    "impeachment",
-    "emergency_rule",
-    "elite_split",
-)
+# elite_split is broader than the definition (it includes public calls and army-government
+# rifts), so it stays a warning sign and is not counted as a crisis event; coup attempts come
+# from the coup data.
+POLITICAL_CRISIS_SIGNS = ("leader_exit", "snap_election", "impeachment", "emergency_rule")
 
 
 def political_crisis_now(news: list[dict], today, days: int = 60) -> dict[str, dict]:

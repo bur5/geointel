@@ -239,7 +239,7 @@ function stats() {
 
 function legend() {
   if (eventType === 'view_political') {
-    return `<div class="legend"><span class="legend-key"><i class="swatch-active"></i>${lang === 'ru' ? 'Событие кризиса, сообщают 2+ издания' : 'Crisis event, 2+ outlets'}</span><span class="legend-key"><i class="sw-elevated"></i>${lang === 'ru' ? 'Сообщает одно издание' : 'One outlet'}</span><span class="legend-key"><i class="sw-minimal"></i>${lang === 'ru' ? 'Не обнаружено (это не гарантия)' : 'None detected (not a guarantee)'}</span></div>`;
+    return `<div class="legend"><span class="legend-key"><i class="swatch-active"></i>${lang === 'ru' ? 'Событие кризиса, сообщают 2+ издания' : 'Crisis event, 2+ outlets'}</span><span class="legend-key"><i class="sw-minimal"></i>${lang === 'ru' ? 'Не обнаружено или не подтверждено (это не гарантия)' : 'None detected or unconfirmed (not a guarantee)'}</span></div>`;
   }
   if (eventType === 'view_danger') {
     return `<div class="legend">${[1, 2, 3, 4, 5].map((l) => `<span class="legend-key"><i class="sw-d${l}"></i>${l} — ${escape(dangerName(l, lang))}</span>`).join('')}<span class="legend-key"><i class="swatch-none"></i>${t().legendNoData}</span></div>`;
@@ -791,7 +791,7 @@ function render() {
       (key) => {
         const country = countries.get(shapes.get(key) ?? '');
         if (eventType === 'view_danger') return country && dangerLevelOf(country) ? 'd-' + dangerLevelOf(country) : '';
-        if (eventType === 'view_political') { const p = country ? signalsData?.political_crisis?.[country.iso3] : undefined; return !country ? '' : p ? (p.confirmed ? 'active' : 'elevated') : 'minimal'; }
+        if (eventType === 'view_political') { const p = country ? signalsData?.political_crisis?.[country.iso3] : undefined; return !country ? '' : p?.confirmed ? 'active' : 'minimal'; }
         if (isView(eventType)) return country ? 'v-' + levelClass(viewVerdict(country).level) : '';
         const group = lens !== 'countries' ? currentGroup() : undefined;
         if (group && !group.members.includes(country?.iso3 ?? '')) return 'dimmed';
