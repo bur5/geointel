@@ -237,6 +237,32 @@ def build(
                 ),
             )
     notes["telegram"] = f"{len(tg)} channels"
+    # Cloudflare Radar verified outages: a second source next to IODA. A government-directed
+    # shutdown or an outage from military action in the last 7 days lights the sign.
+    outage_records = raw.get("radar")
+    if isinstance(outage_records, list):
+        from geointel.risk.countries import universe
+        from geointel.risk.sources import radar
+
+        iso2 = {c.iso2: c.iso3 for c in universe()}
+        for code, items in radar.by_country(outage_records, iso2, today).items():
+            hot = [i for i in items if radar.political(i["cause"])]
+            shown = (hot or items)[0]
+            add(
+                code,
+                make_sign(
+                    "internet_outage",
+                    "active" if hot else "normal",
+                    f"Cloudflare Radar: отключение с {shown['start']}"
+                    + (f", причина: {shown['cause'].lower()}" if shown["cause"] else ""),
+                    f"Cloudflare Radar: outage since {shown['start']}"
+                    + (f", cause: {shown['cause'].lower()}" if shown["cause"] else ""),
+                    source=radar.SOURCE,
+                    url=shown.get("url"),
+                ),
+            )
+        notes["radar"] = f"{len(outage_records)} outages in 28 days"
+
     # EASA conflict zone bulletins: an active bulletin is shown; a new or revised one in the
     # last 30 days is marked active. Observation only (multiplier 1).
     bulletins = raw.get("easa")

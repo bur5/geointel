@@ -227,6 +227,9 @@ def load_histories(
             migration.jsonstat_series(json.loads(path.read_text()))
         )
 
+    def radar_outages(path: Path) -> None:
+        extras.setdefault("early_raw", {})["radar"] = json.loads(path.read_text())["outages"]
+
     def czib(path: Path) -> None:
         extras.setdefault("early_raw", {})["easa"] = json.loads(path.read_text())["bulletins"]
 
@@ -267,6 +270,7 @@ def load_histories(
         ("inform_severity", "INFORM Severity Index (EC JRC)", severity),
         ("views", views.SOURCE, views_forecasts),
         ("easa", "EASA Conflict Zone Information Bulletins", czib),
+        ("radar", "Cloudflare Radar Outage Center", radar_outages),
         ("undesa", "UN DESA International Migrant Stock 2024", diaspora),
         ("protests", "Mass Mobilization (Clark & Regan)", mass_protests),
         ("irregular", migration.IRREGULAR_SOURCE, irregular),
