@@ -328,7 +328,10 @@ function treeSection(ctx: ViewContext, s: Scenario) {
     <p class="muted-text">${ctx.esc(ctx.lang === 'ru' ? t.basis_ru : t.basis_en)}</p>
     <p class="muted-text">${ctx.esc(d.treeInputs(ctx.pct(t.inputs.annual_now), ctx.pct(t.inputs.annual_base ?? t.inputs.annual_now), ctx.pct(t.inputs.ceasefire_annual), ctx.pct(t.inputs.us_weak_annual)))}</p>
     <div class="scenario-cols"><div class="table-wrap"><table class="table"><thead><tr><th>${d.treeYear}</th><th>${d.treeAnnual}</th><th>${d.treeCum}</th></tr></thead><tbody>${years}</tbody></table></div>
-    <div class="table-wrap"><table class="table"><caption>${d.treeBranches}</caption><thead><tr><th>${d.treeBranch}</th><th>${d.treeWeight}</th><th>${d.treeP5}</th><th>${d.treeP10}</th></tr></thead><tbody>${branches}</tbody></table></div></div></section>`;
+    <div class="table-wrap"><table class="table"><caption>${d.treeBranches}</caption><thead><tr><th>${d.treeBranch}</th><th>${d.treeWeight}</th><th>${d.treeP5}</th><th>${d.treeP10}</th></tr></thead><tbody>${branches}</tbody></table></div></div>
+    ${t.sensitivity?.length ? `<div class="table-wrap"><table class="table"><caption>${ctx.lang === 'ru' ? 'Насколько результат зависит от допущений (каждое меняется отдельно, от низкого к высокому значению)' : 'How much the result depends on assumptions (each varied alone, low to high)'}</caption>
+      <thead><tr><th>${ctx.lang === 'ru' ? 'Допущение' : 'Assumption'}</th><th>${d.treeP5}</th><th>${d.treeP10}</th></tr></thead><tbody>${t.sensitivity.map((r) => `<tr><th scope="row">${ctx.esc(ctx.lang === 'ru' ? r.label_ru : r.label_en)}</th><td class="numcell">${ctx.pct(r.p5y[0])} – ${ctx.pct(r.p5y[1])}</td><td class="numcell">${ctx.pct(r.p10y[0])} – ${ctx.pct(r.p10y[1])}</td></tr>`).join('')}</tbody></table>
+      <p class="muted-text small">${ctx.lang === 'ru' ? 'Диапазоны на 5 и 10 лет на этой странице включают эти разбросы. Горизонты 5 и 10 лет — сценарная оценка: проверить её в обозримый срок нельзя.' : 'The 5- and 10-year ranges on this page include these spreads. The 5- and 10-year horizons are a scenario estimate that cannot be checked any time soon.'}</p></div>` : ''}</section>`;
 }
 
 export function scenariosPage(ctx: ViewContext, file: ScenarioFile | undefined, current: string, horizonLabels: Record<HorizonKey, string>) {

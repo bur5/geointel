@@ -190,6 +190,7 @@ export interface ScenarioTree {
   yearly: { year: number; cumulative: number; annual: number }[];
   branches: { ukraine: 'war' | 'cease_early' | 'cease_late'; us: 'us_firm' | 'us_weak'; weight: number; p5y: number; p10y: number }[];
   basis_ru: string; basis_en: string;
+  sensitivity?: { param: string; label_ru: string; label_en: string; values: number[]; p5y: number[]; p10y: number[] }[];
 }
 export interface ScenarioFile { schema: string; generated_at: string; scenarios: Scenario[] }
 
@@ -237,6 +238,7 @@ export interface SignalsFile {
   groups: Record<string, { ru: string; en: string }>;
   caps: { auto: [number, number]; hard: [number, number]; total: [number, number]; combo: number };
   status: Record<string, string>;
+  freshness?: Record<string, { status: string; last_ok: string | null; age_days: number | null; stale: boolean }>;
   countries: Record<string, CountrySignals>;
 }
 export interface BacktestPoint { date: string; factor: number; p1m: number; p1y: number; signs: string[] }

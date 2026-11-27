@@ -197,7 +197,7 @@ export function signalsPage(ctx: ViewContext, data: SignalsFile | undefined) {
     <td>${ctx.esc(data.groups[s.group]?.[ctx.lang] ?? s.group)}</td><td class="numcell">×${fx(s.lr, ctx.lang)}</td>
     <td class="small">${s.applies.map((r) => ctx.esc(d.risk[r] ?? r)).join(', ')}</td><td class="small">${s.automated ? d.auto : d.curated}</td></tr>`).join('');
   const sources = Object.keys(d.sourceNames).filter((k) => k in data.status).map((k) =>
-    `<li><span class="status ${data.status[k] === 'ok' ? 'ok' : 'failed'}">${data.status[k] === 'ok' ? d.ok : d.failed}</span> ${ctx.esc(d.sourceNames[k])}</li>`).join('');
+    `<li><span class="status ${data.status[k] === 'ok' ? 'ok' : 'failed'}">${data.status[k] === 'ok' ? d.ok : d.failed}</span> ${ctx.esc(d.sourceNames[k])}${freshnessNote(data.freshness?.[k], ctx.lang)}</li>`).join('');
   return head + `<div class="explorer"><section class="map-card">
       <div class="map-stage" id="signals-map"><svg viewBox="0 0 900 440" role="img" tabindex="0" aria-label="${ctx.esc(d.pageTitle)}"><g></g></svg>
         <div class="tooltip" hidden></div>
@@ -266,4 +266,12 @@ export function realBacktestSection(ctx: ViewContext, data: RealBacktestFile | u
     ${caseChart(ctx, c)}
     <div class="legend"><span class="legend-key"><i class="bt-year-key"></i>${d.btYear}</span><span class="legend-key"><i class="bt-month-key"></i>${d.btMonth}</span></div>
     <p class="caveat">${d.realCaveat}</p></section>`;
+}
+
+function freshnessNote(f: { last_ok: string | null; age_days: number | null; stale: boolean } | undefined, lang: 'ru' | 'en') {
+  if (!f) return '';
+  if (!f.last_ok) return lang === 'ru' ? ' <span class="stale">· данных пока нет</span>' : ' <span class="stale">· no data yet</span>';
+  const day = f.last_ok.slice(0, 10);
+  if (!f.stale) return ` <span class="muted-text small">· ${lang === 'ru' ? 'данные от' : 'data from'} ${day}</span>`;
+  return ` <span class="stale">· ${lang === 'ru' ? `данные от ${day} — устарели, источник не отвечает` : `data from ${day} — outdated, the source is not answering`}</span>`;
 }

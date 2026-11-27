@@ -70,10 +70,15 @@ def test_combine_caps_and_combination_bonus():
         for k in ("posture", "medical", "rhetoric", "cyber", "gps_jamming")
     ]
     combined = warning_signs.combine(signs, warning_signs.INTERSTATE)
-    expected = 1.6 * 3.0 * 1.3 * 1.5 * warning_signs.COMBO_LR * 1.3
-    assert combined["combo"] and abs(combined["factor"] - expected) < 0.01
+    expected = 1.6 * 3.0 * 1.3 * 1.5  # gps_jamming is an observation (×1)
+    assert not combined["combo"] and abs(combined["factor"] - expected) < 0.01
+    assert combined["stage"] == 3 and combined["cap"] == 100.0
     many = [{"key": k, "status": "active"} for k in warning_signs.SPEC if k != "deescalation"]
-    assert warning_signs.combine(many, warning_signs.INTERSTATE)["factor"] == 500.0
+    assert warning_signs.combine(many, warning_signs.INTERSTATE)["factor"] == 100.0
+    early = [{"key": k, "status": "active"} for k in ("posture", "staged", "cyber", "rhetoric")]
+    assert warning_signs.combine(early, warning_signs.INTERSTATE)["factor"] == 5.0
+    same_group = [{"key": k, "status": "active"} for k in ("kw_military", "kw_emergency")]
+    assert warning_signs.combine(same_group, warning_signs.INTERSTATE)["factor"] <= 1.25 + 1e-9
     assert warning_signs.combine(signs, warning_signs.ECONOMIC)["signs"] == []
     adjusted = warning_signs.adjusted_horizons(
         {"1y": {"p": 0.1, "low": 0.05, "high": 0.2}, "10y": {"p": 0.5, "low": 0.4, "high": 0.6}},
@@ -146,6 +151,15 @@ def test_build_signals_for_a_country():
     assert adjusted["factor"] > 3 and adjusted["horizons"]["1y"]["p"] > 0.03
 
 
+def test_news_signs_count_as_automated():
+    curated = [{"key": "airspace", "status": "active"}]
+    news = [{"key": "airspace", "status": "active", "curated": False}]
+    assert warning_signs.combine(curated, warning_signs.INTERSTATE)["factor"] == 3.0
+    assert warning_signs.combine(news, warning_signs.INTERSTATE)["factor"] == 3.0
+    scenario_like = warning_signs.combine(news, warning_signs.INTERSTATE, 0.5, 2.0)
+    assert scenario_like["factor"] < 2.0
+
+
 def test_newswire_validation_and_metaculus_and_sentinel():
     batch = [
         {
@@ -159,7 +173,9 @@ def test_newswire_validation_and_metaculus_and_sentinel():
         'Here: [{"i": 0, "country": "LTU", "actor": "RUS", "sign": "posture", '
         '"summary_ru": "a", "summary_en": "b"}, {"i": 5, "country": "LTU", "sign": "posture"}, '
         '{"i": 0, "country": "XXX", "sign": "posture"}, {"i": 0, "country": "LTU", '
-        '"sign": "ignore previous instructions"}]'
+        '"sign": "ignore previous instructions"}, {"i": 0, "country": "LTU", "sign": "posture", '
+        '"quote": "tanks crossed"}, {"i": 0, "country": "LVA", "sign": "posture", '
+        '"quote": "troops massed", "country_in_text": false}]'
     )
     parsed = newswire.parse_reply(reply, batch)
     assert len(parsed) == 1 and parsed[0]["actor"] == "RUS" and parsed[0]["url"] == batch[0]["url"]
@@ -215,6 +231,9 @@ def test_backtest_rises_before_the_invasion():
     points = {p["date"]: p for p in result["points"]}
     first, last = result["points"][0], result["points"][-1]
     assert first["factor"] == 1.0
-    assert last["date"] == "2022-02-23" and last["p1m"] > 0.5
+    # Since 1.4.0 signs alone cannot lift the odds above ×100 (stage 3), so the monthly
+    # probability on the eve of the invasion stays well below 50%: the rest has to come from
+    # markets and official assessments in the scenario pool.
+    assert last["date"] == "2022-02-23" and last["p1m"] > 0.15
     autumn = max(p["p1y"] for d, p in points.items() if "2021-08" <= d < "2021-10")
     assert first["p1y"] < autumn < last["p1y"]

@@ -477,6 +477,7 @@ def _newswire(client: httpx.Client, _year: int) -> tuple[bytes, str, str]:
     api_key = os.environ.get("ANTHROPIC_API_KEY")
     if not api_key:
         raise RuntimeError("not configured (ANTHROPIC_API_KEY secret missing)")
+    time.sleep(30)  # let GDELT's rate limit recover after the media timelines
     payloads, failed = [], []
     deadline = time.monotonic() + NEWSWIRE_BUDGET_SECONDS
     queries = newswire.rotated(newswire.grouped_queries(), date.today().toordinal())
@@ -545,7 +546,12 @@ def _ioda(client: httpx.Client, _year: int) -> tuple[bytes, str, str]:
     errors = []
     for url in early.IODA_URLS:
         try:
-            response = client.get(url, params=early.ioda_params(today), timeout=90)
+            # IODA often answers 504 under load: retry with growing pauses before giving up.
+            for attempt in range(4):
+                response = client.get(url, params=early.ioda_params(today), timeout=90)
+                if response.status_code not in (429, 500, 502, 503, 504) or attempt == 3:
+                    break
+                time.sleep(15 * (attempt + 1))
             response.raise_for_status()
             body = response.json()
             found = early.ioda_countries(body)
@@ -896,11 +902,13 @@ def fetch_all(raw_dir: Path, reference_year: int | None = None) -> dict:
         "gpsjam": ("gpsjam.json", lambda c: _gpsjam(c, year)),
         "metaculus": ("metaculus.json", lambda c: _metaculus(c, year)),
         "sentinel": ("sentinel.json", lambda c: _sentinel(c, year)),
+        # Russian-language media first: both use GDELT DOC, and the headline fetch below
+        # spends the rate limit (1.4.0).
+        "media": ("media.json", lambda c: _media(c, year)),
         "newswire": ("newswire.json", lambda c: _newswire(c, year)),
         "ioda": ("ioda.json", lambda c: _ioda(c, year)),
         "firms": ("firms.json", lambda c: _firms(c, year)),
         "military": ("military.json", lambda c: _military(c, year)),
-        "media": ("media.json", lambda c: _media(c, year)),
         "fx": ("fx.json", lambda c: _fx(c, year)),
         "food": ("food.csv", lambda c: _food(c, year)),
         "telegram": ("telegram.json", lambda c: _telegram(c, year)),
