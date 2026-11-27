@@ -1019,6 +1019,38 @@ def _trade_keyed(client: httpx.Client, reference_year: int, key: str) -> tuple[b
     )
 
 
+# One slow or hanging source must not stop the daily update: every job has a wall-clock
+# limit, and once the whole step has used its budget the remaining jobs are skipped and
+# reported as failed (their last good data stays in the cache where a cache exists).
+DEFAULT_JOB_LIMIT = 300
+JOB_LIMIT_SECONDS = {"newswire": 900, "elections": 420, "gdacs": 360, "media": 360, "trade": 600}
+TOTAL_BUDGET_SECONDS = 50 * 60
+
+
+def _with_time_limit(call, seconds: float):
+    """Run ``call`` in a daemon thread; raise TimeoutError if it does not finish in time.
+
+    The thread cannot be killed, but as a daemon it does not keep the process alive."""
+    import threading
+
+    box: dict = {}
+
+    def target() -> None:
+        try:
+            box["value"] = call()
+        except BaseException as exc:  # noqa: BLE001 - re-raised in the caller
+            box["error"] = exc
+
+    thread = threading.Thread(target=target, daemon=True)
+    thread.start()
+    thread.join(seconds)
+    if thread.is_alive():
+        raise TimeoutError(f"no answer within {seconds:.0f} s")
+    if "error" in box:
+        raise box["error"]
+    return box["value"]
+
+
 def fetch_all(raw_dir: Path, reference_year: int | None = None) -> dict:
     raw_dir.mkdir(parents=True, exist_ok=True)
     year = reference_year or datetime.now(UTC).year
@@ -1072,6 +1104,7 @@ def fetch_all(raw_dir: Path, reference_year: int | None = None) -> dict:
     }
     only = {k for k in os.environ.get("GEOINTEL_SOURCES", "").split(",") if k}
     manifest: dict[str, dict] = {}
+    fetch_started = time.monotonic()
     with httpx.Client(
         timeout=120,
         follow_redirects=True,
@@ -1081,12 +1114,30 @@ def fetch_all(raw_dir: Path, reference_year: int | None = None) -> dict:
             if only and key not in only:
                 continue
             started = time.monotonic()
+            if started - fetch_started > TOTAL_BUDGET_SECONDS:
+                manifest[key] = {
+                    "status": "failed",
+                    "errors": ["skipped: the fetch step ran out of its time budget"],
+                }
+                print(f"[fetch] {key}: skipped (time budget)", flush=True)
+                continue
             try:
-                payload, url, version = job(client)
+                payload, url, version = _with_time_limit(
+                    lambda job=job: job(client), JOB_LIMIT_SECONDS.get(key, DEFAULT_JOB_LIMIT)
+                )
             except Exception as exc:  # noqa: BLE001 - recorded in the manifest
                 error = f"{type(exc).__name__}: {str(exc)[:600]}"
-                manifest[key] = {"status": "failed", "errors": [error]}
+                manifest[key] = {
+                    "status": "failed",
+                    "errors": [error],
+                    "seconds": round(time.monotonic() - started, 1),
+                }
+                print(
+                    f"[fetch] {key}: failed after {time.monotonic() - started:.0f}s: {error[:200]}",
+                    flush=True,
+                )
                 continue
+            print(f"[fetch] {key}: ok in {time.monotonic() - started:.0f}s", flush=True)
             (raw_dir / filename).write_bytes(payload)
             manifest[key] = {
                 "status": "ok",
