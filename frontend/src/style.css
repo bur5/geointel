@@ -702,3 +702,5 @@ td.up, td.down { margin-left: 0; }
 .dest-table { margin-top: 8px; }
 .dest-table summary { cursor: pointer; font-size: 13px; }
 .dest-table .table { font-size: 13px; margin-top: 6px; }
+.up-good { color: #2f8a50; font-weight: 600; }
+.down-bad { color: #c0392b; font-weight: 600; }
