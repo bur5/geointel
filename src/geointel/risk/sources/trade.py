@@ -124,7 +124,9 @@ def owid_series(text: str, years: int = 12) -> dict[str, list[tuple[int, float]]
         code_i, year_i = header.index("code"), header.index("year")
     except ValueError:
         return {}
-    value_i = next(i for i in range(len(header) - 1, -1, -1) if i not in (0, code_i, year_i))
+    from geointel.risk.sources.outlook import value_index
+
+    value_i = value_index(header)
     series: dict[str, list[tuple[int, float]]] = defaultdict(list)
     for row in rows[1:]:
         try:
