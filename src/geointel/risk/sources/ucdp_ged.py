@@ -70,8 +70,9 @@ def read_zip_csv(payload: bytes) -> str:
 def region_levels(items: Iterable[Mapping], locate, today: date) -> dict[str, dict[str, dict]]:
     """iso3 -> region code -> level with a reason.
 
-    5: 5+ deaths in the last 90 days (fighting or attacks now); 4: 25+ deaths in the last
-    12 months; 3: 5+ deaths in the last 12 months.
+    5: 250+ deaths in the last 90 days (a war zone now); 4: 50+ in 90 days or 150+ in
+    12 months; 3: 25+ in 12 months; 2: 5+ in 12 months. The 1.6.0 rule (5+ deaths in 90 days
+    → 5) put ordinary criminal-violence regions at the top level (1.9.0).
     """
     recent: dict[tuple[str, str], float] = defaultdict(float)
     year: dict[tuple[str, str], float] = defaultdict(float)
@@ -90,7 +91,17 @@ def region_levels(items: Iterable[Mapping], locate, today: date) -> dict[str, di
     out: dict[str, dict[str, dict]] = defaultdict(dict)
     for key, deaths in year.items():
         r = recent.get(key, 0.0)
-        level = 5 if r >= 5 else 4 if deaths >= 25 else 3 if deaths >= 5 else 0
+        level = (
+            5
+            if r >= 250
+            else 4
+            if r >= 50 or deaths >= 150
+            else 3
+            if deaths >= 25
+            else 2
+            if deaths >= 5
+            else 0
+        )
         if not level:
             continue
         out[key[0]][key[1]] = {
