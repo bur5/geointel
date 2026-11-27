@@ -50,9 +50,18 @@ def parse_country(page: Mapping) -> tuple[str | None, dict | None]:
                 restricted.append("• " + line)
             else:
                 capture = False
+    # "Parts" can mean almost the whole country: Ukraine is advised against all travel to
+    # "all other regions" except a few in the west. Such wording counts as the whole country.
+    text = " ".join(restricted).lower()
+    if level == 2 and re.search(r"against all travel to (?:all other|the rest of|the whole)", text):
+        level = 4
+    elif level == 2 and re.search(
+        r"against all but essential travel to (?:all other|the rest of|the whole)", text
+    ):
+        level = 3
     return code, {
         "level": level,
-        "partial": any(s.endswith("_parts") for s in statuses) and level <= 2,
+        "partial": any(s.endswith("_parts") for s in statuses),
         "statuses": statuses,
         "url": page.get("web_url"),
         "updated": page.get("public_updated_at"),
