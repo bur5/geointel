@@ -15,9 +15,11 @@ on:
       - "src/geointel/risk/**"
       - ".github/workflows/risk-pipeline.yml"
 
+# Pull-request checks run in their own group so they never queue ahead of (or cancel) the
+# runs that publish the site; a newer push to the same PR cancels its older check.
 concurrency:
-  group: risk-snapshot
-  cancel-in-progress: false
+  group: risk-snapshot-${{ github.event_name == 'pull_request' && github.ref || 'main' }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
   contents: write
