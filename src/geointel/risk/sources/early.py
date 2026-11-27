@@ -248,9 +248,11 @@ def food_prices(text: str) -> dict[str, dict]:
         rows = rows[1:]  # HXL tag row
     from geointel.risk.countries import universe_codes
 
+    rows = [{str(k).strip().lower(): str(v or "").strip() for k, v in r.items()} for r in rows]
+    if rows and "countryname" in rows[0] and "countryiso3" not in rows[0]:
+        return _market_monitor(rows)
     result: dict[str, dict] = {}
     for row in rows:
-        row = {str(k).strip().lower(): str(v or "").strip() for k, v in row.items()}
         code = (row.get("countryiso3") or row.get("iso3") or row.get("adm0_iso3") or "").upper()
         if code not in universe_codes():
             continue
@@ -271,6 +273,58 @@ def food_prices(text: str) -> dict[str, dict]:
         level = row.get("impact") or row.get("alert") or row.get("price_alert") or ""
         if day and (code not in result or day > result[code]["date"]):
             result[code] = {"date": day[:10], "change_1m": change, "alert": level}
+    return result
+
+
+_ALPS = {"normal": 0, "stress": 1, "alert": 2, "crisis": 3}
+
+
+def _market_monitor(rows: list[dict]) -> dict[str, dict]:
+    """The current WFP Global Market Monitor layout: one row per country, date and staple food
+    (CountryName, Date, DataLevel, MainStapleFood, CaloricContribution, MonthlyChangeSA,
+    PriceTrendMonth). The basket change is the calorie-weighted mean of monthly changes; the
+    alert is the worst ALPS price trend (normal < stress < alert < crisis) among the staples."""
+    from geointel.risk.countries import resolve_country_name
+
+    latest: dict[str, str] = {}
+    keep: dict[str, list[dict]] = {}
+    for row in rows:
+        if row.get("datalevel", "national").lower() != "national":
+            continue
+        code = resolve_country_name(row.get("countryname", ""))
+        day = row.get("date", "")[:10]
+        if not code or not day:
+            continue
+        if day > latest.get(code, ""):
+            latest[code] = day
+            keep[code] = []
+        if day == latest[code]:
+            keep[code].append(row)
+    result: dict[str, dict] = {}
+    for code, items in keep.items():
+        total = weight = 0.0
+        worst = ""
+        for row in items:
+            try:
+                change = float(row.get("monthlychangesa") or row.get("monthlychangensa") or "")
+            except ValueError:
+                change = None
+            try:
+                w = float(row.get("caloriccontribution") or 1)
+            except ValueError:
+                w = 1.0
+            if change is not None:
+                total += change * w
+                weight += w
+            trend = (row.get("pricetrendmonth") or "").lower()
+            if _ALPS.get(trend, -1) > _ALPS.get(worst, -1):
+                worst = trend
+        result[code] = {
+            "date": latest[code],
+            "change_1m": round(total / weight, 1) if weight else None,
+            "alert": worst,
+            "items": len(items),
+        }
     return result
 
 

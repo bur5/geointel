@@ -58,6 +58,15 @@ def test_early_parsers():
         "countryiso3,date,price_basket_change_1m\n#country,#date,#value\nYEM,2026-10-15,12.5\n"
     )
     assert food["YEM"]["change_1m"] == 12.5
+    monitor = early.food_prices(
+        "Date,CountryName,DataLevel,MainStapleFood,CaloricContribution,MonthlyChangeSA,"
+        "PriceTrendMonth\n"
+        "2026-09-01,Yemen,National,Wheat,60,4,Normal\n"
+        "2026-10-01,Yemen,National,Wheat,60,20,Alert\n"
+        "2026-10-01,Yemen,National,Rice,40,5,Stress\n"
+        "2026-10-01,Yemen,Subnational,Rice,40,90,Crisis\n"
+    )
+    assert monitor["YEM"] == {"date": "2026-10-01", "change_1m": 14.0, "alert": "alert", "items": 2}
 
 
 def test_telegram_page_and_keyword_tally():

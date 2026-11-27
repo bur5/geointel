@@ -191,7 +191,13 @@ def build(
         if (today - date.fromisoformat(item["date"][:10])).days > 120:
             continue
         change, alert = item.get("change_1m"), str(item.get("alert") or "").lower()
-        active = (change is not None and change >= 10) or alert in ("high", "severe", "alert")
+        # 10%+ rise of the staple basket in a month, or a WFP ALPS price alert or crisis.
+        active = (change is not None and change >= 10) or alert in (
+            "high",
+            "severe",
+            "alert",
+            "crisis",
+        )
         add(
             code,
             make_sign(
