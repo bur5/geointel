@@ -20,6 +20,19 @@ def imf_url(indicator: str) -> str:
     return f"https://www.imf.org/external/datamapper/api/v1/{indicator}"
 
 
+_NOT_VALUES = {"entity", "country", "code", "year", "owid_region", "region"}
+
+
+def value_index(header: list[str]) -> int:
+    """The data column of an OWID grapher CSV: the first column that is not the entity,
+    code, year or a label such as ``owid_region`` (OWID added that column in 2026, after
+    which "the last column" was the region name and every value failed to parse)."""
+    for i, name in enumerate(header):
+        if name not in _NOT_VALUES:
+            return i
+    return len(header) - 1
+
+
 def owid_url(slug: str) -> str:
     return (
         f"https://ourworldindata.org/grapher/{slug}.csv?v=1&csvType=full&useColumnShortNames=true"
@@ -69,7 +82,7 @@ def owid_regime_series(text: str) -> dict[str, dict[int, int]]:
         code_i, year_i = header.index("code"), header.index("year")
     except ValueError:
         return {}
-    value_i = len(header) - 1
+    value_i = value_index(header)
     result: dict[str, dict[int, int]] = {}
     for row in rows[1:]:
         try:
@@ -107,7 +120,7 @@ def owid_latest(text: str) -> dict[str, dict]:
         code_i, year_i = header.index("code"), header.index("year")
     except ValueError:
         return {}
-    value_i = next(i for i in range(len(header) - 1, -1, -1) if i not in (0, code_i, year_i))
+    value_i = value_index(header)
     best: dict[str, tuple[int, float]] = {}
     for row in rows[1:]:
         try:
