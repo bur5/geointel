@@ -114,6 +114,8 @@ const travelOf = (c: CountryEntry) => { const v = travelVerdict(c, labelOf, lang
 const businessOf = (c: CountryEntry) => { const v = businessVerdict(c, labelOf, lang, hazardsData); return { ...v, level: floorLevel(v.level, c) }; };
 const viewVerdict = (c: CountryEntry): Verdict => (eventType === 'view_travel' ? travelOf(c) : businessOf(c));
 const viewKind = () => (eventType === 'view_travel' ? 'travel' : 'business') as 'travel' | 'business';
+const relocBadge = (level: Level) =>
+  `<span class="level level-${levelClass(level)}" title="${escape(relocationHorizon('mid', lang))}"><b>${level}</b>${escape(relocationLevelLabel(level, lang))}</span>`;
 const levelBadge = (kind: 'travel' | 'business', level: Level) =>
   `<span class="level level-${levelClass(level)}"><b>${level}</b>${escape(levelLabel(kind, level, lang))}</span>`;
 function neighbourCountries(country: CountryEntry): CountryEntry[] {
@@ -304,7 +306,8 @@ function briefPanel() {
     <label class="select compact"><span>${t().selectCountry}</span><select data-field="country">${countryOptions()}</select></label>
     <h2 id="brief-heading">${escape(countryName(country, selected))}</h2>
     ${country ? `<div class="brief-verdicts"><div><span>${t().forTravel}</span>${levelBadge('travel', travelOf(country).level)}</div>
-      <div><span>${t().forBusiness}</span>${levelBadge('business', businessOf(country).level)}</div></div>` : ''}
+      <div><span>${t().forBusiness}</span>${levelBadge('business', businessOf(country).level)}</div>
+      <div><span>${t().forRelocation}</span>${relocBadge(relocationParts(country)[1].level)}</div></div>` : ''}
     <div class="brief-summary">${summarySentences(country, horizon)}</div>
     <ul class="brief-list">${rows}</ul>
     <a class="button" href="#country">${t().openCountry}</a>
@@ -390,10 +393,14 @@ function countryAlert(country: CountryEntry) {
   return alertCard(entry.alert, lang, (p) => percent(p, lang), escape, risk ? `${t().alertBy}: ${risk}` : '');
 }
 
-function relocationCard(country: CountryEntry) {
+function relocationParts(country: CountryEntry) {
   const scen = (scenariosData?.scenarios ?? []).flatMap((s) => s.affected.filter((a) => a.iso3 === country.iso3)
     .map((a) => ({ title: lang === 'ru' ? s.title_ru : s.title_en, role: a.role, horizons: s.horizons as Record<string, { p: number }> })));
-  const parts = relocationVerdict(country, scen, labelOf, lang).map((p) => (p.horizon === 'short' ? { ...p, level: floorLevel(p.level, country) } : p));
+  return relocationVerdict(country, scen, labelOf, lang).map((p) => (p.horizon === 'short' ? { ...p, level: floorLevel(p.level, country) } : p));
+}
+
+function relocationCard(country: CountryEntry) {
+  const parts = relocationParts(country);
   return `<article class="verdict relocation"><h3>${t().forRelocation}</h3>${parts.map((p) => `<div class="reloc-part"><h4 class="sub">${escape(relocationHorizon(p.horizon, lang))}</h4>
     <span class="level level-${levelClass(p.level)}"><b>${p.level}</b>${escape(relocationLevelLabel(p.level, lang))}</span><ul>${p.reasons.map((r) => `<li>${escape(r)}</li>`).join('')}</ul></div>`).join('')}
     <p class="muted-text small">${escape(relocationNote(lang))}</p></article>`;
