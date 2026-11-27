@@ -62,3 +62,9 @@ def test_model_code_reads_no_files_or_network():
     text = Path(bt.__file__).read_text()
     for forbidden in ("open(", "httpx", "requests", "urlopen", "read_text("):
         assert forbidden not in text
+
+
+def test_coup_variants_are_reported():
+    coups = _history(EVENTS)
+    result = bt.run({EventType.COUP_ATTEMPT: coups}, COUNTRIES, {EventType.COUP_ATTEMPT: False})
+    assert set(result["coup_variants"]) == set(bt.COUP_VARIANTS)

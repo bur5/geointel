@@ -401,4 +401,26 @@ def run(
     for name, (lo, hi) in periods.items():
         chunk = {k: [r for r in v if lo <= r["year"] <= hi] for k, v in all_records.items()}
         out["danger"][name] = danger_check(chunk)
+    coups = histories.get(EventType.COUP_ATTEMPT)
+    if coups is not None:
+        # Variants of the coup base rate, compared on the tuning period (rules: choose on
+        # tuning, confirm on validation; every look is logged).
+        out["coup_variants"] = {}
+        for label, variant in COUP_VARIANTS.items():
+            records = run_type(
+                EventType.COUP_ATTEMPT, coups, first_years, False, years, regime_series, variant
+            )
+            out["coup_variants"][label] = {
+                name: summarise([r for r in records if lo <= r["year"] <= hi])
+                for name, (lo, hi) in periods.items()
+            }
     return out
+
+
+COUP_VARIANTS = {
+    "world prior, no groups": (False, None),
+    "groups, cap 2x": (True, 2.0),
+    "groups, cap 5x": (True, 5.0),
+    "groups, cap 10x": (True, 10.0),
+    "groups, cap 400 (1.9)": (True, 1e9),
+}
