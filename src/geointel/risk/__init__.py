@@ -2,4 +2,4 @@
 
 # Bumped on every change that can move a published probability; written into every
 # output file so archived forecasts show which model produced them.
-MODEL_VERSION = "1.1.0"
+MODEL_VERSION = "1.2.0"

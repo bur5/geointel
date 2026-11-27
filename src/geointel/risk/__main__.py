@@ -58,6 +58,7 @@ def load_histories(
         text = ucdp_acd.read_csv_bytes(path.read_bytes())
         extras["dyads"] = ucdp_acd.dyad_years(text)
         extras["ucdp_last_year"] = interstate.end_year
+        extras["war_intensity"] = ucdp_acd.latest_intensity(text)
         extras["active_interstate"] = {
             code
             for code, years in interstate.years_with_event.items()
@@ -633,6 +634,18 @@ def main(argv: list[str] | None = None) -> int:
     )
     signals, scenario_inputs = build_signal_layer(snapshot, extras, sources, now)
     signals["model_version"] = MODEL_VERSION
+    from geointel.risk.danger import apply_danger
+
+    histogram = apply_danger(snapshot, signals, extras.get("war_intensity"))
+    print(f"[danger] levels: {histogram}")
+    for code in ("RUS", "UKR", "USA", "IND", "SDN", "NOR", "ISR", "MEX"):
+        d = signals["countries"].get(code, {}).get("danger")
+        if d:
+            print(
+                f"[danger] {code}: {d['level']} (model {d['model_level']}, "
+                f"MFA {d['ministry_median']}) "
+                + ", ".join(f"{x['risk']}:{x['level']}" for x in d["drivers"][:4])
+            )
     (args.out.parent / "signals.json").write_text(
         json.dumps(signals, ensure_ascii=False, separators=(",", ":"))
     )

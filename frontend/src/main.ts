@@ -15,6 +15,7 @@ import { dictionaries } from './i18n';
 import { drawCountryMap, drawMap, neighboursOf } from './map';
 import { businessVerdict, levelLabel, relocationHorizon, relocationLevelLabel, relocationNote, relocationVerdict, spillover, travelVerdict } from './insights';
 import { alertCard } from './alerts';
+import { dangerCard } from './danger';
 import { BLOCS, REGIONS, groupName, groupNote, groupsOf } from './groups';
 import type { Group } from './groups';
 import type { Level, Verdict } from './insights';
@@ -106,8 +107,11 @@ const neighbourCodes = (iso3: string) => {
   return country ? neighbourCountries(country).map((c) => c.iso3) : [];
 };
 const labelOf = (key: string) => typeLabel(typeEntry(key));
-const travelOf = (c: CountryEntry) => travelVerdict(c, labelOf, lang, hazardsData, t().months);
-const businessOf = (c: CountryEntry) => businessVerdict(c, labelOf, lang, hazardsData);
+// Advice must never contradict the danger level: verdicts are floored by it (capped at 4).
+const dangerOf = (c: CountryEntry) => signalsData?.countries[c.iso3]?.danger;
+const floorLevel = (level: number, c: CountryEntry) => Math.max(level, Math.min(4, dangerOf(c)?.level ?? 1)) as 1 | 2 | 3 | 4;
+const travelOf = (c: CountryEntry) => { const v = travelVerdict(c, labelOf, lang, hazardsData, t().months); return { ...v, level: floorLevel(v.level, c) }; };
+const businessOf = (c: CountryEntry) => { const v = businessVerdict(c, labelOf, lang, hazardsData); return { ...v, level: floorLevel(v.level, c) }; };
 const viewVerdict = (c: CountryEntry): Verdict => (eventType === 'view_travel' ? travelOf(c) : businessOf(c));
 const viewKind = () => (eventType === 'view_travel' ? 'travel' : 'business') as 'travel' | 'business';
 const levelBadge = (kind: 'travel' | 'business', level: Level) =>
@@ -381,6 +385,7 @@ function verdictCard(title: string, kind: 'travel' | 'business', v: Verdict, ext
 function countryAlert(country: CountryEntry) {
   const entry = signalsData?.countries[country.iso3];
   if (!entry) return '';
+  if (entry.danger) return dangerCard(entry.danger, lang, labelOf, (p) => percent(p, lang), escape);
   const risk = entry.alert?.risk ? labelOf(entry.alert.risk) : '';
   return alertCard(entry.alert, lang, (p) => percent(p, lang), escape, risk ? `${t().alertBy}: ${risk}` : '');
 }
@@ -388,7 +393,7 @@ function countryAlert(country: CountryEntry) {
 function relocationCard(country: CountryEntry) {
   const scen = (scenariosData?.scenarios ?? []).flatMap((s) => s.affected.filter((a) => a.iso3 === country.iso3)
     .map((a) => ({ title: lang === 'ru' ? s.title_ru : s.title_en, role: a.role, horizons: s.horizons as Record<string, { p: number }> })));
-  const parts = relocationVerdict(country, scen, labelOf, lang);
+  const parts = relocationVerdict(country, scen, labelOf, lang).map((p) => (p.horizon === 'short' ? { ...p, level: floorLevel(p.level, country) } : p));
   return `<article class="verdict relocation"><h3>${t().forRelocation}</h3>${parts.map((p) => `<div class="reloc-part"><h4 class="sub">${escape(relocationHorizon(p.horizon, lang))}</h4>
     <span class="level level-${levelClass(p.level)}"><b>${p.level}</b>${escape(relocationLevelLabel(p.level, lang))}</span><ul>${p.reasons.map((r) => `<li>${escape(r)}</li>`).join('')}</ul></div>`).join('')}
     <p class="muted-text small">${escape(relocationNote(lang))}</p></article>`;

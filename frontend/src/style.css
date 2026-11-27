@@ -524,3 +524,25 @@ td.up, td.down { margin-left: 0; }
 .ladder li.passed { color: var(--ink); }
 .ladder li.current { color: var(--ink); font-weight: 700; }
 .reloc-part + .reloc-part { margin-top: 10px; }
+
+/* Danger level 1–5 (absolute) and trend chip */
+.danger-card { border: 1px solid var(--line); border-left-width: 6px; border-radius: 12px; padding: 14px 18px; margin: 16px 0; background: var(--surface); }
+.danger-card.danger-l1 { border-left-color: #3a9d5d; }
+.danger-card.danger-l2 { border-left-color: #d9b100; }
+.danger-card.danger-l3 { border-left-color: #e07b00; }
+.danger-card.danger-l4 { border-left-color: #c62828; }
+.danger-card.danger-l5 { border-left-color: #6d0f0f; }
+.danger-head { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; justify-content: space-between; }
+.danger-head h3 { margin: 0; font-size: 16px; }
+.danger-badge { display: inline-flex; align-items: center; gap: 6px; padding: 2px 10px 2px 3px; border-radius: 999px; font-weight: 600; font-size: 13px; color: #fff; }
+.danger-badge b { display: inline-grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; background: rgba(255,255,255,.25); font-size: 12px; }
+.danger-badge.danger-1 { background: #2f8a50; }
+.danger-badge.danger-2 { background: #a88700; }
+.danger-badge.danger-3 { background: #c96a00; }
+.danger-badge.danger-4 { background: #b3261e; }
+.danger-badge.danger-5 { background: #5e0b0b; }
+.trend-chip { font-size: 13px; padding: 2px 10px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); }
+.trend-chip.trend-up { color: #b3261e; border-color: #e7b3ae; }
+.trend-chip.trend-down { color: #2f8a50; border-color: #b6dcc3; }
+.driver-list { list-style: none; padding: 0; margin: 6px 0 10px; display: grid; gap: 6px; }
+.note-line { border-left: 3px solid var(--line); padding-left: 10px; color: var(--muted); }
