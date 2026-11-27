@@ -1,8 +1,6 @@
 """``python -m geointel.risk train``: download what the trained models need, run the
 pre-registered forward validation and write ``trained.json``."""
 
-import csv
-import io
 import json
 import os
 from datetime import UTC, datetime
@@ -11,9 +9,9 @@ from pathlib import Path
 import httpx
 
 from geointel.risk import trained
-from geointel.risk.countries import resolve_country_name, universe
+from geointel.risk.countries import universe
 from geointel.risk.model import TypeHistory
-from geointel.risk.taxonomy import EventType
+from geointel.risk.sources import protests
 
 WB = {
     "gdppc": "NY.GDP.PCAP.KD",
@@ -21,49 +19,15 @@ WB = {
     "pop": "SP.POP.TOTL",
 }
 TOPO_URL = "https://cdn.jsdelivr.net/npm/world-atlas@2/countries-50m.json"
-MM_DATASET = (
-    "https://dataverse.harvard.edu/api/datasets/:persistentId/?persistentId=doi:10.7910/DVN/HTTWYL"
-)
-MM_FILE = "https://dataverse.harvard.edu/api/access/datafile/{id}?format=original"
 
 
 def mass_mobilization(client: httpx.Client) -> tuple[TypeHistory | None, str]:
     """Mass Mobilization (Clark & Regan, CC0): years with a protest of 10,000+ people."""
-    meta = client.get(MM_DATASET, timeout=60).json()
-    files = (meta.get("data") or {}).get("latestVersion", {}).get("files") or []
-    chosen = None
-    for f in files:
-        name = str((f.get("dataFile") or {}).get("filename") or "").lower()
-        if name.endswith((".tab", ".csv")) and "mm" in name:
-            chosen = f["dataFile"]
-            break
+    chosen = protests.pick_file(client.get(protests.DATASET, timeout=60).json())
     if not chosen:
         return None, "no data file in the dataset"
-    text = client.get(MM_FILE.format(id=chosen["id"]), timeout=180).text
-    years: dict[str, set[int]] = {}
-    last = 0
-    reader = csv.DictReader(io.StringIO(text), delimiter="\t" if "\t" in text[:500] else ",")
-    for row in reader:
-        try:
-            year = int(row.get("year") or 0)
-        except ValueError:
-            continue
-        last = max(last, year)
-        if str(row.get("protest", "1")) != "1":
-            continue
-        if str(row.get("participants_category") or "").strip() != ">10000":
-            continue
-        code = resolve_country_name(str(row.get("country") or ""))
-        if code:
-            years.setdefault(code, set()).add(year)
-    history = TypeHistory(
-        EventType.MASS_PROTEST,
-        "Mass Mobilization (Clark & Regan)",
-        1990,
-        last,
-        {k: frozenset(v) for k, v in years.items()},
-    )
-    return history, f"{chosen.get('filename')} to {last}"
+    payload = protests.parse(client.get(protests.FILE.format(id=chosen["id"]), timeout=180).text)
+    return protests.history(payload), f"{chosen.get('filename')} to {payload['last']}"
 
 
 def run(out: Path, raw_dir: Path) -> int:

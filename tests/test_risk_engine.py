@@ -150,7 +150,7 @@ def test_snapshot_marks_missing_and_unmodeled_types_unavailable():
     types = {t["key"]: t for t in snapshot["event_types"]}
     assert types["internal_armed_conflict"]["available"]
     assert not types["coup_attempt"]["available"]
-    assert not types["mass_protest"]["modeled"] and not types["mass_protest"]["available"]
+    assert not types["political_crisis"]["modeled"] and not types["political_crisis"]["available"]
     countries = {c["iso3"]: c for c in snapshot["countries"]}
     assert len(countries) == 196
     mali = countries["MLI"]["risks"]

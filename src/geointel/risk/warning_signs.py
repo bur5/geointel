@@ -320,6 +320,35 @@ SIGNS: tuple[SignSpec, ...] = (
         "US embassy staff ordered or authorised to leave",
         auto=True,
     ),
+    *(
+        _s(
+            key,
+            "politics",
+            1.0,  # part of the political crisis definition: shown, not a multiplier (1.7.0)
+            (POLITICAL, PROTEST),
+            ru,
+            en,
+            60,
+        )
+        for key, ru, en in (
+            (
+                "leader_exit",
+                "Глава государства или правительства ушёл досрочно",
+                "Head of state or government left office early",
+            ),
+            ("snap_election", "Назначены досрочные выборы", "Early national election called"),
+            (
+                "impeachment",
+                "Импичмент одобрен хотя бы одной палатой",
+                "Impeachment passed at least one chamber",
+            ),
+            (
+                "emergency_rule",
+                "Чрезвычайное или военное положение по политическим причинам",
+                "State of emergency or martial law for political reasons",
+            ),
+        )
+    ),
     _s(
         "airspace_warning",
         "final",

@@ -248,7 +248,9 @@ export interface SignalsFile {
   status: Record<string, string>;
   freshness?: Record<string, { status: string; last_ok: string | null; age_days: number | null; stale: boolean }>;
   countries: Record<string, CountrySignals>;
+  political_crisis?: Record<string, PoliticalNow>;
 }
+export interface PoliticalNow { events: { date: string; sign: string; summary_ru: string; summary_en: string; url: string; domain: string }[]; outlets: number; confirmed: boolean }
 export interface BacktestPoint { date: string; factor: number; p1m: number; p1y: number; signs: string[] }
 export interface BacktestFile {
   key: string; title_ru: string; title_en: string; event_date: string; base_annual: number;

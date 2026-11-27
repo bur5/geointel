@@ -303,6 +303,19 @@ def _irregular(client: httpx.Client, reference_year: int) -> tuple[bytes, str, s
     return response.content, migration.IRREGULAR_URL, f"since {since}"
 
 
+def _protests(client: httpx.Client, _year: int) -> tuple[bytes, str, str]:
+    from geointel.risk.sources import protests
+
+    chosen = protests.pick_file(_get(client, protests.DATASET).json())
+    if not chosen:
+        raise RuntimeError("no Mass Mobilization data file")
+    url = protests.FILE.format(id=chosen["id"])
+    payload = protests.parse(_get(client, url).text)
+    if len(payload["covered"]) < 100:
+        raise RuntimeError(f"Mass Mobilization parsed to {len(payload['covered'])} countries")
+    return json.dumps(payload).encode(), url, f"to {payload['last']}"
+
+
 def _gpr(client: httpx.Client, _year: int) -> tuple[bytes, str, str]:
     return _get(client, outlook.GPR_URL).content, outlook.GPR_URL, "monthly"
 
@@ -1018,6 +1031,7 @@ def fetch_all(raw_dir: Path, reference_year: int | None = None) -> dict:
         "views": ("views.json", lambda c: _views(c, year)),
         "easa": ("easa.json", lambda c: _easa(c, year)),
         "undesa": ("undesa.json", lambda c: _undesa(c, year)),
+        "protests": ("protests.json", lambda c: _protests(c, year)),
         "irregular": ("irregular.json", lambda c: _irregular(c, year)),
         "inform_severity": ("inform_severity.xlsx", lambda c: _inform_severity(c, year)),
         "advisories_extra": ("advisories_extra.json", lambda c: _advisories_extra(c, year)),
