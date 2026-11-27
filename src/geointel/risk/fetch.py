@@ -348,6 +348,15 @@ def _radar(client: httpx.Client, _year: int) -> tuple[bytes, str, str]:
     return json.dumps(payload).encode(), radar.OUTAGES_URL, f"{len(records)} outages in 28 days"
 
 
+def _jwc(client: httpx.Client, _year: int) -> tuple[bytes, str, str]:
+    from geointel.risk.sources import jwc
+
+    listed = jwc.parse(_get(client, jwc.URL).text)
+    if len(listed["areas"]) < 5:
+        raise RuntimeError("JWC listed areas page changed: too few countries parsed")
+    return json.dumps(listed).encode(), jwc.URL, str(listed.get("circular"))
+
+
 def _gpr(client: httpx.Client, _year: int) -> tuple[bytes, str, str]:
     return _get(client, outlook.GPR_URL).content, outlook.GPR_URL, "monthly"
 
@@ -1124,6 +1133,7 @@ def fetch_all(raw_dir: Path, reference_year: int | None = None) -> dict:
         "ged": ("ged.json", lambda c: _ged(c, year)),
         "views": ("views.json", lambda c: _views(c, year)),
         "easa": ("easa.json", lambda c: _easa(c, year)),
+        "jwc": ("jwc.json", lambda c: _jwc(c, year)),
         "undesa": ("undesa.json", lambda c: _undesa(c, year)),
         "protests": ("protests.json", lambda c: _protests(c, year)),
         "irregular": ("irregular.json", lambda c: _irregular(c, year)),

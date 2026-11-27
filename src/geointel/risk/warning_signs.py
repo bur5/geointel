@@ -350,6 +350,15 @@ SIGNS: tuple[SignSpec, ...] = (
         )
     ),
     _s(
+        "war_risk_listed",
+        "final",
+        1.0,  # observation only until a with/without test shows value (1.9.3)
+        WAR,
+        "Морские страховщики внесли страну в зоны военного риска (JWC)",
+        "Marine insurers list the country as a war-risk area (JWC)",
+        auto=True,
+    ),
+    _s(
         "airspace_warning",
         "final",
         1.0,  # observation only until a with/without test shows value (1.7.0)
