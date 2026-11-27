@@ -130,7 +130,11 @@ def forecasts(
             }
         return out
     simple = {iso3: bernoulli_counts(known, iso3, f) for iso3, f in countries.items()}
-    world = fit_prior(simple.values())
+    if not groups and cap_mult is not None and cap_mult < 1e8:
+        usable = [c for c in simple.values() if c.trials >= 1.0]
+        world = fit_prior(usable, max_strength=max(2.0, cap_mult * fmean(c.trials for c in usable)))
+    else:
+        world = fit_prior(simple.values())
     group_prior = {}
     if groups:
         members: dict[str, list[Counts]] = {}
@@ -419,6 +423,9 @@ def run(
 
 COUP_VARIANTS = {
     "world prior, no groups": (False, None),
+    "world prior, cap 2x": (False, 2.0),
+    "world prior, cap 5x": (False, 5.0),
+    "world prior, cap 10x": (False, 10.0),
     "groups, cap 2x": (True, 2.0),
     "groups, cap 5x": (True, 5.0),
     "groups, cap 10x": (True, 10.0),

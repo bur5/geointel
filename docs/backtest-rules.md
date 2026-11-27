@@ -96,3 +96,9 @@ are always reported next to them.
   - humanitarian onset +0.21, continuation +0.79.
   Danger level: the share of country-years with a war rises with the level in both periods;
   level 3 from a probability gave 19.0% (12.9–25.1%) against the promised 5–20%.
+- 2026-11-27, run 2 (coup variants, tuning chooses, validation confirms). Brier skill score
+  vs the world frequency, tuning / validation: world prior without groups +0.025 / +0.016;
+  regime groups with prior cap 2×, 5×, 10×, 400: −0.028…−0.038 / −0.061…−0.062. The regime
+  grouping added in 1.3.0 (to fix "the whole world red" for 10-year coups) makes forecasts
+  worse. Run 3 adds world-prior variants with a capped prior strength, so that a country's
+  own record counts more without groups.
