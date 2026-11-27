@@ -127,17 +127,33 @@ EVENT_TYPES: tuple[EventTypeSpec, ...] = (
         EventType.MASS_PROTEST,
         "Mass protests / unrest",
         "Массовые протесты и беспорядки",
-        "Not yet modeled.",
-        "Пока не моделируется.",
-        modeled=False,
+        "Mass Mobilization (Clark & Regan): at least one protest against the government with "
+        "more than 10,000 participants in a calendar year. The dataset ends in 2020, so the base "
+        "rate describes 1990–2020; recent months are shown by news signs (unrest) and are not "
+        "yet scored. Countries outside the dataset have no estimate.",
+        "Mass Mobilization (Clark и Regan): хотя бы один протест против правительства с более "
+        "чем 10 000 участников за календарный год. Данные заканчиваются 2020 годом, поэтому "
+        "базовая частота — за 1990–2020; последние месяцы видны по новостным признакам "
+        "(беспорядки) и пока не проверяются. Для стран вне набора данных оценки нет.",
+        modeled=True,
         group="society",
     ),
     EventTypeSpec(
         EventType.POLITICAL_CRISIS,
         "Political crisis",
         "Политический кризис",
-        "Not yet modeled.",
-        "Пока не моделируется.",
+        "At least one of: (1) the head of state or government leaves office outside the normal "
+        "schedule; (2) an early national election is called; (3) impeachment passes at least one "
+        "chamber; (4) a nationwide state of emergency or martial law for political reasons; "
+        "(5) a coup attempt or irregular change of power. Probabilities are not yet computed: "
+        "there is no history of these events for all countries for 2000–2025 of sufficient "
+        "quality. Current events are detected from the news.",
+        "Хотя бы одно из: (1) глава государства или правительства покинул пост вне обычного "
+        "графика; (2) назначены досрочные общенациональные выборы; (3) импичмент одобрен хотя "
+        "бы одной палатой; (4) общенациональное чрезвычайное или военное положение по "
+        "политическим причинам; (5) попытка переворота или нерегулярная смена власти. "
+        "Вероятности пока не считаем: нет истории этих событий по всем странам за 2000–2025 "
+        "годы нужного качества. Текущие события обнаруживаются по новостям.",
         modeled=False,
         group="society",
     ),

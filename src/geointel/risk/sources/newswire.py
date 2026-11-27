@@ -33,6 +33,10 @@ QUERIES: dict[str, str] = {
     "elite_split": '(coup OR mutiny OR "military takeover" OR junta)',
     "repression": '(crackdown OR "opposition leader arrested" OR "state of emergency")',
     "deescalation": '(ceasefire OR truce OR "peace talks" OR "troop withdrawal")',
+    "political": (
+        '("no-confidence" OR impeachment OR "snap election" OR "early election" '
+        'OR "martial law" OR "prime minister resigns" OR "president resigns")'
+    ),
     "migration": (
         '("immigration rules" OR "asylum law" OR "deportations" OR "visa requirements" '
         'OR "residence permits" OR "migrant amnesty")'
@@ -109,6 +113,12 @@ SIGN_HELP = {
     "unrest": "mass protests, riots, nationwide strikes",
     "repression": "crackdowns, opposition leaders arrested, emergency rule",
     "elite_split": "coup attempt, mutiny, open split between army and government",
+    "leader_exit": "a head of government or state leaves office outside the normal schedule "
+    "(resignation, lost no-confidence vote, removal, death in office)",
+    "snap_election": "an early national election is called",
+    "impeachment": "an impeachment or removal vote passes at least one chamber",
+    "emergency_rule": "a nationwide state of emergency or martial law declared for political "
+    "reasons (not disasters or epidemics)",
     "migration_tighten": "a government adopts or announces stricter immigration, asylum, visa or "
     "residence rules, or expands deportations (country = the state changing its rules)",
     "migration_ease": "a government adopts or announces easier immigration, asylum, visa or "

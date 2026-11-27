@@ -3,6 +3,18 @@
 Every change that can move a published probability gets a new `MODEL_VERSION`
 (`src/geointel/risk/__init__.py`), an entry here, and a before/after report.
 
+## 1.8.0 — 2026-11-27
+- Mass protests get a base-rate model: Mass Mobilization (Clark & Regan, CC0), country-years
+  with a protest against the government of more than 10,000 people, 1990–2020. Countries outside
+  the dataset have no estimate. The data end in 2020; the site says so. Class C in the danger
+  level (can raise it to 2 at most).
+- Political crisis: five-point definition published; probabilities are not computed (no history
+  of sufficient quality for all countries 2000–2025). The site shows a "now" view: countries
+  where the news reported a crisis event in 60 days (leader exit, early election, impeachment,
+  political emergency rule, coup attempt), with the number of outlets.
+- New news signs (observations, multiplier 1): leader_exit, snap_election, impeachment,
+  emergency_rule, airspace_warning (EASA); migration policy changes are journalled separately.
+
 ## 1.7.0 — 2026-11-27
 - Internal armed conflict onset uses ViEWS (Uppsala/PRIO, latest monthly run) as the base:
   log-odds mean with weight 0.7 for ViEWS and 0.3 for the GeoIntel model, for countries not in

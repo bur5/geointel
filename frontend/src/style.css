@@ -691,3 +691,8 @@ td.up, td.down { margin-left: 0; }
 .chat-form textarea:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
 .chat-actions { display: flex; gap: 12px; align-items: center; }
 .link-button { border: 0; background: none; color: var(--accent); text-decoration: underline; padding: 0; }
+.legend-key i.sw-minimal { background: var(--r-minimal); }
+.political-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+.political-list > li { padding: 12px 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--card, transparent); }
+.political-list > li > .link { font-weight: 600; margin-right: 8px; }
+.political-list ul { margin: 6px 0 0; }

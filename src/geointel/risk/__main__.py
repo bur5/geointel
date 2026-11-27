@@ -214,6 +214,11 @@ def load_histories(
     def news(path: Path) -> None:
         extras["news_new"] = json.loads(path.read_text()).get("entries", [])
 
+    def mass_protests(path: Path) -> None:
+        from geointel.risk.sources import protests
+
+        histories[EventType.MASS_PROTEST] = protests.history(json.loads(path.read_text()))
+
     def diaspora(path: Path) -> None:
         extras["diaspora"] = json.loads(path.read_text())["countries"]
 
@@ -263,6 +268,7 @@ def load_histories(
         ("views", views.SOURCE, views_forecasts),
         ("easa", "EASA Conflict Zone Information Bulletins", czib),
         ("undesa", "UN DESA International Migrant Stock 2024", diaspora),
+        ("protests", "Mass Mobilization (Clark & Regan)", mass_protests),
         ("irregular", migration.IRREGULAR_SOURCE, irregular),
         ("advisories_extra", "Global Affairs Canada; Auswärtiges Amt travel advice", ministries),
         ("gpr", outlook.GPR_SOURCE, gpr),
@@ -351,6 +357,46 @@ def source_freshness(previous: dict, sources: list[dict], now) -> dict:
             "stale": age is None or age > STALE_DAYS,
         }
     return result
+
+
+POLITICAL_CRISIS_SIGNS = (
+    "leader_exit",
+    "snap_election",
+    "impeachment",
+    "emergency_rule",
+    "elite_split",
+)
+
+
+def political_crisis_now(news: list[dict], today, days: int = 60) -> dict[str, dict]:
+    """Countries where news reports a political crisis event (definition, 5 points) recently.
+
+    Detection only: an event already happened. Reported in the media, classified by the
+    language model with quote and country checks; not a forecast.
+    """
+    out: dict[str, dict] = {}
+    for entry in news:
+        if entry.get("sign") not in POLITICAL_CRISIS_SIGNS:
+            continue
+        if (today - date.fromisoformat(entry["date"])).days > days:
+            continue
+        item = out.setdefault(entry["country"], {"events": [], "domains": set()})
+        item["domains"].add(entry.get("domain"))
+        if len(item["events"]) < 5:
+            item["events"].append(
+                {
+                    k: entry.get(k)
+                    for k in ("date", "sign", "summary_ru", "summary_en", "url", "domain")
+                }
+            )
+    return {
+        code: {
+            "events": item["events"],
+            "outlets": len({d for d in item["domains"] if d}),
+            "confirmed": len({d for d in item["domains"] if d}) >= 2,
+        }
+        for code, item in out.items()
+    }
 
 
 def build_signal_layer(snapshot: dict, extras: dict, sources: list[dict], now) -> tuple[dict, dict]:
@@ -479,6 +525,8 @@ def build_signal_layer(snapshot: dict, extras: dict, sources: list[dict], now) -
         status=status,
         generated_at=now,
     )
+    signals["political_crisis"] = political_crisis_now(news, today)
+    print(f"[signals] political crisis events in {len(signals['political_crisis'])} countries")
     trends = early_signals.persistence(
         cache_in / "signals_history.json",
         cache_out / "signals_history.json",

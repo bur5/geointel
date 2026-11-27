@@ -67,7 +67,7 @@ let btCase = stored('geointel.btcase') ?? 'ukraine_2022';
 let currentScenario = stored('geointel.scenario') ?? 'russia_nato';
 let chainEvent: ChainEvent = (stored('geointel.chain') as ChainEvent | null) ?? 'conflict';
 let migMode: 'hosted' | 'abroad' = stored('geointel.migmode') === 'abroad' ? 'abroad' : 'hosted';
-const VIEWS = ['view_danger', 'view_travel', 'view_business'] as const;
+const VIEWS = ['view_danger', 'view_travel', 'view_business', 'view_political'] as const;
 const isView = (key: string) => (VIEWS as readonly string[]).includes(key);
 const levelClass = (level: Level) => (['', 'low', 'elevated', 'high', 'critical'] as const)[level];
 
@@ -205,8 +205,9 @@ function pickGroups() {
   return [views, ...groups.map(([group, label]) => ({
     label: escape(label),
     items: (snapshot?.event_types ?? []).filter((e) => (e.group ?? 'conflict') === group).map((e) => ({
-      key: e.key, label: escape(typeLabel(e)), disabled: !e.available,
-      note: !e.modeled ? escape(t().notModeled) : !e.available ? escape(t().unavailable) : undefined,
+      key: e.key === 'political_crisis' && !e.modeled ? 'view_political' : e.key, label: escape(typeLabel(e)),
+      disabled: !e.available && !(e.key === 'political_crisis' && !e.modeled),
+      note: e.key === 'political_crisis' && !e.modeled ? (lang === 'ru' ? 'сейчас' : 'now') : !e.modeled ? escape(t().notModeled) : !e.available ? escape(t().unavailable) : undefined,
     })),
   }))].filter((g) => g.items.length);
 }
@@ -236,6 +237,9 @@ function stats() {
 }
 
 function legend() {
+  if (eventType === 'view_political') {
+    return `<div class="legend"><span class="legend-key"><i class="swatch-active"></i>${lang === 'ru' ? 'Событие кризиса, сообщают 2+ издания' : 'Crisis event, 2+ outlets'}</span><span class="legend-key"><i class="sw-elevated"></i>${lang === 'ru' ? 'Сообщает одно издание' : 'One outlet'}</span><span class="legend-key"><i class="sw-minimal"></i>${lang === 'ru' ? 'Не обнаружено (это не гарантия)' : 'None detected (not a guarantee)'}</span></div>`;
+  }
   if (eventType === 'view_danger') {
     return `<div class="legend">${[1, 2, 3, 4, 5].map((l) => `<span class="legend-key"><i class="sw-d${l}"></i>${l} — ${escape(dangerName(l, lang))}</span>`).join('')}<span class="legend-key"><i class="swatch-none"></i>${t().legendNoData}</span></div>`;
   }
@@ -256,7 +260,7 @@ function mapBlock() {
   return `<section class="map-card" aria-label="${escape(isView(eventType) ? t().groupViews : typeLabel(typeEntry(eventType)))}">
     <div class="toolbar">
       ${picker(t().eventType, eventType, pickGroups())}
-      ${isView(eventType) ? `<p class="toolbar-note">${eventType === 'view_danger' ? dangerNote() : eventType === 'view_travel' ? t().viewTravelNote : t().viewBusinessNote}</p>` : `<div class="toolbar-group"><span>${t().horizon}</span>${horizonSwitch()}</div>`}
+      ${isView(eventType) ? `<p class="toolbar-note">${eventType === 'view_political' ? politicalNote() : eventType === 'view_danger' ? dangerNote() : eventType === 'view_travel' ? t().viewTravelNote : t().viewBusinessNote}</p>` : `<div class="toolbar-group"><span>${t().horizon}</span>${horizonSwitch()}</div>`}
     </div>
     <div class="map-stage" id="map"><svg viewBox="0 0 900 440" role="img" tabindex="0" aria-label="${escape(typeLabel(typeEntry(eventType)))}">
       <defs><pattern id="hatch" patternUnits="userSpaceOnUse" width="6" height="6" patternTransform="rotate(45)">
@@ -334,7 +338,25 @@ function briefPanel() {
   </aside>`;
 }
 
+const politicalNote = () => (lang === 'ru'
+  ? 'Политический кризис — сейчас: страны, где за 60 дней сообщалось о досрочном уходе главы государства или правительства, досрочных выборах, импичменте, чрезвычайном или военном положении по политическим причинам или попытке переворота. Это обнаружение уже случившегося, не прогноз.'
+  : 'Political crisis — now: countries where in the last 60 days the media reported an early exit of the head of state or government, an early election, impeachment, political emergency rule or martial law, or a coup attempt. Detection of what already happened, not a forecast.');
+
+function politicalList() {
+  const data = signalsData?.political_crisis ?? {};
+  const rows = Object.entries(data).sort((a, b) => Number(b[1].confirmed) - Number(a[1].confirmed) || (b[1].events[0]?.date ?? '').localeCompare(a[1].events[0]?.date ?? ''));
+  const entry = typeEntry('political_crisis');
+  const head = `<div class="section-head"><h2>${lang === 'ru' ? 'Политический кризис: события за 60 дней' : 'Political crisis: events in the last 60 days'}</h2>
+    <p>${lang === 'ru' ? 'Вероятности политического кризиса пока не считаем: для всех стран нет истории таких событий за 2000–2025 годы нужного качества. Ниже — то, что уже произошло, по сообщениям СМИ (заголовки разобраны ИИ, страна и цитата проверены правилом).' : 'We do not compute political crisis probabilities yet: there is no history of such events for all countries for 2000–2025 of sufficient quality. Below is what already happened, as reported by the media (headlines classified by AI, country and quote checked by rule).'}</p></div>`;
+  const def = entry ? `<details><summary>${t().definition}</summary><p>${escape(lang === 'ru' ? entry.resolution_ru : entry.resolution_en)}</p></details>` : '';
+  if (!rows.length) return `<section class="section">${head}${def}<p class="muted-text">${lang === 'ru' ? 'За 60 дней событий не обнаружено. Новостной поток мог пропустить события: это не гарантия.' : 'No events detected in 60 days. The news feed can miss events: this is not a guarantee.'}</p></section>`;
+  return `<section class="section">${head}${def}<ul class="political-list">${rows.map(([iso3, p]) => `<li><button type="button" class="link" data-select="${iso3}">${escape(countryName(byIso().get(iso3) ?? { iso3, name: iso3 } as CountryEntry))}</button>
+    <span class="muted-text small">${p.confirmed ? (lang === 'ru' ? `${p.outlets} изданий` : `${p.outlets} outlets`) : (lang === 'ru' ? 'одно издание, не подтверждено' : 'one outlet, unconfirmed')}</span>
+    <ul class="plain small">${p.events.map((e) => `<li>${escape(e.date)} — <a href="${escape(e.url)}" target="_blank" rel="noopener">${escape(lang === 'ru' ? e.summary_ru : e.summary_en)}</a></li>`).join('')}</ul></li>`).join('')}</ul></section>`;
+}
+
 function ranking() {
+  if (eventType === 'view_political') return politicalList();
   if (eventType === 'view_danger') {
     return `<div class="legend">${[1, 2, 3, 4, 5].map((l) => `<span class="legend-key"><i class="sw-d${l}"></i>${l} — ${escape(dangerName(l, lang))}</span>`).join('')}<span class="legend-key"><i class="swatch-none"></i>${t().legendNoData}</span></div>`;
   }
@@ -745,6 +767,7 @@ function render() {
       (key) => {
         const country = countries.get(shapes.get(key) ?? '');
         if (eventType === 'view_danger') return country && dangerLevelOf(country) ? 'd-' + dangerLevelOf(country) : '';
+        if (eventType === 'view_political') { const p = country ? signalsData?.political_crisis?.[country.iso3] : undefined; return !country ? '' : p ? (p.confirmed ? 'active' : 'elevated') : 'minimal'; }
         if (isView(eventType)) return country ? 'v-' + levelClass(viewVerdict(country).level) : '';
         const group = lens !== 'countries' ? currentGroup() : undefined;
         if (group && !group.members.includes(country?.iso3 ?? '')) return 'dimmed';
@@ -757,6 +780,7 @@ function render() {
         const risk = country?.risks[eventType];
         const label = country ? countryName(country) : fallback;
         if (country && eventType === 'view_danger') { const d = dangerLevelOf(country); return d ? `${label}: ${d} — ${dangerName(d, lang)}` : label; }
+        if (country && eventType === 'view_political') { const p = signalsData?.political_crisis?.[country.iso3]; return p ? `${label}: ${p.events[0] ? (lang === 'ru' ? p.events[0].summary_ru : p.events[0].summary_en) : ''}` : `${label}: ${lang === 'ru' ? 'событий не обнаружено' : 'no events detected'}`; }
         if (country && isView(eventType)) return `${label}: ${viewVerdict(country).level} — ${levelLabel(viewKind(), viewVerdict(country).level, lang)}`;
         if (!risk) return label + ': ' + t().legendNoData.toLowerCase();
         const v = risk.horizons[horizon];
