@@ -375,6 +375,11 @@ def political_crisis_now(news: list[dict], today, days: int = 60) -> dict[str, d
     for entry in news:
         if entry.get("sign") not in POLITICAL_CRISIS_SIGNS:
             continue
+        from geointel.risk.sources.newswire import rejected_by_rules
+
+        # Entries classified before the rule checks existed are filtered here too.
+        if rejected_by_rules(entry["sign"], str(entry.get("headline") or "")):
+            continue
         if (today - date.fromisoformat(entry["date"])).days > days:
             continue
         item = out.setdefault(entry["country"], {"events": [], "domains": set()})

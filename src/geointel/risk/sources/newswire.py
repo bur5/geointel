@@ -206,6 +206,22 @@ NON_POLITICAL = re.compile(
 )
 
 
+# Talk about a possible event is not the event (political crisis signs, rule check).
+SPECULATIVE = re.compile(
+    r"\b(may|might|could|would|calls? for|urges?|demands?|possible|possibly|mulls?|"
+    r"considers?|threatens?|weighs?|seeks?|proposes?|rumou?rs?|if)\b|\?",
+    re.I,
+)
+EVENT_SIGNS = ("leader_exit", "snap_election", "impeachment")
+
+
+def rejected_by_rules(sign: str, headline: str) -> bool:
+    """Rule checks on the model's answer for political crisis signs."""
+    if sign == "emergency_rule" and NON_POLITICAL.search(headline):
+        return True
+    return sign in EVENT_SIGNS and bool(SPECULATIVE.search(headline))
+
+
 def _norm(text: str) -> str:
     return re.sub(r"\W+", " ", text.lower()).strip()
 
@@ -236,7 +252,7 @@ def parse_reply(text: str, batch: list[dict]) -> list[dict]:
             continue
         if item.get("country_in_text") is False:
             continue
-        if sign == "emergency_rule" and NON_POLITICAL.search(batch[i]["title"]):
+        if rejected_by_rules(sign, batch[i]["title"]):
             continue
         result.append(
             {

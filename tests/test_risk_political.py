@@ -64,3 +64,44 @@ def test_weather_emergency_is_not_political():
         '"quote": "declares state of emergency", "country_in_text": true}]'
     )
     assert newswire.parse_reply(reply, batch) == []
+
+
+def test_speculation_is_not_an_event():
+    from datetime import date
+
+    news = [
+        {
+            "date": "2026-11-25",
+            "country": "SEN",
+            "sign": "leader_exit",
+            "domain": "a",
+            "url": "1",
+            "headline": "Sonko says president could resign or dissolve parliament",
+        },
+        {
+            "date": "2026-11-25",
+            "country": "SEN",
+            "sign": "snap_election",
+            "domain": "b",
+            "url": "2",
+            "headline": "Speaker calls for dissolution of parliament",
+        },
+        {
+            "date": "2026-11-25",
+            "country": "PER",
+            "sign": "leader_exit",
+            "domain": "c",
+            "url": "3",
+            "headline": "Peru president removed by Congress",
+        },
+        {
+            "date": "2026-11-25",
+            "country": "USA",
+            "sign": "emergency_rule",
+            "domain": "d",
+            "url": "4",
+            "headline": "New York declares emergency over storm",
+        },
+    ]
+    out = political_crisis_now(news, date(2026, 11, 27))
+    assert set(out) == {"PER"}
