@@ -108,6 +108,20 @@ def load_histories(
     def democracy(path: Path) -> None:
         extras["democracy"] = outlook.owid_latest(path.read_text())
 
+    def ministries(path: Path) -> None:
+        from geointel.risk.sources import advisories_extra as ax
+
+        payloads = json.loads(path.read_text()).get("payloads", {})
+        parsed = {
+            "ca": ax.parse_canada(payloads.get("ca") or {}),
+            "de": ax.parse_germany(payloads.get("de") or {}),
+        }
+        merged: dict[str, dict] = {}
+        for key, items in parsed.items():
+            for iso3, item in items.items():
+                merged.setdefault(iso3, {})[key] = item
+        extras["ministries"] = merged
+
     def regimes(path: Path) -> None:
         extras["regimes"] = outlook.owid_latest(path.read_text())
 
@@ -219,6 +233,7 @@ def load_histories(
         ("imf", outlook.IMF_SOURCE, imf),
         ("vdem", outlook.VDEM_SOURCE, democracy),
         ("regimes", outlook.REGIME_SOURCE, regimes),
+        ("advisories_extra", "Global Affairs Canada; Auswärtiges Amt travel advice", ministries),
         ("gpr", outlook.GPR_SOURCE, gpr),
         ("elections", elections.SOURCE, votes),
         ("fcdo", fcdo.SOURCE, uk_travel),
