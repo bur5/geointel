@@ -49,3 +49,7 @@ the switch.
   and the index is read from the first value column. Rules above are unchanged; run 2 is the
   first valid result. Run 1 coups (valid): Brier skill score −0.019 (95% CI −0.032…−0.004),
   base rate kept.
+- 2026-11-27, run 2 (first valid): coups BSS −0.019 (−0.032…−0.005), 99 events; internal
+  conflict onset +0.035 (−0.020…+0.087), 83 events; mass protests (2005–2020 only) +0.034
+  (−0.010…+0.080), 326 events. No type passes the rule; base rates stay. Protests also lack
+  current data (Mass Mobilization ends in 2020).

@@ -93,6 +93,7 @@ jobs:
             data/site/backtest.json
             data/site/accuracy.json
             data/site/regional.json
+            data/trained.json
             data/site/regions/
             data/raw/manifest.json
 
@@ -161,6 +162,7 @@ jobs:
           cp ../snapshot/site/backtest.json public/data/backtest.json
           cp ../snapshot/site/accuracy.json public/data/accuracy.json
           [ -f ../snapshot/site/regional.json ] && cp ../snapshot/site/regional.json public/data/regional.json
+          [ -f ../snapshot/trained.json ] && cp ../snapshot/trained.json public/data/trained.json || true
           [ -d ../snapshot/site/regions ] && cp -r ../snapshot/site/regions public/data/regions
           if git fetch --depth=1 origin risk-data 2>/dev/null; then
             git show FETCH_HEAD:latest/backtest-real.json > public/data/backtest-real.json 2>/dev/null || rm -f public/data/backtest-real.json

@@ -101,9 +101,9 @@ function liveSection(ctx: ViewContext, acc: AccuracyFile | undefined) {
     <h3>${d.seriesTitle}</h3>${seriesChart(ctx, acc)}</section>`;
 }
 
-export function accuracyPage(ctx: ViewContext, acc: AccuracyFile | undefined, bt: BacktestFile | undefined, real: RealBacktestFile | undefined, btCase: string) {
+export function accuracyPage(ctx: ViewContext, acc: AccuracyFile | undefined, bt: BacktestFile | undefined, real: RealBacktestFile | undefined, btCase: string, trainedHtml = '') {
   const d = at(ctx.lang);
   return `<section class="page-head"><h1>${d.title}</h1><p>${d.lead}</p></section>
     <section class="section"><div class="section-head"><h2>${d.statusTitle}</h2></div><ul class="plain">${d.status.map((s) => `<li>${ctx.esc(s)}</li>`).join('')}</ul></section>
-    ${casesTable(ctx, real)}${realBacktestSection(ctx, real, btCase)}${liveSection(ctx, acc)}${backtestSection(ctx, bt)}`;
+    ${trainedHtml}${casesTable(ctx, real)}${realBacktestSection(ctx, real, btCase)}${liveSection(ctx, acc)}${backtestSection(ctx, bt)}`;
 }
