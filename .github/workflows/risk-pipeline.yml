@@ -133,6 +133,7 @@ jobs:
           mkdir -p latest history cache
           [ -f ../data/raw/trade.json ] && cp ../data/raw/trade.json cache/trade.json
           [ -f ../data/raw/gdacs.json ] && cp ../data/raw/gdacs.json cache/gdacs.json
+          [ -f ../data/raw/elections.json ] && cp ../data/raw/elections.json cache/elections.json
           cp ../data/cache-out/*.json cache/ 2>/dev/null || true
           cp ../data/site/signals.json latest/signals.json
           cp ../data/site/backtest.json latest/backtest.json
