@@ -3,6 +3,16 @@
 Every change that can move a published probability gets a new `MODEL_VERSION`
 (`src/geointel/risk/__init__.py`), an entry here, and a before/after report.
 
+## 1.7.0 — 2026-11-27
+- Internal armed conflict onset uses ViEWS (Uppsala/PRIO, latest monthly run) as the base:
+  log-odds mean with weight 0.7 for ViEWS and 0.3 for the GeoIntel model, for countries not in
+  an active conflict. ViEWS gives P(25+ state-based battle deaths) per month; the 12-month
+  figure lies between the highest month and the union under independence (both ends form the
+  range, the point is their log-odds midpoint); 5y/10y extend it as a constant annual hazard.
+  The GeoIntel-only numbers are kept (`own_horizons`) and shown beside the blend. Countries
+  with an active conflict keep the continuation model; ViEWS is shown for comparison.
+  Weights are fixed until there are enough resolved months to fit them (plan, stage 2).
+
 ## 1.6.0 — 2026-11-27
 - Regional conflicts: UCDP GED (annual, last 3 years) and UCDP Candidate (monthly) events
   located in first-level regions. 5+ deaths in fighting or attacks in the last 90 days → level 5

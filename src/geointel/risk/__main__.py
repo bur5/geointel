@@ -37,6 +37,7 @@ def load_histories(
         trade,
         ucdp_acd,
         usgs,
+        views,
         worldbank,
     )
 
@@ -213,6 +214,9 @@ def load_histories(
     def news(path: Path) -> None:
         extras["news_new"] = json.loads(path.read_text()).get("entries", [])
 
+    def views_forecasts(path: Path) -> None:
+        extras["views"] = json.loads(path.read_text())
+
     def cities(path: Path) -> None:
         from geointel.risk.sources import geonames
 
@@ -245,6 +249,7 @@ def load_histories(
         ("regimes", outlook.REGIME_SOURCE, regimes),
         ("ged", "UCDP GED and Candidate events", ged),
         ("inform_severity", "INFORM Severity Index (EC JRC)", severity),
+        ("views", views.SOURCE, views_forecasts),
         ("advisories_extra", "Global Affairs Canada; Auswärtiges Amt travel advice", ministries),
         ("gpr", outlook.GPR_SOURCE, gpr),
         ("elections", elections.SOURCE, votes),
@@ -707,6 +712,12 @@ def main(argv: list[str] | None = None) -> int:
     if trained_path.is_file():
         switched = apply_trained(snapshot, json.loads(trained_path.read_text()))
         print(f"[trained] switched on: {switched or 'none'}")
+    from geointel.risk.sources import views
+
+    blended = views.apply_views(
+        snapshot, extras.get("views"), now.date(), "internal_armed_conflict"
+    )
+    print(f"[views] blended internal conflict onset for {blended} countries")
     snapshot["model_version"] = MODEL_VERSION
     args.out.parent.mkdir(parents=True, exist_ok=True)
     args.out.write_text(json.dumps(snapshot, ensure_ascii=False, separators=(",", ":")))

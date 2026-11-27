@@ -252,6 +252,26 @@ def _inform_severity(client: httpx.Client, _year: int) -> tuple[bytes, str, str]
     return _get(client, url).content, url, url.rsplit("/", 1)[-1][:6]
 
 
+def _views(client: httpx.Client, _year: int) -> tuple[bytes, str, str]:
+    from geointel.risk.sources import views
+
+    run = views.latest_run(views.runs_from_root(_get(client, views.API + "/").json()))
+    if not run:
+        raise RuntimeError("no ViEWS monthly run listed")
+    url = f"{views.API}/{run}/cm/sb"
+    rows: list = []
+    page = 1
+    while page and page <= 40:
+        body = _get(client, f"{url}?pagesize=1000&page={page}").json()
+        rows.extend(body.get("data") or [])
+        page = page + 1 if body.get("next_page") else 0
+    countries = views.compact(rows)
+    if not countries:
+        raise RuntimeError("ViEWS run has no country rows")
+    payload = {"run": run, "countries": countries}
+    return json.dumps(payload, separators=(",", ":")).encode(), url, run
+
+
 def _gpr(client: httpx.Client, _year: int) -> tuple[bytes, str, str]:
     return _get(client, outlook.GPR_URL).content, outlook.GPR_URL, "monthly"
 
@@ -964,6 +984,7 @@ def fetch_all(raw_dir: Path, reference_year: int | None = None) -> dict:
         "gpr": ("gpr.xls", lambda c: _gpr(c, year)),
         "regimes": ("regimes.csv", lambda c: _regimes(c, year)),
         "ged": ("ged.json", lambda c: _ged(c, year)),
+        "views": ("views.json", lambda c: _views(c, year)),
         "inform_severity": ("inform_severity.xlsx", lambda c: _inform_severity(c, year)),
         "advisories_extra": ("advisories_extra.json", lambda c: _advisories_extra(c, year)),
         "elections": ("elections.json", lambda c: _elections(c, year)),

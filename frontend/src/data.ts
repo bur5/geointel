@@ -11,7 +11,10 @@ export interface Risk {
   confidence: 'low' | 'medium' | 'high';
   horizons: Record<HorizonKey, Probability>;
   basis: { exposure_years: number; event_years: number; last_event_year: number | null };
+  model?: 'trained' | 'views_blend';
+  own_horizons?: Record<HorizonKey, Probability>;
 }
+export interface ViewsForecast { p1m: number; p12m: number; p12m_low: number; p12m_high: number; months: number; run: string | null }
 export interface Advisory { level: 1 | 2 | 3 | 4; title: string; url: string | null; updated: string | null; summary: string }
 export type Profile = Record<string, { value: number; year: number }>;
 export interface AdvisoryUK { level: 1 | 2 | 3 | 4; partial: boolean; statuses: string[]; url: string | null; updated: string | null; restrictions: string[] }
@@ -19,6 +22,7 @@ export interface Outlook { growth?: Record<string, number>; inflation?: Record<s
 export interface Gpr { latest_month: string; latest: number; baseline_mean: number; ratio_12m: number | null; months: string[]; values: number[] }
 export interface Election { date: string; precision: 'day' | 'month' | 'year'; kind: 'presidential' | 'parliamentary' | 'referendum'; name_en: string; name_ru: string | null; wikidata: string }
 export interface CountryEntry {
+  external?: { views?: ViewsForecast };
   humanitarian_severity?: import('./humanitarian').Severity | null;
   iso3: string; iso2: string; numeric: string | null; name: string;
   risks: Record<string, Risk>;
