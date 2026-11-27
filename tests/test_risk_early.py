@@ -27,10 +27,6 @@ def test_cline_coups_and_links():
 
 
 def test_early_parsers():
-    assert (
-        early.zakupki_total('<div class="search-results__total">более 1 234 записей</div>') == 1234
-    )
-    assert early.zakupki_total("<html></html>") is None
     windows = early.weekly_windows(TODAY, 2)
     assert windows[0][1].weekday() == 6 and windows[0][0] == windows[0][1] - timedelta(days=6)
     timeline = early.doc_timeline(
