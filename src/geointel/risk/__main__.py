@@ -617,7 +617,15 @@ def main(argv: list[str] | None = None) -> int:
         "--signals-history", type=Path, default=Path("data/cache-out/signals_history.json")
     )
     notify_cmd.add_argument("--force", action="store_true", help="send even if nothing changed")
+    train_cmd = sub.add_parser("train", help="validate and fit the trained base models")
+    train_cmd.add_argument("--out", type=Path, default=Path("data/site/trained.json"))
+    train_cmd.add_argument("--raw-dir", type=Path, default=Path("data/raw-train"))
     args = parser.parse_args(argv)
+
+    if args.command == "train":
+        from geointel.risk.train_cli import run as run_training
+
+        return run_training(args.out, args.raw_dir)
 
     if args.command == "notify":
         from geointel.risk import notify
@@ -681,7 +689,12 @@ def main(argv: list[str] | None = None) -> int:
     available = sum(1 for t in snapshot["event_types"] if t["available"])
     _print_summary(snapshot)
     from geointel.risk import MODEL_VERSION
+    from geointel.risk.trained import apply_trained
 
+    trained_path = args.raw_dir.parent / "trained.json"
+    if trained_path.is_file():
+        switched = apply_trained(snapshot, json.loads(trained_path.read_text()))
+        print(f"[trained] switched on: {switched or 'none'}")
     snapshot["model_version"] = MODEL_VERSION
     args.out.parent.mkdir(parents=True, exist_ok=True)
     args.out.write_text(json.dumps(snapshot, ensure_ascii=False, separators=(",", ":")))
