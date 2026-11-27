@@ -77,3 +77,31 @@ def test_apply_danger_histogram():
     hist = apply_danger(snapshot, signals)
     assert hist[1] == 1 and hist[2] == 1
     assert signals["danger_scale"]["hazard_cap"] == 1
+
+
+def test_coup_group_shrinkage_lowers_stable_democracies():
+    from geointel.risk.model import TypeHistory, assess_type
+    from geointel.risk.taxonomy import EventType
+
+    years = {}
+    countries = {}
+    groups = {}
+    for i in range(12):
+        countries[f"D{i:02d}"] = None
+        groups[f"D{i:02d}"] = "3|none20"
+    for i in range(12):
+        code = f"A{i:02d}"
+        countries[code] = None
+        groups[code] = "1|coup20"
+        years[code] = frozenset({1995 + i, 2010 + i % 10})
+    history = TypeHistory(
+        event_type=EventType.COUP_ATTEMPT,
+        source="t",
+        start_year=1990,
+        end_year=2025,
+        years_with_event={k: v for k, v in years.items()},
+    )
+    world = {r.iso3: r for r in assess_type(history, countries, False)}
+    grouped = {r.iso3: r for r in assess_type(history, countries, False, groups)}
+    assert grouped["D00"].horizons["10y"].p < world["D00"].horizons["10y"].p
+    assert grouped["A00"].horizons["1y"].p >= world["A00"].horizons["1y"].p * 0.9
