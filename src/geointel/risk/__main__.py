@@ -214,6 +214,14 @@ def load_histories(
     def news(path: Path) -> None:
         extras["news_new"] = json.loads(path.read_text()).get("entries", [])
 
+    def diaspora(path: Path) -> None:
+        extras["diaspora"] = json.loads(path.read_text())["countries"]
+
+    def irregular(path: Path) -> None:
+        extras["irregular"] = migration.irregular_found(
+            migration.jsonstat_series(json.loads(path.read_text()))
+        )
+
     def czib(path: Path) -> None:
         extras.setdefault("early_raw", {})["easa"] = json.loads(path.read_text())["bulletins"]
 
@@ -254,6 +262,8 @@ def load_histories(
         ("inform_severity", "INFORM Severity Index (EC JRC)", severity),
         ("views", views.SOURCE, views_forecasts),
         ("easa", "EASA Conflict Zone Information Bulletins", czib),
+        ("undesa", "UN DESA International Migrant Stock 2024", diaspora),
+        ("irregular", migration.IRREGULAR_SOURCE, irregular),
         ("advisories_extra", "Global Affairs Canada; Auswärtiges Amt travel advice", ministries),
         ("gpr", outlook.GPR_SOURCE, gpr),
         ("elections", elections.SOURCE, votes),
@@ -412,6 +422,18 @@ def build_signal_layer(snapshot: dict, extras: dict, sources: list[dict], now) -
         (today - timedelta(days=60)).isoformat(),
     )
     (cache_out / "news.json").write_text(json.dumps({"entries": news}, ensure_ascii=False))
+    from geointel.risk.sources import migration as migration_src
+
+    policy = migration_src.policy_journal(
+        _load(cache_in / "migration_policy.json").get("entries", []),
+        extras.get("news_new", []),
+        (today - timedelta(days=400)).isoformat(),
+    )
+    (cache_out / "migration_policy.json").write_text(
+        json.dumps({"entries": policy}, ensure_ascii=False)
+    )
+    extras["migration_policy"] = migration_src.policy_summary(policy, today)
+    print(f"[signals] migration policy entries={len(policy)}")
 
     # Satellite radar
     satellite: dict[str, list[dict]] = {}
@@ -865,7 +887,15 @@ def main(argv: list[str] | None = None) -> int:
         displacement=extras.get("displacement"),
         asylum=extras.get("asylum"),
         profiles=extras.get("profiles"),
-        sources=[s for s in sources if s["key"] in ("trade", "unhcr", "eurostat", "milex")],
+        diaspora=extras.get("diaspora"),
+        irregular=extras.get("irregular"),
+        policy=extras.get("migration_policy"),
+        universe=[c["iso3"] for c in snapshot["countries"]],
+        sources=[
+            s
+            for s in sources
+            if s["key"] in ("trade", "unhcr", "eurostat", "milex", "undesa", "irregular")
+        ],
         generated_at=now,
     )
     for code, value in (extras.get("milex") or {}).items():

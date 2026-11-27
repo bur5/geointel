@@ -283,6 +283,26 @@ def _easa(client: httpx.Client, _year: int) -> tuple[bytes, str, str]:
     return json.dumps(payload, ensure_ascii=False).encode(), easa.URL, f"{active} active"
 
 
+def _undesa(client: httpx.Client, _year: int) -> tuple[bytes, str, str]:
+    from geointel.risk.sources import undesa
+
+    countries = undesa.from_workbook(_get(client, undesa.URL).content)
+    if len(countries) < 150:
+        raise RuntimeError(f"UN DESA workbook parsed to only {len(countries)} countries")
+    year = max(c["year"] for c in countries.values())
+    payload = {"countries": countries}
+    return json.dumps(payload, separators=(",", ":")).encode(), undesa.URL, str(year)
+
+
+def _irregular(client: httpx.Client, reference_year: int) -> tuple[bytes, str, str]:
+    since = reference_year - 4
+    response = client.get(
+        migration.IRREGULAR_URL, params=migration.irregular_params(since), timeout=120
+    )
+    response.raise_for_status()
+    return response.content, migration.IRREGULAR_URL, f"since {since}"
+
+
 def _gpr(client: httpx.Client, _year: int) -> tuple[bytes, str, str]:
     return _get(client, outlook.GPR_URL).content, outlook.GPR_URL, "monthly"
 
@@ -997,6 +1017,8 @@ def fetch_all(raw_dir: Path, reference_year: int | None = None) -> dict:
         "ged": ("ged.json", lambda c: _ged(c, year)),
         "views": ("views.json", lambda c: _views(c, year)),
         "easa": ("easa.json", lambda c: _easa(c, year)),
+        "undesa": ("undesa.json", lambda c: _undesa(c, year)),
+        "irregular": ("irregular.json", lambda c: _irregular(c, year)),
         "inform_severity": ("inform_severity.xlsx", lambda c: _inform_severity(c, year)),
         "advisories_extra": ("advisories_extra.json", lambda c: _advisories_extra(c, year)),
         "elections": ("elections.json", lambda c: _elections(c, year)),

@@ -489,7 +489,18 @@ function relocationCard(country: CountryEntry) {
   const parts = relocationParts(country);
   return `<article class="verdict relocation"><h3>${t().forRelocation}</h3>${parts.map((p) => `<div class="reloc-part"><h4 class="sub">${escape(relocationHorizon(p.horizon, lang))}</h4>
     <span class="level level-${levelClass(p.level)}"><b>${p.level}</b>${escape(relocationLevelLabel(p.level, lang))}</span><ul>${p.reasons.map((r) => `<li>${escape(r)}</li>`).join('')}</ul></div>`).join('')}
+    ${relocationPolicy(country.iso3)}
     <p class="muted-text small">${escape(relocationNote(lang))}</p></article>`;
+}
+
+function relocationPolicy(iso3: string) {
+  const p = linksData?.countries[iso3]?.migration?.policy;
+  if (!p || !p.entries.length) return '';
+  const word = p.d365 > 0 ? (lang === 'ru' ? 'ужесточение' : 'tightening') : p.d365 < 0 ? (lang === 'ru' ? 'смягчение' : 'easing') : (lang === 'ru' ? 'изменения в обе стороны' : 'changes both ways');
+  const text = lang === 'ru'
+    ? `Правила въезда и проживания для иностранцев: за 12 месяцев сообщалось о ${word === 'изменения в обе стороны' ? 'изменениях в обе стороны' : word === 'ужесточение' ? 'ужесточении' : 'смягчении'} (подробнее в разделе «Миграция»).`
+    : `Entry and residence rules for foreigners: ${word} reported over 12 months (see Migration).`;
+  return `<p class="small">${escape(text)}</p>`;
 }
 
 function implications(country: CountryEntry) {

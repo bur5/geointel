@@ -441,6 +441,39 @@ export function migrationSection(ctx: ViewContext, iso3: string, data: LinksFile
       ${m.abroad_per_1000 !== undefined ? `<p class="muted-text small">${d.perThousand(num(m.abroad_per_1000, lang))}</p>` : ''}
       <h4 class="sub">${d.whereTo}</h4>${list(m.abroad_in)}</article>`);
   }
+  if (m?.diaspora) {
+    const x = m.diaspora;
+    const first = Object.keys(x.series)[0];
+    cards.push(`<article class="ctx"><h3>${lang === 'ru' ? 'Уроженцы страны за рубежом' : 'Born here, living abroad'}</h3><p class="big">${formatPeople(x.total, lang)}</p>
+      ${x.per_1000 !== undefined ? `<p class="muted-text small">${d.perThousand(num(x.per_1000, lang))}</p>` : ''}
+      ${first && first !== String(x.year) ? `<p class="muted-text small">${lang === 'ru' ? `в ${first} году: ` : `in ${first}: `}${formatPeople(x.series[first], lang)}</p>` : ''}
+      <h4 class="sub">${d.whereTo}</h4>${list(x.top.map(([iso3, n]) => ({ iso3, n })))}
+      <p class="muted-text small">${lang === 'ru' ? `Оценка ООН (UN DESA) на середину ${x.year} года: все эмигранты, не только беженцы. Для многих стран оценка модельная.` : `UN DESA estimate for mid-${x.year}: all emigrants, not only refugees. Modelled for many countries.`}</p></article>`);
+  }
+  if (m?.irregular) {
+    const x = m.irregular;
+    const title = lang === 'ru' ? 'Нелегальные мигранты в стране' : 'Irregular migrants in the country';
+    let body = '';
+    if (x.kind === 'estimate') {
+      body = `<p class="big">${formatPeople(x.low!, lang)} – ${formatPeople(x.high!, lang)}</p>
+        <p class="muted-text small">${lang === 'ru' ? `Оценка численности, ${esc(x.years ?? '')}. ` : `Population estimate, ${esc(x.years ?? '')}. `}${esc((lang === 'ru' ? x.note_ru : x.note_en) ?? '')}</p>
+        <ul class="plain small">${(x.sources ?? []).map(([label, url]) => `<li><a href="${esc(url)}" target="_blank" rel="noopener">${esc(label)}</a></li>`).join('')}</ul>`;
+    } else if (x.kind === 'indirect') {
+      body = `<p class="big">${formatPeople(x.found!, lang)}</p>
+        <p class="muted-text small">${lang === 'ru' ? `Только косвенные данные: столько иностранцев из стран вне ЕС выявлено незаконно находящимися за ${esc(x.year ?? '')} год (Eurostat). Это не численность: один человек может быть выявлен несколько раз, а невыявленные не учтены.` : `Indirect data only: non-EU nationals found illegally present in ${esc(x.year ?? '')} (Eurostat). This is not a population count: one person can be counted more than once and those not found are missing.`}</p>`;
+    } else {
+      body = `<p class="big muted-text">${lang === 'ru' ? 'Оценок нет' : 'No estimates'}</p><p class="muted-text small">${lang === 'ru' ? 'Надёжных оценок численности или косвенных данных по этой стране мы не нашли. Это не значит, что нелегальных мигрантов нет.' : 'We found no reliable population estimates or indirect data for this country. This does not mean there are none.'}</p>`;
+    }
+    cards.push(`<article class="ctx"><h3>${title}</h3>${body}</article>`);
+  }
+  if (m?.policy && m.policy.entries.length) {
+    const p = m.policy;
+    const dir = (v: number) => v > 0 ? (lang === 'ru' ? 'ужесточение' : 'tightening') : v < 0 ? (lang === 'ru' ? 'смягчение' : 'easing') : (lang === 'ru' ? 'без явного направления' : 'no clear direction');
+    cards.push(`<article class="ctx"><h3>${lang === 'ru' ? 'Миграционная политика' : 'Migration policy'}</h3>
+      <p>${lang === 'ru' ? `3 месяца: ${dir(p.d90)}; 12 месяцев: ${dir(p.d365)}` : `3 months: ${dir(p.d90)}; 12 months: ${dir(p.d365)}`}</p>
+      <ul class="plain small">${p.entries.map((e) => `<li>${esc(e.date)} · ${e.sign === 'migration_tighten' ? '▲' : '▼'} <a href="${esc(e.url)}" target="_blank" rel="noopener">${esc(lang === 'ru' ? e.summary_ru : e.summary_en)}</a></li>`).join('')}</ul>
+      <p class="muted-text small">${lang === 'ru' ? 'Сообщается в СМИ (заголовки, разобранные ИИ); официального подтверждения мы не проверяли.' : 'Reported in the media (headlines classified by AI); not checked against official sources.'}</p></article>`);
+  }
   if (m?.idps) cards.push(`<article class="ctx"><h3>${d.idps}</h3><p class="big">${formatPeople(m.idps, lang)}</p></article>`);
   if (m?.asylum_eu) {
     const a = m.asylum_eu;

@@ -33,6 +33,10 @@ QUERIES: dict[str, str] = {
     "elite_split": '(coup OR mutiny OR "military takeover" OR junta)',
     "repression": '(crackdown OR "opposition leader arrested" OR "state of emergency")',
     "deescalation": '(ceasefire OR truce OR "peace talks" OR "troop withdrawal")',
+    "migration": (
+        '("immigration rules" OR "asylum law" OR "deportations" OR "visa requirements" '
+        'OR "residence permits" OR "migrant amnesty")'
+    ),
 }
 
 # GDELT throttles shared GitHub runners hard, so the queries above are sent as a few
@@ -105,6 +109,10 @@ SIGN_HELP = {
     "unrest": "mass protests, riots, nationwide strikes",
     "repression": "crackdowns, opposition leaders arrested, emergency rule",
     "elite_split": "coup attempt, mutiny, open split between army and government",
+    "migration_tighten": "a government adopts or announces stricter immigration, asylum, visa or "
+    "residence rules, or expands deportations (country = the state changing its rules)",
+    "migration_ease": "a government adopts or announces easier immigration, asylum, visa or "
+    "residence rules, an amnesty or new legal routes (country = the state changing its rules)",
 }
 
 SYSTEM = """You classify news headlines into warning signs of conflict or instability.
@@ -117,6 +125,7 @@ matching one of the signs, add an object:
  "summary_en": "<one factual sentence in English, max 160 chars>"}
 "country" is the state whose own risk the event raises: for a state's own mobilisation,
 protests, strikes, repression or coup it is that state itself, never a rival it fears.
+For migration_tighten and migration_ease it is the state whose own rules change.
 Add "quote": the exact words of the headline that show the sign, and "country_in_text":
 true only if that country (or its capital or leader) is named in the headline.
 Skip opinion, analysis of the past, fiction, sport, games and anything uncertain.
