@@ -622,6 +622,9 @@ def main(argv: list[str] | None = None) -> int:
     )
     available = sum(1 for t in snapshot["event_types"] if t["available"])
     _print_summary(snapshot)
+    from geointel.risk import MODEL_VERSION
+
+    snapshot["model_version"] = MODEL_VERSION
     args.out.parent.mkdir(parents=True, exist_ok=True)
     args.out.write_text(json.dumps(snapshot, ensure_ascii=False, separators=(",", ":")))
     details = build_hazard_details(hazard_events, now)
@@ -629,6 +632,7 @@ def main(argv: list[str] | None = None) -> int:
         json.dumps(details, ensure_ascii=False, separators=(",", ":"))
     )
     signals, scenario_inputs = build_signal_layer(snapshot, extras, sources, now)
+    signals["model_version"] = MODEL_VERSION
     (args.out.parent / "signals.json").write_text(
         json.dumps(signals, ensure_ascii=False, separators=(",", ":"))
     )
@@ -684,6 +688,7 @@ def main(argv: list[str] | None = None) -> int:
             f"{n['iso3']}:{n['involve']:.2f}/{n['econ']:.2f}" for n in item.get("network", [])[:6]
         )
         print(f"[network] {item['key']}: {top}")
+    scenarios["model_version"] = MODEL_VERSION
     (args.out.parent / "scenarios.json").write_text(
         json.dumps(scenarios, ensure_ascii=False, separators=(",", ":"))
     )
