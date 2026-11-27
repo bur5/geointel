@@ -75,7 +75,7 @@ test('country, changes, assistant and method pages; language switch', async ({ p
   await expect(page.locator('.changes li')).toHaveCount(1);
   await shoot(page, 'changes');
   await page.goto('/#assistant');
-  await expect(page.locator('.notice')).toBeVisible();
+  await expect(page.locator('#assistant textarea')).toBeVisible();
   await page.goto('/#method');
   await expect(page.getByRole('heading', { name: 'Источники данных' })).toBeVisible();
   await shoot(page, 'method');

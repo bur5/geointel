@@ -17,6 +17,7 @@ import { businessVerdict, levelLabel, relocationHorizon, relocationLevelLabel, r
 import { alertCard } from './alerts';
 import { fillRegional } from './regionalView';
 import { humanitarianCard } from './humanitarian';
+import { ask, assistantPanel, clearChat } from './assistant';
 import { applyTheme, currentTheme, nextTheme, picker, pins, searchBox, themeButton, togglePicker, togglePin, wireSearch } from './ui';
 import { dangerBadge, dangerCard, dangerName, trendChip } from './danger';
 import { BLOCS, REGIONS, groupName, groupNote, groupsOf } from './groups';
@@ -397,8 +398,8 @@ function countryHero(country: CountryEntry) {
 
 function sectionNav() {
   const items = lang === 'ru'
-    ? [['alert-card', 'Что это значит'], ['regional', 'Регионы'], ['country-signals', 'Признаки'], ['country-scenarios', 'Сценарии'], ['country-links', 'Связи'], ['hazards', 'Бедствия'], ['country-migration', 'Миграция'], ['all-risks', 'Все риски']]
-    : [['alert-card', 'What it means'], ['regional', 'Regions'], ['country-signals', 'Signs'], ['country-scenarios', 'Scenarios'], ['country-links', 'Links'], ['hazards', 'Hazards'], ['country-migration', 'Migration'], ['all-risks', 'All risks']];
+    ? [['alert-card', 'Что это значит'], ['assistant', 'Спросить ИИ'], ['regional', 'Регионы'], ['country-signals', 'Признаки'], ['country-scenarios', 'Сценарии'], ['country-links', 'Связи'], ['hazards', 'Бедствия'], ['country-migration', 'Миграция'], ['all-risks', 'Все риски']]
+    : [['alert-card', 'What it means'], ['assistant', 'Ask AI'], ['regional', 'Regions'], ['country-signals', 'Signs'], ['country-scenarios', 'Scenarios'], ['country-links', 'Links'], ['hazards', 'Hazards'], ['country-migration', 'Migration'], ['all-risks', 'All risks']];
   return `<nav class="section-nav" aria-label="${lang === 'ru' ? 'Разделы страницы' : 'Page sections'}">${items.map(([id, label]) => `<a href="#${id}" data-jump="${id}">${label}</a>`).join('')}</nav>`;
 }
 
@@ -432,6 +433,7 @@ function countryPage() {
     </section>
     ${country ? sectionNav() : ''}
     ${country ? implications(country) : ''}
+    <section class="section">${assistantPanel(lang, countryName(country, selected), escape, true)}</section>
     <section class="section" id="regional" aria-live="polite"></section>
     <section class="section" id="country-signals">${countrySignals(viewContext(), signalsData, country)}</section>
     <section class="section" id="country-scenarios">${countryScenarios(viewContext(), scenariosData, selected)}</section>
@@ -607,8 +609,47 @@ function changesPage() {
 }
 
 function assistantPage() {
-  return `<section class="page-head"><h1>${t().assistantTitle}</h1><p>${t().assistantLead}</p></section>
-    ${notice(t().assistantPending, t().assistantPendingText)}`;
+  const country = byIso().get(selected);
+  return `<section class="page-head"><h1>${t().assistantTitle}</h1></section>
+    <div class="assistant-page"><label class="select compact"><span>${t().selectCountry}</span><select data-field="country">${countryOptions()}</select></label>
+    ${assistantPanel(lang, countryName(country, selected), escape)}</div>`;
+}
+
+// Compact summary of the selected country for the assistant (the only data it sees).
+function assistantContext() {
+  const country = byIso().get(selected);
+  if (!country || !snapshot) return {};
+  const d = dangerOf(country);
+  const risks: Record<string, unknown> = {};
+  for (const e of snapshot.event_types) {
+    const r = country.risks[e.key];
+    if (!r) continue;
+    risks[lang === 'ru' ? e.label_ru : e.label_en] = {
+      ongoing: r.active || undefined,
+      question: r.question,
+      ...Object.fromEntries(Object.entries(r.horizons).map(([h, v]) => [h, `${pct(v.p)} (${pct(v.low)}–${pct(v.high)})`])),
+    };
+  }
+  const scen = (scenariosData?.scenarios ?? []).filter((s) => s.affected.some((a) => a.iso3 === country.iso3)).slice(0, 6)
+    .map((s) => ({ title: lang === 'ru' ? s.title_ru : s.title_en, role: s.affected.find((a) => a.iso3 === country.iso3)?.role,
+      horizons: Object.fromEntries(Object.entries(s.horizons).map(([h, v]) => [h, pct(v.p)])) }));
+  return {
+    country: countryName(country), data_date: snapshot.generated_at.slice(0, 10), model_version: (snapshot as unknown as { model_version?: string }).model_version,
+    danger_level: d ? { level: d.level, scale: '1 normal, 2 elevated, 3 high, 4 very high, 5 extreme (fighting in the region)',
+      drivers: d.drivers.slice(0, 5), ministries: d.ministries, ministry_median: d.ministry_median,
+      regional: (d as unknown as { regional?: unknown }).regional, foreigners: d.foreigners.map((f) => f.en), trend: d.trend } : undefined,
+    advice_levels: { travel: travelOf(country).level, business: businessOf(country).level, relocation_1_5y: relocationParts(country)[1].level },
+    humanitarian: country.humanitarian_severity ?? undefined,
+    probabilities: risks, scenarios: scen,
+    notes: 'Probabilities: chance of at least one event within the horizon; ranges are 90% intervals. "ongoing" means the state continues.',
+  };
+}
+
+function rerenderChat() {
+  const node = root.querySelector<HTMLElement>('#assistant');
+  if (!node) return;
+  node.outerHTML = assistantPanel(lang, countryName(byIso().get(selected), selected), escape, currentPage() === 'country');
+  root.querySelector<HTMLElement>('#assistant .chat-log')?.lastElementChild?.scrollIntoView({ block: 'nearest' });
 }
 
 function methodPage() {
@@ -758,6 +799,9 @@ function selectCountry(iso3: string) {
 
 root.addEventListener('click', (event) => {
   const target = event.target as HTMLElement;
+  const suggestion = target.closest<HTMLElement>('[data-ask]')?.dataset.ask;
+  if (suggestion) { void ask(suggestion, lang, assistantContext(), rerenderChat); return; }
+  if (target.closest('[data-chat-clear]')) { clearChat(); rerenderChat(); return; }
   if (target.closest('[data-theme-cycle]')) { theme = nextTheme(theme); applyTheme(theme); render(); return; }
   if (target.closest('[data-picker-toggle]')) { togglePicker(root); return; }
   const pick = target.closest<HTMLElement>('[data-pick]')?.dataset.pick;
@@ -804,6 +848,13 @@ root.addEventListener('click', (event) => {
 });
 
 root.addEventListener('submit', (event) => {
+  const chat = (event.target as HTMLElement).closest<HTMLFormElement>('[data-chat]');
+  if (chat) {
+    event.preventDefault();
+    const q = (chat.elements.namedItem('q') as HTMLTextAreaElement).value;
+    void ask(q, lang, assistantContext(), rerenderChat);
+    return;
+  }
   const form = (event.target as HTMLElement).closest<HTMLFormElement>('#expert-form');
   if (!form) return;
   event.preventDefault();
