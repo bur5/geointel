@@ -50,7 +50,9 @@ def owid_numeric_series(text: str) -> dict[str, dict[int, float]]:
         return {}
     header = [h.strip().lower() for h in rows[0]]
     code_i, year_i = header.index("code"), header.index("year")
-    value_i = len(header) - 1
+    # The value is the first column after the year (later columns can be confidence bounds
+    # or a region label).
+    value_i = year_i + 1
     out: dict[str, dict[int, float]] = defaultdict(dict)
     for row in rows[1:]:
         try:
@@ -184,6 +186,16 @@ def fit_logistic(x: list[list[float]], y: list[int], l2: float = L2, iters: int 
     beta = [0.0] * k
     rate = max(sum(y) / len(y), 1e-4)
     beta[0] = math.log(rate / (1 - rate))
+
+    def penalised_loglik(b: list[float]) -> float:
+        total = 0.0
+        for row, target in zip(z, y, strict=True):
+            eta = max(min(sum(bi * v for bi, v in zip(b, row, strict=True)), 30), -30)
+            total += target * eta - math.log1p(math.exp(eta))
+        return total - 0.5 * l2 * sum(bi * bi for bi in b[1:])
+
+    current = penalised_loglik(beta)
+    hess = [[0.0] * k for _ in range(k)]
     for _ in range(iters):
         grad = [0.0] * k
         hess = [[0.0] * k for _ in range(k)]
@@ -203,8 +215,20 @@ def fit_logistic(x: list[list[float]], y: list[int], l2: float = L2, iters: int 
                 grad[i] -= l2 * beta[i]
                 hess[i][i] += l2
         step = _solve(hess, grad)
-        beta = [b + s for b, s in zip(beta, step, strict=True)]
-        if max(abs(s) for s in step) < 1e-6:
+        biggest = max(abs(s_) for s_ in step) or 1.0
+        if biggest > 5:  # damped Newton: never jump far in one iteration
+            step = [s_ * 5 / biggest for s_ in step]
+        scale = 1.0
+        for _half in range(30):
+            trial = [b + scale * s_ for b, s_ in zip(beta, step, strict=True)]
+            value = penalised_loglik(trial)
+            if value >= current - 1e-9:
+                break
+            scale /= 2
+        else:
+            break
+        beta, gain, current = trial, value - current, value
+        if max(abs(scale * s_) for s_ in step) < 1e-6 or gain < 1e-8:
             break
     cov_diag = [1 / hess[i][i] if hess[i][i] > 0 else 0.0 for i in range(k)]
     return {"beta": beta, "means": means, "sds": sds, "var": cov_diag}
