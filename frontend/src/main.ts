@@ -345,6 +345,18 @@ const politicalNote = () => (lang === 'ru'
   ? 'Политический кризис — сейчас: страны, где за 60 дней сообщалось о досрочном уходе главы государства или правительства, досрочных выборах, импичменте, чрезвычайном или военном положении по политическим причинам или попытке переворота. Это обнаружение уже случившегося, не прогноз.'
   : 'Political crisis — now: countries where in the last 60 days the media reported an early exit of the head of state or government, an early election, impeachment, political emergency rule or martial law, or a coup attempt. Detection of what already happened, not a forecast.');
 
+function anomaliesSection() {
+  const a = (signalsData as unknown as { anomalies?: { generated_at: string; items: { kind: string; iso3?: string; ru: string; en: string }[] } } | undefined)?.anomalies;
+  if (!a) return '';
+  const ru = lang === 'ru';
+  const items = a.items.filter((x) => x.kind !== 'source_failed');
+  const failed = a.items.filter((x) => x.kind === 'source_failed').length;
+  return `<section class="section"><div class="section-head"><h2>${ru ? 'Ежедневная проверка странностей' : 'Daily oddity check'}</h2>
+    <p>${ru ? 'Программа каждый день ищет в цифрах то, что похоже на ошибку модели: скачки уровня на 2+ ступени за день, одинаковые вероятности у многих стран, риск переворота у демократии выше, чем у автократий, сильные расхождения с МИД. Это не обязательно ошибки, но каждую мы разбираем.' : 'Every day a program looks for numbers that resemble a model error: level jumps of 2+ steps in a day, many countries with the same probability, a democracy with a higher coup risk than autocracies, large gaps with foreign ministries. Not all are errors, but each is reviewed.'}</p></div>
+    ${items.length ? `<ul class="plain small">${items.slice(0, 30).map((x) => `<li>${x.iso3 ? `<button type="button" class="link" data-select="${x.iso3}">${escape(countryName(byIso().get(x.iso3) ?? { iso3: x.iso3, name: x.iso3 } as CountryEntry))}</button>: ` : ''}${escape(ru ? x.ru : x.en)}</li>`).join('')}</ul>` : `<p class="muted-text">${ru ? 'Сегодня ничего подозрительного.' : 'Nothing suspicious today.'}</p>`}
+    ${failed ? `<p class="muted-text small">${ru ? `Не загрузились источники: ${failed}.` : `Sources failed: ${failed}.`}</p>` : ''}</section>`;
+}
+
 function politicalList() {
   const data = signalsData?.political_crisis ?? {};
   const rows = Object.entries(data).sort((a, b) => Number(b[1].confirmed) - Number(a[1].confirmed) || (b[1].events[0]?.date ?? '').localeCompare(a[1].events[0]?.date ?? ''));
@@ -758,7 +770,7 @@ function body(page: Page) {
   if (page === 'country') return countryPage();
   if (page === 'scenarios') return scenariosPage(viewContext(), scenariosData, currentScenario, horizonLabels());
   if (page === 'lenses') return lensesPage(viewContext(), scenariosData);
-  if (page === 'accuracy') return accuracyPage(viewContext(), accuracyData, backtestData, realBacktestData, btCase, timeMachineSection(timeMachineData, lang, escape) + trainedSection(trainedData, lang, escape));
+  if (page === 'accuracy') return accuracyPage(viewContext(), accuracyData, backtestData, realBacktestData, btCase, timeMachineSection(timeMachineData, lang, escape) + anomaliesSection() + trainedSection(trainedData, lang, escape));
   if (page === 'signals') return signalsPage(viewContext(), signalsData);
   if (page === 'migration') return migrationPage(viewContext(), linksData, migMode);
   if (page === 'changes') return changesPage();
@@ -988,7 +1000,7 @@ async function start() {
     void loadHazards().then((data) => { hazardsData = data; if (currentPage() === 'overview') render(); });
     void loadScenarios().then((data) => { scenariosData = data; if (['scenarios', 'country', 'lenses'].includes(currentPage())) render(); });
     void loadLinks().then((data) => { linksData = data; if (['migration', 'country', 'overview'].includes(currentPage())) render(); });
-    void loadSignals().then((data) => { signalsData = data; if (['signals', 'country', 'overview'].includes(currentPage())) render(); });
+    void loadSignals().then((data) => { signalsData = data; if (['signals', 'country', 'overview', 'accuracy'].includes(currentPage())) render(); });
     void loadBacktest().then((data) => { backtestData = data; if (currentPage() === 'accuracy') render(); });
     void loadRealBacktest().then((data) => { realBacktestData = data; if (currentPage() === 'accuracy') render(); });
     void loadAccuracy().then((data) => { accuracyData = data; if (currentPage() === 'accuracy') render(); });

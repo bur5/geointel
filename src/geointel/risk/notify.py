@@ -123,6 +123,13 @@ def digest(
         ]
         if top:
             parts.append("Неделя — главное:\n" + "\n".join(top))
+    odd = [
+        f"• {a.get('iso3', '')} {a['ru']}".replace("•  ", "• ")
+        for a in (signals.get("anomalies") or {}).get("items", [])
+        if a["kind"] in ("level_jump", "regime_inversion", "identical", "probability_jump")
+    ]
+    if odd:
+        parts.append("Проверка странностей (возможные ошибки модели):\n" + "\n".join(odd[:8]))
     if len(parts) == 1:
         parts.append("Существенных изменений нет.")
     parts.append(SITE_URL)
