@@ -470,6 +470,9 @@ def danger_check(records_by_type: Mapping[EventType, list[dict]]) -> dict:
             cell = cells.setdefault((r["iso3"], r["year"]), {"level": 1, "y": 0, "from_p": False})
             if r["state"] == "continuation":
                 cell["level"] = max(cell["level"], 4)
+            elif key == EventType.INTERSTATE_CONFLICT:
+                # 1.17.0: the onset probability of interstate war sets no level (as live).
+                pass
             else:
                 level = min(1 + sum(1 for x in lows if r["p"] >= x), ONSET_CAP)
                 if level > cell["level"]:
