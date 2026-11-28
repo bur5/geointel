@@ -1,0 +1,101 @@
+n,iso3,date,component,detail,verdict,error_type,note,checked_with
+1,AUS,2013-09-18,leader_exit,Kevin Rudd left office as Prime Minister of Australia (no national election in the 250 days before),error,scheduled,"left office after losing the 2013-09-07 federal election (election dropped from our list: P1001 points to the parliament, not the country)",https://en.wikipedia.org/wiki/2013_Australian_federal_election
+2,PRY,2012-06-22,leader_exit,Fernando Lugo left office as President of Paraguay (no national election in the 250 days before),ok,,,Wikipedia article on the person or event
+3,AZE,2024-02-07,snap_election,2024 Azerbaijani presidential election (Wikipedia lead: “snap election”),ok,,,Wikipedia article on the person or event
+4,AUT,2019-06-03,leader_exit,Hartwig Löger left office as Federal Chancellor of Austria (Ibiza affair),ok,,,Wikipedia article on the person or event
+5,PHL,2007-11-29,coup,attempted coup (Cline Center),ok,,,Wikipedia article on the person or event
+6,SRB,2000-10-07,coup,realised coup (Cline Center),ok,,,Wikipedia article on the person or event
+7,HTI,2019-03-21,leader_exit,Jean-Henry Céant left office as Prime Minister of Haiti (no national election in the 250 days before),ok,,,Wikipedia article on the person or event
+8,EGY,2011-02-11,leader_exit,Hosni Mubarak left office as President of Egypt (no national election in the 250 days before),ok,,,Wikipedia article on the person or event
+9,VNM,2018-09-21,leader_exit,Trần Đại Quang left office as President of Vietnam (no national election in the 250 days before),ok,,,Wikipedia article on the person or event
+10,CMR,2009-06-30,leader_exit,Ephraïm Inoni left office as Prime Minister of Cameroon (no national election in the 250 days before),ok,,,Wikipedia article on the person or event
+11,KWT,2022-07-19,leader_exit,Sabah Al-Khalid Al-Sabah left office as Prime Minister of Kuwait (no national election in the 250 days before),ok,,,Wikipedia article on the person or event
+12,GEO,2019-09-02,leader_exit,Mamuka Bakhtadze left office as Prime Minister of Georgia (no national election in the 250 days before),ok,,,Wikipedia article on the person or event
+13,BEL,2008-03-20,leader_exit,Guy Verhofstadt left office as Prime Minister of Belgium (no national election in the 250 days before),error,scheduled,caretaker after the June 2007 election; left when the new government formed after 9 months,https://en.wikipedia.org/wiki/2007%E2%80%932011_Belgian_political_crisis
+14,PRK,2020-08-13,leader_exit,Kim Jae-ryong left office as Premier of North Korea (no national election in the 250 days before),ok,,,Wikipedia article on the person or event
+15,SOM,2001-10-28,leader_exit,Ali Khalif Galaydh left office as Prime Minister of Somalia (no national election in the 250 days before),ok,,,Wikipedia article on the person or event
+16,PHL,2001-01-20,coup,realised coup (Cline Center),ok,,,Wikipedia article on the person or event
+17,RUS,2007-09-14,leader_exit,Mikhhail Fradkov left office as Prime Minister of Russia (no national election in the 250 days before),ok,,,Wikipedia article on the person or event
+18,MNE,2022-04-28,leader_exit,Zdravko Krivokapić left office as Prime Minister of Montenegro (no national election in the 250 days before),ok,,,Wikipedia article on the person or event
+19,KAZ,2005-12-04,snap_election,2005 Kazakh presidential election (Wikipedia: listed in “Snap election”),ok,,,Wikipedia article on the person or event
+20,MRT,2008-08-06,leader_exit,Sidi Ould Cheikh Abdallahi left office as President of Mauritania (no national election in the 250 days before),ok,,,Wikipedia article on the person or event
+21,DZA,2006-05-24,leader_exit,Ahmad Uyahya left office as Prime Minister of Algeria (no national election in the 250 days before),ok,,,Wikipedia article on the person or event
+22,BGR,2023-04-02,snap_election,2023 Bulgarian parliamentary election (Wikipedia: listed in “Snap election”),ok,,,Wikipedia article on the person or event
+23,HTI,2024-04-30,leader_exit,Michel Patrick Boisvert left office as Prime Minister of Haiti (no national election in the 250 days before),error,date,acting PM; actually left office on 2024-06-03 (34 days later),https://en.wikipedia.org/wiki/Michel_Patrick_Boisvert (web search)
+24,LKA,2005-11-17,snap_election,2005 Sri Lankan presidential election (Wikipedia Background: “early presidential election”),ok,,,Wikipedia article on the person or event
+25,MLI,2020-08-18,coup,realised coup (Cline Center),ok,,,Wikipedia article on the person or event
+26,VUT,2001-04-13,leader_exit,Barak Sopé left office as Prime Minister of Vanuatu (no national election in the 250 days before),ok,,,Wikipedia article on the person or event
+27,HUN,2024-02-26,leader_exit,Katalin Novák left office as President of Hungary (resignation),ok,,,Wikipedia article on the person or event
+28,UKR,2019-07-21,snap_election,2019 Ukrainian parliamentary election (Wikipedia: listed in “Snap election”),ok,,,Wikipedia article on the person or event
+29,PAK,2022-04-10,leader_exit,Q155164 left office as Prime Minister of Pakistan (no national election in the 250 days before),ok,,,Wikipedia article on the person or event
+30,DJI,2000-12-07,coup,attempted coup (Cline Center),ok,,,Wikipedia article on the person or event
+31,TON,2006-09-10,leader_exit,Tāufaʻāhau Tupou IV of Tonga left office as Monarch of Tonga (hereditary office),ok,,,Wikipedia article on the person or event
+32,SGP,2015-09-11,snap_election,2015 Singaporean general election (Wikipedia: listed in “Snap election”),ok,,,Wikipedia article on the person or event
+33,DEU,2025-05-06,leader_exit,Olaf Scholz left office as Federal Chancellor of Germany (no national election in the 250 days before),ok,,,Wikipedia article on the person or event
+34,ARM,2020-09-27,emergency,Nationwide martial law at the start of the Nagorno-Karabakh war,ok,,,Wikipedia article on the person or event
+35,TWN,2005-05-14,snap_election,2005 Taiwan National Assembly election (Wikipedia Background: “initially planned”),error,not_early,"one-off ad hoc National Assembly election for constitutional amendments, not an early election",https://en.wikipedia.org/wiki/2005_Taiwanese_National_Assembly_election
+36,VNM,2024-03-21,leader_exit,Võ Văn Thưởng left office as President of Vietnam (no national election in the 250 days before),ok,,,Wikipedia article on the person or event
+37,UKR,2014-02-22,coup,realised coup (Cline Center),ok,,,Wikipedia article on the person or event
+38,SVK,2020-03-21,leader_exit,Peter Pellegrini left office as Prime Minister of Slovakia (no national election in the 250 days before),error,scheduled,left after the regular February 2020 election (election dropped from our list),https://en.wikipedia.org/wiki/2020_Slovak_parliamentary_election
+39,KGZ,2017-08-22,leader_exit,Sooronbay Jeenbekov left office as Prime Minister of Kyrgyzstan (no national election in the 250 days before),ok,,,Wikipedia article on the person or event
+40,CAN,2022-09-08,leader_exit,Elizabeth II left office as monarch of Canada (hereditary office),ok,,,Wikipedia article on the person or event
+41,BLZ,2003-03-05,snap_election,2003 Belizean general election (Wikipedia Background: “Elections were called early”),ok,,,Wikipedia article on the person or event
+42,NAM,2012-12-04,leader_exit,Nahas Angula left office as Prime Minister of the Republic of Namibia (no national election in the 250 days before),ok,,,Wikipedia article on the person or event
+43,TUN,2013-03-13,leader_exit,Hamadi Jebali left office as Prime Minister of Tunisia (no national election in the 250 days before),ok,,,Wikipedia article on the person or event
+44,BRB,2013-02-21,snap_election,2013 Barbadian general election (Wikipedia Background: “After the dissolution of”),error,not_early,regular election five years after 2008; 'After the dissolution of Parliament' is generic text,https://en.wikipedia.org/wiki/2013_Barbadian_general_election (web search)
+45,IRL,2024-04-09,leader_exit,Leo Varadkar left office as Taoiseach (no national election in the 250 days before),ok,,,Wikipedia article on the person or event
+46,GBR,2019-12-12,snap_election,2019 United Kingdom general election (Wikidata: snap election),ok,,,Wikipedia article on the person or event
+47,ESP,2019-04-28,snap_election,April 2019 Spanish general election (Wikidata: snap election),ok,,,Wikipedia article on the person or event
+48,UZB,2023-07-09,snap_election,2023 Uzbek presidential election (Wikipedia lead: “Early presidential elections”),ok,,,Wikipedia article on the person or event
+49,DZA,2019-03-11,leader_exit,Ahmad Uyahya left office as Prime Minister of Algeria (no national election in the 250 days before),ok,,,Wikipedia article on the person or event
+50,NPL,2025-09-09,leader_exit,K. P. Sharma Oli left office as Prime Minister of Nepal (no national election in the 250 days before),ok,,,Wikipedia article on the person or event
+51,ISR,2009-02-10,snap_election,2009 Israeli legislative election (Wikipedia Background: “early elections”),ok,,,Wikipedia article on the person or event
+52,HUN,2009-04-14,leader_exit,Ferenc Gyurcsány left office as Prime Minister of Hungary (no national election in the 250 days before),ok,,,Wikipedia article on the person or event
+53,SOM,2003-12-08,leader_exit,Hassan Abshir Farah left office as Prime Minister of Somalia (no national election in the 250 days before),ok,,,Wikipedia article on the person or event
+54,LBY,2011-10-23,leader_exit,Mahmoud Jibril left office as Prime Minister of Libya (no national election in the 250 days before),ok,,,Wikipedia article on the person or event
+55,SRB,2025-04-16,leader_exit,Miloš Vučević left office as Prime Minister of Serbia (no national election in the 250 days before),ok,,,Wikipedia article on the person or event
+56,JPN,2006-09-26,leader_exit,Junichiro Koizumi left office as Prime Minister of Japan (no national election in the 250 days before),ok,,,Wikipedia article on the person or event
+57,KGZ,2002-05-22,leader_exit,Kurmanbek Bakiyev left office as Prime Minister of Kyrgyzstan (no national election in the 250 days before),ok,,,Wikipedia article on the person or event
+58,TCD,2021-04-21,coup,realised coup (Cline Center),ok,,,Wikipedia article on the person or event
+59,GBR,2019-07-24,leader_exit,Theresa May left office as Prime Minister of the United Kingdom (no national election in the 250 days before),ok,,,Wikipedia article on the person or event
+60,YEM,2022-04-07,leader_exit,Abdrabbuh Mansour Hadi left office as حسان حسين محمد السعيدي الجمهورية اليمنية (no national election in the 250 days before),ok,,,Wikipedia article on the person or event
+61,THA,2008-12-02,leader_exit,Somchai Wongsawat left office as Prime Minister of Thailand (deposition),ok,,,Wikipedia article on the person or event
+62,HUN,2012-05-02,snap_election,2012 Hungarian presidential election (Wikipedia lead: “early indirect presidential election”),ok,,,Wikipedia article on the person or event
+63,DZA,2024-09-07,snap_election,2024 Algerian presidential election (Wikipedia lead: “Originally scheduled”),ok,,,Wikipedia article on the person or event
+64,GNB,2008-08-05,leader_exit,Martinho Ndafa Kabi left office as Prime Minister of Guinea-Bissau (no national election in the 250 days before),ok,,,Wikipedia article on the person or event
+65,JOR,2011-10-24,leader_exit,Marouf al-Bakhit left office as Prime Minister of Jordan (no national election in the 250 days before),ok,,,Wikipedia article on the person or event
+66,MOZ,2004-02-17,leader_exit,Pascoal Mocumbi left office as Prime Minister of Mozambique (no national election in the 250 days before),ok,,,Wikipedia article on the person or event
+67,ISL,2024-07-31,leader_exit,Guðni Jóhannesson left office as President of Iceland (no national election in the 250 days before),error,scheduled,did not seek re-election; term ended after the June 2024 presidential election,https://en.wikipedia.org/wiki/2024_Icelandic_presidential_election
+68,AUS,2018-08-24,leader_exit,Malcolm Turnbull left office as Prime Minister of Australia (no national election in the 250 days before),ok,,,Wikipedia article on the person or event
+69,AFG,2016-05-21,leader_exit,Akhtar Mansour left office as Supreme Leader of Afghanistan (no national election in the 250 days before),error,definition,Taliban leader; not the head of state of Afghanistan in 2016,https://en.wikipedia.org/wiki/Akhtar_Mansour
+70,LKA,2015-08-17,snap_election,2015 Sri Lankan parliamentary election (Wikipedia lead: “ahead of schedule”),ok,,,Wikipedia article on the person or event
+71,MKD,2016-01-18,leader_exit,Nikola Gruevski left office as Prime Minister of North Macedonia (no national election in the 250 days before),ok,,,Wikipedia article on the person or event
+72,MKD,2020-01-03,leader_exit,Zoran Zaev left office as Prime Minister of North Macedonia (resignation),ok,,,Wikipedia article on the person or event
+73,LSO,2017-06-03,snap_election,2017 Lesotho general election (Wikipedia lead: “Early general elections”),ok,,,Wikipedia article on the person or event
+74,CUB,2018-04-19,leader_exit,Raúl Castro left office as President of Cuba (no national election in the 250 days before),error,scheduled,stepped down at the end of his second term after the 2018 general election,https://en.wikipedia.org/wiki/Ra%C3%BAl_Castro
+75,BFA,2019-01-21,leader_exit,Paul Kaba Thieba left office as Prime Minister of Burkina Faso (no national election in the 250 days before),ok,,,Wikipedia article on the person or event
+76,UKR,2014-05-25,snap_election,2014 Ukrainian presidential election (Wikipedia lead: “Snap presidential elections”),ok,,,Wikipedia article on the person or event
+77,DEU,2010-06-30,snap_election,2010 German presidential election (Wikipedia lead: “following the resignation of Horst Köhler as president”),ok,,,Wikipedia article on the person or event
+78,VUT,2022-10-13,snap_election,2022 Vanuatuan general election (Wikipedia lead: “Snap general elections”),ok,,,Wikipedia article on the person or event
+79,VEN,2013-04-14,snap_election,2013 Venezuelan presidential election (Wikipedia lead: “following the death of President”),ok,,,Wikipedia article on the person or event
+80,GNB,2018-04-16,leader_exit,Artur Silva left office as Prime Minister of Guinea-Bissau (no national election in the 250 days before),ok,,,Wikipedia article on the person or event
+81,GNB,2019-09-24,leader_exit,José Mário Vaz left office as President of Guinea-Bissau (no national election in the 250 days before),error,date,served until 2020-02-27 and handed over after the 2019 election (Wikipedia),https://en.wikipedia.org/wiki/Jos%C3%A9_M%C3%A1rio_Vaz (web search)
+82,PRK,2007-04-11,leader_exit,Pak Pong-ju left office as Premier of North Korea (no national election in the 250 days before),ok,,,Wikipedia article on the person or event
+83,MDG,2009-10-10,leader_exit,Monja Roindefo left office as Prime Minister of Madagascar (no national election in the 250 days before),ok,,,Wikipedia article on the person or event
+84,KNA,2022-08-05,snap_election,2022 Saint Kitts and Nevis general election (Wikipedia lead: “Snap general elections”),ok,,,Wikipedia article on the person or event
+85,KGZ,2010-10-10,snap_election,2010 Kyrgyz parliamentary election (Wikipedia lead: “Early parliamentary elections”),ok,,,Wikipedia article on the person or event
+86,SGP,2001-11-03,snap_election,2001 Singaporean general election (Wikipedia: listed in “Snap election”),ok,,,Wikipedia article on the person or event
+87,VEN,2019-01-23,coup,attempted coup (Cline Center),ok,,,Wikipedia article on the person or event
+88,SYR,2024-12-08,coup,realised coup (Cline Center),ok,,,Wikipedia article on the person or event
+89,ARM,2016-09-08,leader_exit,Hovik Abrahamyan left office as Prime Minister of Armenia (no national election in the 250 days before),ok,,,Wikipedia article on the person or event
+90,BGD,2007-01-11,leader_exit,Iajuddin Ahmed left office as Prime Minister of Bangladesh (no national election in the 250 days before),ok,,,Wikipedia article on the person or event
+91,DNK,2011-09-15,snap_election,2011 Danish general election (Wikipedia Background: “early elections”),error,not_early,held two months before the legal deadline (12 November 2011); the 'early elections' phrase refers to 2009,https://en.wikipedia.org/wiki/2011_Danish_general_election (web search)
+92,GRC,2009-10-04,snap_election,2009 Greek legislative election (Wikidata: snap election),ok,,,Wikipedia article on the person or event
+93,JOR,2005-04-06,leader_exit,Faisal al-Fayez left office as Prime Minister of Jordan (no national election in the 250 days before),ok,,,Wikipedia article on the person or event
+94,TGO,2000-08-31,leader_exit,Eugene Koffi Adoboli left office as President of the Council of Ministers of Togo (no national election in the 250 days before),ok,,,Wikipedia article on the person or event
+95,LSO,2009-04-22,coup,attempted coup (Cline Center),ok,,,Wikipedia article on the person or event
+96,GNB,2012-10-21,coup,attempted coup (Cline Center),ok,,,Wikipedia article on the person or event
+97,LBY,2006-03-05,leader_exit,Shukri Ghanem left office as Prime Minister of Libya (no national election in the 250 days before),ok,,,Wikipedia article on the person or event
+98,KGZ,2021-01-10,snap_election,2021 Kyrgyz presidential election (Wikipedia lead: “Snap presidential elections”),ok,,,Wikipedia article on the person or event
+99,PAK,2008-09-06,snap_election,2008 Pakistani presidential election (Wikipedia lead: “after the resignation of President”),ok,,,Wikipedia article on the person or event
+100,RWA,2025-07-25,leader_exit,Édouard Ngirente left office as Prime Minister of Rwanda (no national election in the 250 days before),ok,,,Wikipedia article on the person or event
