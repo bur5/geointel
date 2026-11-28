@@ -215,9 +215,18 @@ def load_histories(
         extras["news_new"] = json.loads(path.read_text()).get("entries", [])
 
     def mass_protests(path: Path) -> None:
-        from geointel.risk.sources import protests
+        from geointel.risk.sources import protests, vdem_mob
 
-        histories[EventType.MASS_PROTEST] = protests.history(json.loads(path.read_text()))
+        payload = json.loads(path.read_text())
+        vdem = vdem_mob.load(_cache_dirs()[0] / vdem_mob.FILE)
+        if vdem:
+            score = vdem_mob.scores(vdem)
+            check = vdem_mob.calibrate(score, payload["years"], payload["covered"])
+            extras["protest_proxy"] = check
+            print(f"[protests] V-Dem stand-in after {payload['last']}: {check}")
+            if check.get("usable"):
+                payload = vdem_mob.extend(payload, score, check["threshold"])
+        histories[EventType.MASS_PROTEST] = protests.history(payload)
 
     def diaspora(path: Path) -> None:
         extras["diaspora"] = json.loads(path.read_text())["countries"]

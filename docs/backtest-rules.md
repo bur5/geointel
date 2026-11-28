@@ -82,6 +82,16 @@ are always reported next to them.
 - Results, including failures, are published on the "Accuracy" page with the period they
   come from.
 
+## Protest stand-in after 2020 (written 2026-11-28, before the first run)
+Mass Mobilization, the truth for mass protests, ends in 2020. V-Dem's expert score of mass
+mobilisation (`v2cagenmob`) is used for later years only if it reproduces Mass Mobilization:
+- threshold chosen on 2000–2015 so that the stand-in flags as many country-years as Mass
+  Mobilization does (no other tuning);
+- checked on 2016–2020: accuracy at least 70% and Cohen's kappa at least 0.4, on countries
+  that Mass Mobilization covers;
+- if the check fails, protest base rates stay at 1990–2020 and the site says so.
+The result of the check is logged below and printed by every daily run.
+
 ## Log
 - 2026-11-27: rules written; no run yet.
 - 2026-11-27, run 1 (model 1.10.0, tuning and validation only; holdout not opened). Validation
@@ -117,3 +127,9 @@ are always reported next to them.
   validation worse. Tuning is mixed and validation is clearly worse, so the rule is **not
   adopted** (gap stays 0). The high Azerbaijan onset probability is better addressed by how
   the last conflict ended (UCDP Conflict Termination), planned separately.
+- 2026-11-28, run 6 (coup offset model on top of the live hybrid, L2 20 and 50). Tuning Brier
+  (log score): hybrid 0.02450 (0.1079); offset on hybrid 0.02455 (0.1084), with L2 50 0.02454
+  (0.1083); offset on world prior cap 2× 0.02453 (0.1096), with L2 50 0.02453 (0.1099).
+  Validation: hybrid 0.01418 (0.0726), offset on hybrid 0.01401 (0.0702). The offset model
+  does not beat the hybrid on tuning, so by the rules **the hybrid stays**. A trained
+  correction for coups is not adopted; for coups, the base rate is as good as we know.

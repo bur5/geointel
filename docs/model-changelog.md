@@ -3,6 +3,14 @@
 Every change that can move a published probability gets a new `MODEL_VERSION`
 (`src/geointel/risk/__init__.py`), an entry here, and a before/after report.
 
+## 1.14.0 — 2026-11-28 (protest history after 2020, free path)
+- Mass protests 2021 onward from V-Dem's mass mobilisation score, above a threshold
+  calibrated on Mass Mobilization 2000–2015 and checked on 2016–2020 by a rule written
+  before the run (docs/backtest-rules.md). Used only if the check passes; the source label
+  says which years come from the stand-in.
+- Coups: the offset model on top of the hybrid was tried (time machine run 6) and not
+  adopted; it was not better on the tuning period.
+
 ## 1.13.0 — 2026-11-28 (Fable round 4, 3.2–3.3: regions by population)
 - Population per region from the GHSL population grid (epoch 2025, about 1 km, CC BY 4.0)
   instead of cities of 15,000+, so rural people count. Built by a separate workflow into
