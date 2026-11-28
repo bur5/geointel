@@ -1,0 +1,75 @@
+name: Political crisis history
+# Builds cache/polcrisis_history.json on the risk-data branch: political crises 2000–2025
+# (early leader exits, snap elections, impeachments, political emergencies, coups) from
+# Wikidata (CC0), English Wikipedia leads (only an "early election" flag is derived), the
+# Cline Center coup data (CC BY 4.0) and hand-made lists with sources. Archigos 4.1 and NELDA
+# are downloaded only to measure completeness. See docs/polcrisis-history.md.
+# Run by hand (writes to risk-data). A push to the polcrisis-history branch builds the file
+# without storing it, so the result can be reviewed in the log.
+on:
+  workflow_dispatch:
+  push:
+    branches: [polcrisis-history]
+    paths:
+      - src/geointel/risk/sources/polcrisis.py
+      - data/polcrisis/**
+      - .github/workflows/polcrisis-history.yml
+permissions:
+  contents: write
+concurrency:
+  # writes to risk-data only when run by hand, so only then share the daily pipeline's group
+  group: ${{ github.event_name == 'workflow_dispatch' && 'risk-snapshot-main' || 'polcrisis-branch' }}
+  cancel-in-progress: false
+env:
+  PYTHONUNBUFFERED: "1"
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12", cache: pip }
+      - run: python -m pip install -e . pandas pyreadr pyreadstat
+      - name: Download sources
+        run: python -m geointel.risk.sources.polcrisis fetch work
+      - name: Convert reference sets (Archigos Stata, NELDA R data) to CSV
+        run: |
+          python - <<'PY'
+          import pyreadr, pyreadstat
+          try:
+              frame, _meta = pyreadstat.read_dta("work/archigos.dta", encoding="cp1252")
+              frame.to_csv("work/archigos.csv", index=False)
+          except Exception as exc:
+              print("archigos not converted:", exc)
+          try:
+              for frame in pyreadr.read_r("work/nelda.rda", encoding="cp1252").values():
+                  frame.to_csv("work/nelda.csv", index=False)
+          except Exception as exc:
+              print("nelda not converted:", exc)
+          PY
+      - name: Build history
+        run: |
+          mkdir -p out
+          python -m geointel.risk.sources.polcrisis build work out/polcrisis_history.json
+          ls -l out
+          echo "SAMPLEBEGIN"; cat out/polcrisis_sample.csv; echo "SAMPLEEND"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: polcrisis-history
+          path: out/
+          retention-days: 30
+      - name: Store in risk-data
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          set -e
+          git config user.name "geointel-bot"
+          git config user.email "geointel-bot@users.noreply.github.com"
+          git fetch --depth=1 origin risk-data
+          git worktree add publish FETCH_HEAD
+          cd publish && git checkout -B risk-data
+          mkdir -p cache
+          cp ../out/polcrisis_history.json cache/polcrisis_history.json
+          git add cache/polcrisis_history.json
+          git commit -qm "Political crisis history $(date -u +%Y-%m-%d)" || { echo "No changes"; exit 0; }
+          git push origin risk-data
