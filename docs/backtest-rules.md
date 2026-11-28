@@ -133,3 +133,9 @@ The result of the check is logged below and printed by every daily run.
   Validation: hybrid 0.01418 (0.0726), offset on hybrid 0.01401 (0.0702). The offset model
   does not beat the hybrid on tuning, so by the rules **the hybrid stays**. A trained
   correction for coups is not adopted; for coups, the base rate is as good as we know.
+- 2026-11-28, run 7 (internal-conflict onset corrected by how the last conflict ended, UCDP
+  Conflict Termination v4-2024; Fable round 4, item 5). Onset Brier (log score), tuning /
+  validation: base rate 0.03200 (0.1324) / 0.03177 (0.1233); correction L2 20 0.03263
+  (0.1324) / 0.03185 (0.1204); L2 50 0.03254 (0.1326) / 0.03174 (0.1207). Worse on tuning,
+  so **not adopted**. The onset base rate stays; the cap from 1.10.0 (an onset probability
+  gives at most level 3) remains the guard against "Azerbaijan 28%".
