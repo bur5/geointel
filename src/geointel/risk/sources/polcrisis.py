@@ -171,22 +171,6 @@ def background_section(text: str) -> str:
     return ""
 
 
-def _wikipedia_background(client, title: str) -> str:
-    data = _wiki_get(
-        client,
-        {
-            "action": "query",
-            "prop": "extracts",
-            "explaintext": 1,
-            "redirects": 1,
-            "exsectionformat": "wiki",
-            "titles": title,
-        },
-    )
-    pages = (data.get("query") or {}).get("pages", [])
-    return background_section(pages[0].get("extract") or "") if pages else ""
-
-
 def _wiki_get(client, params: dict) -> dict:
     for attempt in range(3):
         try:
@@ -194,14 +178,64 @@ def _wiki_get(client, params: dict) -> dict:
                 WIKIPEDIA_API,
                 params={**params, "format": "json", "formatversion": 2},
                 headers={"User-Agent": USER_AGENT},
-                timeout=60,
+                timeout=90,
             )
             response.raise_for_status()
             return response.json()
         except Exception as exc:  # noqa: BLE001 - retry, then give up on this call
-            print(f"[wikipedia] attempt {attempt + 1} failed: {type(exc).__name__}: {exc}")
-            time.sleep(5 * (attempt + 1))
+            print(
+                f"[wikipedia] attempt {attempt + 1} failed: {type(exc).__name__}: {str(exc)[:120]}"
+            )
+            time.sleep(10 * (attempt + 1))
     return {}
+
+
+def wikitext_to_text(wikitext: str) -> str:
+    """Rough plain text from wikitext: drop references, templates, tables and link markup."""
+    text = re.sub(r"<ref[^>]*/>|<ref[^>]*>.*?</ref>", "", wikitext, flags=re.DOTALL)
+    text = re.sub(r"<!--.*?-->", "", text, flags=re.DOTALL)
+    for _ in range(4):  # nested templates
+        text = re.sub(r"\{\{[^{}]*\}\}", "", text)
+    text = re.sub(r"\{\|.*?\|\}", "", text, flags=re.DOTALL)
+    text = re.sub(r"\[\[(?:[^\]|]*\|)?([^\]]*)\]\]", r"\1", text)
+    text = re.sub(r"\[https?://\S+\s*([^\]]*)\]", r"\1", text)
+    text = re.sub(r"<[^>]+>|'{2,}", "", text)
+    return text
+
+
+def _wikipedia_backgrounds(client, titles: list[str]) -> dict[str, str]:
+    """Background / Context sections of election articles (wikitext, many per request)."""
+    data: dict = {}
+    for _attempt in range(5):
+        data = _wiki_get(
+            client,
+            {
+                "action": "query",
+                "prop": "revisions",
+                "rvprop": "content",
+                "rvslots": "main",
+                "redirects": 1,
+                "titles": "|".join(titles),
+            },
+        )
+        if data:
+            break
+        time.sleep(60)  # rate limited: wait a minute
+    query = data.get("query") or {}
+    renamed = {}
+    for item in query.get("normalized", []) + query.get("redirects", []):
+        renamed[item["to"]] = renamed.get(item["from"], item["from"])
+    result = {}
+    for page in query.get("pages", []):
+        revisions = page.get("revisions") or []
+        if not revisions:
+            continue
+        content = (revisions[0].get("slots") or {}).get("main", {}).get("content", "")
+        section = background_section(wikitext_to_text(content))
+        if section:
+            title = renamed.get(page["title"], page["title"])
+            result[title.replace(" ", "_")] = section
+    return result
 
 
 def _wikipedia_snap_lists(client) -> dict[str, str]:
@@ -306,14 +340,19 @@ def fetch(work: Path) -> None:
             print(f"[wikipedia] batch {number}: {len(intros)} intros")
         time.sleep(0.5)
     (work / "wp_intros.json").write_text(json.dumps(intros))
+    qid_to_iso3 = country_items(countries, frozenset(codes))
+    national = national_elections(elections, types, qid_to_iso3)
+    wanted_titles = sorted(
+        {e["article"] for e in national if e["article"] and 2000 <= e["date"].year <= 2025}
+    )
     background: dict[str, str] = {}
-    for number, title in enumerate(titles):
-        text = _wikipedia_background(client, title)
-        if text:
-            background[title] = text
-        if number % 250 == 0:
-            print(f"[wikipedia] background {number}: {len(background)} texts")
+    for number, batch in enumerate(_batches(wanted_titles, 10)):
+        background.update(_wikipedia_backgrounds(client, batch))
+        time.sleep(1)
+        if number % 40 == 0:
+            print(f"[wikipedia] background batch {number}: {len(background)} texts")
     (work / "wp_background.json").write_text(json.dumps(background))
+    print(f"[wikipedia] background sections: {len(background)} of {len(wanted_titles)}")
     listed = _wikipedia_snap_lists(client)
     (work / "wp_snap_listed.json").write_text(json.dumps(listed))
     print(f"[wikipedia] election articles linked from snap-election lists: {len(listed)}")
@@ -663,9 +702,10 @@ SNAP_PATTERNS = (
     r"\b(?:triggered|precipitated|necessitated|prompted)\s+by\s+the\s+(?:collapse|fall|"
     r"resignation|death|dissolution)\b",
     r"\b(?:following|followed|after)\s+the\s+(?:\w+\s+)?(?:death|assassination|resignation|"
-    r"removal|impeachment|ouster|overthrow)\s+(?:\w+\s+){0,5}of\s+(?:the\s+)?"
+    r"removal|impeachment|ouster|overthrow)\s+(?:\w+\s+){0,7}of\s+(?:the\s+)?"
     r"(?:incumbent\s+)?(?:\w+\s+){0,3}(?:president|prime minister|king|emir|head of state)\b",
     r"\b(?:called|calling|call)\s+(?:an?\s+)?(?:early|snap)\b",
+    r"\bafter\s+(?:his|her)\s+(?:resignation|death|assassination|removal)\b",
     r"\b(?:dissolved|dissolution of)\s+(?:the\s+)?(?:\w+\s+){0,3}(?:parliament|assembly|"
     r"house|chamber|legislature|diet|knesset|sejm|duma|rada|bundestag|storting|riksdag|"
     r"folketing|cortes|congress)\s+(?:\w+\s+){0,4}(?:early|prematurely|before the end)\b",
