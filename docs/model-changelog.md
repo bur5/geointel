@@ -16,7 +16,8 @@ Every change that can move a published probability gets a new `MODEL_VERSION`
 - Mass protests 2021 onward from V-Dem's mass mobilisation score, above a threshold
   calibrated on Mass Mobilization 2000–2015 and checked on 2016–2020 by a rule written
   before the run (docs/backtest-rules.md). Used only if the check passes; the source label
-  says which years come from the stand-in.
+  says which years come from the stand-in. **First check failed** (kappa 0.27 against 0.4),
+  so the stand-in is off and protest rates stay at 1990–2020.
 - Coups: the offset model on top of the hybrid was tried (time machine run 6) and not
   adopted; it was not better on the tuning period.
 
