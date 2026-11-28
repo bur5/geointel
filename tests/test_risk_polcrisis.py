@@ -59,7 +59,8 @@ def test_snap_elections_from_wikidata_and_wikipedia():
     result = _build()
     dutch = _find(result, "NLD", "snap_election")
     # Wikidata snap type; "Early general elections" in the lead; Wikipedia snap-election list
-    assert dutch == ["2003-01-22", "2006-11-22", "2012-09-12", "2025-10-29"]
+    assert dutch == ["2003-01-22", "2006-11-22", "2010-06-09", "2012-09-12", "2025-10-29"]
+    assert any("Background" in e["detail"] for e in result["events"] if e["date"] == "2010-06-09")
     # a postponed election, a lead about the previous snap election, no interval guessing
     assert "2021-03-17" not in dutch and "2023-11-22" not in dutch
     assert _find(result, "PER", "snap_election") == []
@@ -71,6 +72,10 @@ def test_snap_phrase_detection():
     assert pc.snap_in_intro("Early voting started on 1 May. The vote was on 5 May.") is None
     assert pc.snap_in_intro("General elections were held in X on 5 May.") is None
     assert pc.snap_in_intro("Elections were held after the death of President Y.")
+    assert pc.snap_in_intro("They followed the death in an air crash of incumbent President Z.")
+    assert pc.background_section("Lead.\n== Background ==\nEarly polls.\n== Results ==\nX") == (
+        "Early polls."
+    )
     assert pc.snap_in_intro("It was originally scheduled for May but was delayed.") is None
     assert pc.snap_in_intro("They were held following the resignation of the government.") is None
 
