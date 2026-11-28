@@ -3,6 +3,14 @@
 Every change that can move a published probability gets a new `MODEL_VERSION`
 (`src/geointel/risk/__init__.py`), an entry here, and a before/after report.
 
+## 1.16.0 — 2026-11-28 (silent scale error, humanitarian crises)
+- INFORM Severity publishes an index on a 0–10 scale and a category 1–5. The danger rule
+  "4+ gives level 3" read the 0–10 index as the 1–5 category, so crises of "medium"
+  category (index 4–6, e.g. the Dominican Republic) gave level 3. The rule now uses the
+  category: 4 (high) or 5 (very high) gives level 3, otherwise 2.
+- The country page shows the index "of 10" with its category, rounded dimension scores,
+  and the severity band from the category.
+
 ## 1.15.0 — 2026-11-28 (Fable round 4, 3.8–3.9)
 - "Fighting abroad" from data: a country at interstate war counts as fighting abroad (level 2
   from that war) when UCDP GED records fewer than 25 deaths on its own territory in 12

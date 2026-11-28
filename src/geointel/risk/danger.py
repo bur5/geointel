@@ -160,13 +160,24 @@ def war_level(iso3: str, kind: str, intensity: int, abroad: bool | None = None) 
 
 
 def severity_level(severity: Mapping | None) -> int:
-    """INFORM Severity 1–5 → danger level (4+ → 3, else 2); without severity data 2."""
+    """INFORM Severity category 4–5 ("high", "very high") → danger level 3, else 2; without
+    severity data 2.
+
+    The INFORM index runs 0–10 and its category 1–5. Until 1.16.0 the rule read the index as
+    if it were the 1–5 category, so a "medium" crisis (index 4.2) gave level 3."""
     # Humanitarian crises are severity class B: at most level 3 (1.9.2). INFORM scores a
     # crisis, which often affects some regions or groups, not the whole country.
-    score = (severity or {}).get("score")
+    severity = severity or {}
+    try:
+        category = int(str(severity.get("category") or "").strip())
+    except ValueError:
+        category = None
+    if category is not None and 1 <= category <= 5:
+        return 3 if category >= 4 else 2
+    score = severity.get("score")
     if score is None:
         return 2
-    return 3 if score >= 4 else 2
+    return 3 if score >= 6 else 2
 
 
 def ministry_levels(country: Mapping) -> list[dict]:

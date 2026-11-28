@@ -172,3 +172,13 @@ def test_fighting_abroad_from_deaths_on_home_soil():
     assert not fought_abroad("USA", {"USA": 30.0})
     assert war_level("ISR", "interstate", 2, abroad=False) == 4
     assert war_level("ISR", "interstate", 2, abroad=True) == 2
+
+
+def test_inform_category_not_index_sets_level():
+    from geointel.risk.danger import severity_level
+
+    assert severity_level({"score": 4.2, "category": "3"}) == 2  # medium crisis
+    assert severity_level({"score": 7.1, "category": "4"}) == 3
+    assert severity_level({"score": 9.5, "category": "5"}) == 3
+    assert severity_level({"score": 6.5, "category": ""}) == 3  # no category: index ≥ 6
+    assert severity_level(None) == 2
