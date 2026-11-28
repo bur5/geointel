@@ -139,3 +139,11 @@ The result of the check is logged below and printed by every daily run.
   (0.1324) / 0.03185 (0.1204); L2 50 0.03254 (0.1326) / 0.03174 (0.1207). Worse on tuning,
   so **not adopted**. The onset base rate stays; the cap from 1.10.0 (an onset probability
   gives at most level 3) remains the guard against "Azerbaijan 28%".
+- 2026-11-28, protest stand-in check (rule above, written before the run). V-Dem
+  `v2cagenmob` v16, threshold 1.62 matched to the Mass Mobilization rate on 2000–2015
+  (9.4% vs 9.6% of country-years). Check 2016–2020: accuracy 79.7%, **kappa 0.27** (needed
+  0.4), recall 32%, precision 48%. **Failed**: the stand-in is not used and protest base
+  rates stay at 1990–2020. High accuracy here mostly reflects how rare protest years are;
+  kappa shows weak agreement. Next free option: none known; the paid option (news
+  candidates from GDELT, labelled by a language model, checked by hand) needs the owner's
+  approval of an exact sum.
