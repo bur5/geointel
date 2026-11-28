@@ -152,6 +152,39 @@ def _wikipedia_intros(client, titles: list[str]) -> dict[str, str]:
 
 
 SNAP_LIST_PAGES = ("Snap election",)
+BACKGROUND_HEADINGS = r"^==+\s*(background|context|prelude|history|electoral background)"
+
+
+def background_section(text: str) -> str:
+    """The first Background / Context section of a plain-text Wikipedia article."""
+    lines = text.splitlines()
+    for i, line in enumerate(lines):
+        if re.match(BACKGROUND_HEADINGS, line.strip(), flags=re.IGNORECASE):
+            body = []
+            for nxt in lines[i + 1 :]:
+                if nxt.strip().startswith("=="):
+                    if body:
+                        break
+                    continue
+                body.append(nxt)
+            return " ".join(body).strip()[:2500]
+    return ""
+
+
+def _wikipedia_background(client, title: str) -> str:
+    data = _wiki_get(
+        client,
+        {
+            "action": "query",
+            "prop": "extracts",
+            "explaintext": 1,
+            "redirects": 1,
+            "exsectionformat": "wiki",
+            "titles": title,
+        },
+    )
+    pages = (data.get("query") or {}).get("pages", [])
+    return background_section(pages[0].get("extract") or "") if pages else ""
 
 
 def _wiki_get(client, params: dict) -> dict:
@@ -273,6 +306,14 @@ def fetch(work: Path) -> None:
             print(f"[wikipedia] batch {number}: {len(intros)} intros")
         time.sleep(0.5)
     (work / "wp_intros.json").write_text(json.dumps(intros))
+    background: dict[str, str] = {}
+    for number, title in enumerate(titles):
+        text = _wikipedia_background(client, title)
+        if text:
+            background[title] = text
+        if number % 250 == 0:
+            print(f"[wikipedia] background {number}: {len(background)} texts")
+    (work / "wp_background.json").write_text(json.dumps(background))
     listed = _wikipedia_snap_lists(client)
     (work / "wp_snap_listed.json").write_text(json.dumps(listed))
     print(f"[wikipedia] election articles linked from snap-election lists: {len(listed)}")
@@ -621,9 +662,13 @@ SNAP_PATTERNS = (
     r"\b(?:following|after)\s+the\s+(?:early\s+|premature\s+)?dissolution\s+of\b",
     r"\b(?:triggered|precipitated|necessitated|prompted)\s+by\s+the\s+(?:collapse|fall|"
     r"resignation|death|dissolution)\b",
-    r"\b(?:following|after)\s+the\s+(?:death|assassination|resignation|removal|impeachment|"
-    r"ouster|overthrow)\s+of\s+(?:the\s+)?(?:incumbent\s+)?(?:\w+\s+){0,3}"
-    r"(?:president|prime minister|king|emir|head of state)\b",
+    r"\b(?:following|followed|after)\s+the\s+(?:\w+\s+)?(?:death|assassination|resignation|"
+    r"removal|impeachment|ouster|overthrow)\s+(?:\w+\s+){0,5}of\s+(?:the\s+)?"
+    r"(?:incumbent\s+)?(?:\w+\s+){0,3}(?:president|prime minister|king|emir|head of state)\b",
+    r"\b(?:called|calling|call)\s+(?:an?\s+)?(?:early|snap)\b",
+    r"\b(?:dissolved|dissolution of)\s+(?:the\s+)?(?:\w+\s+){0,3}(?:parliament|assembly|"
+    r"house|chamber|legislature|diet|knesset|sejm|duma|rada|bundestag|storting|riksdag|"
+    r"folketing|cortes|congress)\s+(?:\w+\s+){0,4}(?:early|prematurely|before the end)\b",
     r"\b(?:originally|initially)\s+(?:been\s+)?(?:scheduled|expected|planned|due)\b",
 )
 # Words that turn "originally scheduled" into a postponement, not an early election.
@@ -635,11 +680,11 @@ OTHER_ELECTION = (
 )
 
 
-def snap_in_intro(text: str) -> str | None:
+def snap_in_intro(text: str, sentences: int = 6) -> str | None:
     """The phrase in a Wikipedia lead that says the election was early, else None."""
     import re
 
-    for sentence in re.split(r"(?<=[.!?])\s+", text.strip())[:6]:
+    for sentence in re.split(r"(?<=[.!?])\s+", text.strip())[:sentences]:
         for pattern in SNAP_PATTERNS:
             match = re.search(pattern, sentence, flags=re.IGNORECASE)
             if not match or "early voting" in match.group(0).lower():
@@ -745,13 +790,16 @@ def full_term(start, end) -> bool:
 
 
 def snap_elections(
-    elections, intros: dict[str, str] | None = None, listed: dict[str, str] | None = None
+    elections,
+    intros: dict[str, str] | None = None,
+    listed: dict[str, str] | None = None,
+    background: dict[str, str] | None = None,
 ) -> list[dict]:
     """Snap elections: typed as snap in Wikidata, linked from a Wikipedia list of snap
     elections, or called early according to the first sentences of the Wikipedia article."""
     from datetime import date
 
-    intros, listed = intros or {}, listed or {}
+    intros, listed, background = intros or {}, listed or {}, background or {}
     lo, hi = date(FIRST_YEAR, 1, 1), date(LAST_YEAR, 12, 31)
     events: dict[str, dict] = {}
     for item in elections:
@@ -759,12 +807,15 @@ def snap_elections(
             continue
         article = item["article"]
         phrase = snap_in_intro(intros.get(article, "")) if article else None
+        where = "lead"
+        if not phrase and article and background.get(article):
+            phrase, where = snap_in_intro(background[article], sentences=8), "Background"
         if item["snap"]:
             detail = f"{item['label']} (Wikidata: snap election)"
         elif article and article in listed:
             detail = f"{item['label']} (Wikipedia: listed in “{listed[article]}”)"
         elif phrase:
-            detail = f"{item['label']} (Wikipedia: “{phrase}”)"
+            detail = f"{item['label']} (Wikipedia {where}: “{phrase}”)"
         else:
             continue
         events[item["qid"]] = _event(
@@ -994,7 +1045,12 @@ def build(raw: dict, universe: frozenset[str], first_years: dict[str, int], reso
     coup_events, coup_unresolved = cline_events(raw["cline"], resolve)
     events = (
         leader_exits(terms, offices, elections)
-        + snap_elections(elections, raw.get("intros", {}), raw.get("snap_listed", {}))
+        + snap_elections(
+            elections,
+            raw.get("intros", {}),
+            raw.get("snap_listed", {}),
+            raw.get("background", {}),
+        )
         + manual_events(raw["impeachments"], "impeachment", universe)
         + manual_events(raw["emergency_list"], "emergency", universe)
         + coup_events
@@ -1090,6 +1146,9 @@ def load_raw(work: Path, data_dir: Path) -> dict:
         "impeachments": _csv(data_dir / "impeachments.csv"),
         "emergency_list": _csv(data_dir / "emergencies.csv"),
         "checks": _csv(data_dir / "sample_check_2.csv"),
+        "background": json.loads((work / "wp_background.json").read_text())
+        if (work / "wp_background.json").exists()
+        else {},
         "snap_listed": json.loads((work / "wp_snap_listed.json").read_text())
         if (work / "wp_snap_listed.json").exists()
         else {},
