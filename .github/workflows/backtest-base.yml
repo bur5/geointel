@@ -62,6 +62,8 @@ jobs:
           cd publish && git checkout -B risk-data
           mkdir -p models/holdout
           cp ../data/site/backtest_holdout.json "models/holdout/$(date -u +%Y-%m-%d)-${GITHUB_SHA::7}.json"
-          git add models/holdout
+          views=$(ls models/holdout | wc -l)
+          python3 -c "import json,sys; d=json.load(open(sys.argv[1])); d['holdout_views']=int(sys.argv[2]); json.dump(d, open('models/backtest_holdout_latest.json','w'))" ../data/site/backtest_holdout.json "$views"
+          git add models/holdout models/backtest_holdout_latest.json
           git commit -qm "Holdout opened $(date -u +%Y-%m-%d)" || exit 0
           for i in 1 2 3; do git push origin risk-data && break; git pull --rebase origin risk-data; done

@@ -247,33 +247,45 @@ def calibration(rows: list[tuple[float, int]], bins: int = 10) -> list[dict]:
 
 
 def skill_interval(
-    records: list[dict], ref: str, samples: int = 1000, seed: int = 7
+    records: list[dict], ref: str, samples: int = 500, seed: int = 7
 ) -> tuple[float, float, float] | None:
-    """Brier skill score against a reference with a 95% bootstrap interval over countries
-    (whole countries are resampled, so the years of one country stay together)."""
-    by_country: dict[str, list[dict]] = {}
-    for r in records:
-        by_country.setdefault(r["iso3"], []).append(r)
-    codes = sorted(by_country)
-    if not codes:
+    """Brier skill score against a reference with a 95% bootstrap interval that resamples
+    countries and years together (1.17, Fable round 5 #6): world-wide shocks such as 2020
+    or 2022 hit many countries at once, so resampling countries alone is too narrow."""
+    codes = sorted({r["iso3"] for r in records})
+    years = sorted({r["year"] for r in records})
+    if not codes or not years:
         return None
+    errors = [
+        ((r["p"] - r["y"]) ** 2, (r[ref] - r["y"]) ** 2, r["iso3"], r["year"]) for r in records
+    ]
 
-    def bss(rows: Iterable[dict]) -> float | None:
-        rows = list(rows)
-        model = brier([(r["p"], r["y"]) for r in rows])
-        base = brier([(r[ref], r["y"]) for r in rows])
+    def bss(wc: Mapping[str, int] | None, wy: Mapping[int, int] | None) -> float | None:
+        model = base = 0.0
+        for m, b, c, y in errors:
+            w = (wc[c] if wc is not None else 1) * (wy[y] if wy is not None else 1)
+            if w:
+                model += w * m
+                base += w * b
         return None if not base else 1 - model / base
 
-    point = bss(records)
+    point = bss(None, None)
     if point is None:
         return None
     rng = random.Random(seed)
     draws = []
     for _ in range(samples):
-        pick = [r for c in (rng.choice(codes) for _ in codes) for r in by_country[c]]
-        value = bss(pick)
+        wc: dict[str, int] = dict.fromkeys(codes, 0)
+        for _ in codes:
+            wc[rng.choice(codes)] += 1
+        wy: dict[int, int] = dict.fromkeys(years, 0)
+        for _ in years:
+            wy[rng.choice(years)] += 1
+        value = bss(wc, wy)
         if value is not None:
             draws.append(value)
+    if not draws:
+        return round(point, 4), round(point, 4), round(point, 4)
     draws.sort()
     lo = draws[int(0.025 * len(draws))]
     hi = draws[min(len(draws) - 1, int(0.975 * len(draws)))]
@@ -344,6 +356,11 @@ def run_type(
                 "y": y,
                 **refs[iso3],
             }
+            # Primary reference (1.17, Fable round 5 #1): for types split into onset and
+            # continuation, the event rate given the country's last known state (onset among
+            # countries at peace, continuation among countries at war), from past data only;
+            # otherwise the world frequency.
+            record["base"] = refs[iso3]["last_year"] if persistent else refs[iso3]["world"]
             if key == EventType.COUP_ATTEMPT:
                 record["x"] = coup_features(known, iso3, regimes.get(iso3))
             records.append(record)
@@ -393,7 +410,9 @@ def summarise(records: list[dict]) -> dict:
         "auc_pr": None if auc_pr(rows) is None else round(auc_pr(rows), 4),
         "calibration": calibration(rows),
     }
-    for ref in ("world", "last_year"):
+    for ref in ("base", "world", "last_year"):
+        if records and ref not in records[0]:
+            continue
         interval = skill_interval(records, ref)
         result[f"bss_vs_{ref}"] = None if interval is None else list(interval)
     return result
@@ -422,10 +441,56 @@ def danger_check(records_by_type: Mapping[EventType, list[dict]]) -> dict:
     by_level: dict[int, list[int]] = {}
     for cell in cells.values():
         by_level.setdefault(cell["level"], []).append(cell["y"])
-    rates = {
-        lvl: {"n": len(ys), "rate": round(fmean(ys), 4)} for lvl, ys in sorted(by_level.items())
-    }
+
+    def wilson(k: int, n: int) -> tuple[float, float]:
+        if not n:
+            return 0.0, 1.0
+        z, p = 1.96, k / n
+        centre = (p + z * z / (2 * n)) / (1 + z * z / n)
+        half = z * math.sqrt(p * (1 - p) / n + z * z / (4 * n * n)) / (1 + z * z / n)
+        return max(0.0, centre - half), min(1.0, centre + half)
+
+    rates = {}
+    for lvl, ys in sorted(by_level.items()):
+        lo, hi = wilson(sum(ys), len(ys))
+        rates[lvl] = {
+            "n": len(ys),
+            "events": sum(ys),
+            "rate": round(fmean(ys), 4),
+            "low": round(lo, 4),
+            "high": round(hi, 4),
+        }
     ordered = [rates[k]["rate"] for k in sorted(rates)]
+    keys = sorted(rates)
+    # Rule for versions after 1.16 (docs/backtest-rules.md, 2026-11-28): the order is broken
+    # only where the intervals of neighbouring levels do not overlap.
+    order_violation = [
+        (a, b) for a, b in zip(keys, keys[1:], strict=False) if rates[a]["low"] > rates[b]["high"]
+    ]
+    # Bands promised by the class-A thresholds, checked level by level (levels from a
+    # probability only): 1 below 2%, 2 2–5%, 3 5–20%.
+    promised = {1: (0.0, lows[0]), 2: (lows[0], lows[1]), 3: (lows[1], lows[2])}
+    from_p: dict[int, list[int]] = {}
+    for c in cells.values():
+        if c["level"] == 1 or c["from_p"]:
+            from_p.setdefault(c["level"], []).append(c["y"])
+    bands = {}
+    for lvl, (a, b) in promised.items():
+        ys = from_p.get(lvl, [])
+        if not ys:
+            continue
+        lo, hi = wilson(sum(ys), len(ys))
+        bands[lvl] = {
+            "n": len(ys),
+            "rate": round(fmean(ys), 4),
+            "low": round(lo, 4),
+            "high": round(hi, 4),
+            "promised": [a, b],
+            "inside": hi >= a and lo <= b,
+        }
+    low_events = sorted(
+        (c, y, cell["level"]) for (c, y), cell in cells.items() if cell["y"] and cell["level"] <= 2
+    )
     band_rows = [c["y"] for c in cells.values() if c["level"] == 3 and c["from_p"]]
     band = None
     if band_rows:
@@ -443,7 +508,10 @@ def danger_check(records_by_type: Mapping[EventType, list[dict]]) -> dict:
     return {
         "levels": rates,
         "order_ok": all(a < b for a, b in zip(ordered, ordered[1:], strict=False)),
+        "order_violations": [list(v) for v in order_violation],
         "band_level3": band,
+        "bands": bands,
+        "events_at_levels_1_2": [{"iso3": c, "year": y, "level": lvl} for c, y, lvl in low_events],
     }
 
 
@@ -477,6 +545,7 @@ def run(
     for name, (lo, hi) in periods.items():
         chunk = {k: [r for r in v if lo <= r["year"] <= hi] for k, v in all_records.items()}
         out["danger"][name] = danger_check(chunk)
+    out["onset_lists"] = onset_lists(all_records, periods)
     # Conflict onset variants (Fable round 4, #5): plain transitions vs a one-year lull counted
     # as continuing.
     out["conflict_variants"] = {}
@@ -520,6 +589,30 @@ def run(
                 corrected = offset_records(records, LAG[EventType.COUP_ATTEMPT], min(years), l2)
                 name = f"offset model on {label}" + ("" if l2 == 20.0 else f", L2 {l2:g}")
                 out["coup_variants"][name] = _by_period(corrected, periods)
+    return out
+
+
+def onset_lists(
+    records_by_type: Mapping[EventType, list[dict]], periods: Mapping[str, tuple[int, int]]
+) -> dict:
+    """Conflicts scored as "onset", by period (Fable round 5 #3). With a two-year data lag the
+    state is "at peace" two years earlier, so a war that starts in year Y is also an "onset"
+    in Y+1; such repeats are marked."""
+    out: dict = {}
+    for key in CLASS_A:
+        hits = {
+            (r["iso3"], r["year"])
+            for r in records_by_type.get(key, [])
+            if r["state"] == "onset" and r["y"]
+        }
+        out[key.value] = {
+            name: [
+                {"iso3": c, "year": y, "repeat": (c, y - 1) in hits}
+                for c, y in sorted(hits, key=lambda t: (t[1], t[0]))
+                if lo <= y <= hi
+            ]
+            for name, (lo, hi) in periods.items()
+        }
     return out
 
 

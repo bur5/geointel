@@ -92,6 +92,52 @@ mobilisation (`v2cagenmob`) is used for later years only if it reproduces Mass M
 - if the check fails, protest base rates stay at 1990–2020 and the site says so.
 The result of the check is logged below and printed by every daily run.
 
+## Rules from 2026-11-28 (after the holdout was opened; Fable round 5)
+Written before any run under them.
+
+**Reference.** The primary reference for types split into onset and continuation is the event
+rate given the country's last known state, from past data only: how often conflicts start
+among countries at peace, how often they go on among countries at war. For other types it is
+the world frequency. The old "world frequency" for onset and continuation is kept as a
+reference figure only: it is an easy opponent there and overstated the gains reported until
+now. Re-scoring the same forecasts against the new reference is logged as "same forecasts,
+new reference".
+
+**Intervals.** 95% bootstrap intervals resample countries and years together (world-wide
+shocks such as 2020 or 2022 hit many countries in one year).
+
+**Periods.** Variants are chosen on tuning (2000–2015) and confirmed on validation
+(2016–2020). The 2021–2025 period, opened once on 2026-11-28, is now a **control**: no
+variant is chosen on it; a new version must not be worse on it than the previous one beyond
+the interval. One look per version, each logged; the number of looks is shown on the
+Accuracy page. New clean material: each newly published UCDP year is opened once by the
+protected run with the owner's approval; and monthly snapshots of the published forecasts
+from December 2026 are scored forward (rule to be written before the first reading, not
+before May 2027).
+
+**Danger level.** The check uses the level that the class-A probability alone would give
+(ongoing class-A conflict → 4), not the final level. The order is broken only where the
+intervals of neighbouring levels do not overlap. Each level is also checked against its own
+band: level 1 below 2%, level 2 2–5%, level 3 5–20% a year.
+
+**Experiments.** At most three experiments with the model a month; each is one run with its
+rule written here beforehand. Planned:
+- **A. Continuation of a conflict from the world continuation rate** (or strongly shrunk to
+  it). Adopted if the continuation Brier on tuning is lower than the current model's and
+  validation is not worse beyond the interval.
+- **B. Violence below the threshold for onset of internal conflict.** Countries at peace in
+  three groups by the last known year: no deaths; 1–24 deaths in state-based fighting; 25+
+  deaths in other violence (non-state, one-sided). Onset rate by group, then the current
+  model within the group. Same adoption rule, on onset rows.
+- **C. Rivalries for interstate war.** Two groups: a country with an active strategic
+  rivalry or a deadly interstate clash in a pair within 10 years, and the rest; onset rate by
+  group, no regression. Adopted if skill against the primary reference on tuning is above
+  zero with its interval and validation is not worse. **Decided by the owner before the run:
+  if C is not adopted, the per-country probability of interstate war is removed from the
+  site** (shown instead: war ongoing or not, preparation signs, one sentence on the world
+  rate, scenarios labelled as expert judgement), and the subject is not reopened until
+  monthly data exist.
+
 ## Log
 - 2026-11-27: rules written; no run yet.
 - 2026-11-27, run 1 (model 1.10.0, tuning and validation only; holdout not opened). Validation
