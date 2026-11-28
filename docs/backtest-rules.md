@@ -138,6 +138,29 @@ rule written here beforehand. Planned:
   rate, scenarios labelled as expert judgement), and the subject is not reopened until
   monthly data exist.
 
+**Site-like check and the setup for experiments (written 2026-11-28, before the run).** For
+UCDP-based types (internal and interstate conflict) a second setup uses data up to the year
+before the target year (lag 1 instead of 2). This is how the site works: the annual UCDP
+release for the previous year is out by 1 July, and current months come from UCDP Candidate.
+It is slightly optimistic for forecasts issued in January–June. It removes the "same war
+counted as onset twice" effect of the two-year lag. Experiments A, B and C are run in this
+setup. Comparisons use the same rows for the current model and the variant; "variant vs
+current" is the Brier skill score of the variant with the current model as the reference
+(above zero: the variant is better), with the interval over countries and years.
+Adoption (A and B): the variant's skill over the current model on tuning is above zero, and
+on validation its interval's upper end is not below zero. C: the variant's skill against the
+primary reference on tuning is above zero with the lower end of its interval above zero, and
+on validation the variant is not worse than the current model (upper end of "variant vs
+current" not below zero). Group definitions:
+- B: country-year at peace by the last known year: "other violence 25+" if GED non-state and
+  one-sided deaths reached 25; else "state-based 1–24" if GED state-based deaths were 1+;
+  else "none". The current onset rate is multiplied by the group's past onset rate divided by
+  the overall past onset rate (years from 1989, data cut-off respected).
+- C: "rival" if the country had an ongoing strategic rivalry (Thompson et al. 2021, via
+  peacesciencer; rivalries ongoing in 2020 are assumed to continue) or an interstate conflict
+  year in the last ten known years; else "other". The onset rate is the group's past onset
+  rate (years from 1989).
+
 ## Log
 - 2026-11-27: rules written; no run yet.
 - 2026-11-27, run 1 (model 1.10.0, tuning and validation only; holdout not opened). Validation

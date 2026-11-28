@@ -42,6 +42,7 @@ REGIME_LAG = 2
 PERIODS = {"tuning": (2000, 2015), "validation": (2016, 2020), "holdout": (2021, 2025)}
 CLASS_A = (EventType.INTERNAL_ARMED_CONFLICT, EventType.INTERSTATE_CONFLICT)
 EPS = 1e-6
+GROUP_DATA_START = 1989  # first year of UCDP GED; rivalry groups use the same start
 
 
 def as_of(history: TypeHistory, last_year: int) -> TypeHistory:
@@ -104,8 +105,15 @@ def forecasts(
     cap_mult: float | None = None,
     world_cap_mult: float | None = None,
     gap: int | None = None,
+    experiment: Mapping | None = None,
 ) -> dict[str, dict]:
     """P(event in ``issue_year``) per country from data up to ``issue_year - lag``.
+
+    ``experiment`` (persistent types; docs/backtest-rules.md, rules from 2026-11-28):
+    {"continuation": "world"} uses the world continuation rate for every country (A);
+    {"onset_groups": fn(iso3, year) -> group, "onset_mode": "factor" | "pooled"} scales the
+    onset rate by the group's past onset rate (B, "factor") or replaces it with the group
+    rate (C, "pooled"). Group rates use only years up to the data cut-off.
 
     Mirrors model.assess_type (posterior means) and adds the steps between the last known
     year and the target year for persistent types."""
@@ -119,6 +127,26 @@ def forecasts(
         trans = {iso3: transition_counts(known, iso3, f, gap) for iso3, f in countries.items()}
         prior01 = fit_prior(t[0] for t in trans.values())
         prior11 = fit_prior(t[1] for t in trans.values() if t[1].trials > 0)
+        experiment = experiment or {}
+        group_rate: dict[str, float] = {}
+        overall = 0.0
+        group_of = experiment.get("onset_groups")
+        if group_of is not None:
+            hits: dict[str, list[int]] = {}
+            for iso3, first in countries.items():
+                span = exposure(known, first, iso3)
+                events = known.years_with_event.get(iso3, frozenset())
+                in_span = set(span)
+                for t in span:
+                    if t - 1 < GROUP_DATA_START or (t - 1) not in in_span or (t - 1) in events:
+                        continue
+                    g = group_of(iso3, t - 1)
+                    rec = hits.setdefault(g, [0, 0])
+                    rec[0] += t in events
+                    rec[1] += 1
+            total = [sum(v[0] for v in hits.values()), sum(v[1] for v in hits.values())]
+            overall = total[0] / total[1] if total[1] else 0.0
+            group_rate = {g: (k + overall) / (n + 1) for g, (k, n) in hits.items()}
         for iso3, first in countries.items():
             span = exposure(known, first, iso3)
             if not span:
@@ -126,6 +154,14 @@ def forecasts(
             active = span[-1] in known.years_with_event.get(iso3, ())
             p01 = posterior(prior01, trans[iso3][0]).mean
             p11 = posterior(prior11, trans[iso3][1]).mean
+            if experiment.get("continuation") == "world":
+                p11 = posterior(prior11, Counts(0.0, 0.0)).mean
+            if group_of is not None and overall > 0:
+                rate = group_rate.get(group_of(iso3, known.end_year), overall)
+                if experiment.get("onset_mode") == "pooled":
+                    p01 = rate
+                else:
+                    p01 = min(p01 * rate / overall, 0.95)
             out[iso3] = {
                 "p": _two_step(active, p01, p11, steps),
                 "state": "continuation" if active else "onset",
@@ -320,7 +356,7 @@ def run_type(
     "cap": group prior cap multiplier, "world_cap": world prior cap multiplier}."""
     if variant is None:
         variant = LIVE_COUP_VARIANT if key == EventType.COUP_ATTEMPT else {}
-    lag = LAG.get(key, 2)
+    lag = variant.get("lag", LAG.get(key, 2))
     records = []
     for year in years:
         groups = None
@@ -342,6 +378,7 @@ def run_type(
             variant.get("cap"),
             variant.get("world_cap"),
             variant.get("gap"),
+            variant.get("experiment"),
         )
         refs = references(history, first_years, year, lag)
         for iso3, item in fc.items():
@@ -522,6 +559,8 @@ def run(
     regime_series: Mapping[str, Mapping[int, int]] | None = None,
     include_holdout: bool = False,
     termination: Mapping[str, list[tuple[int, int]]] | None = None,
+    violence: Mapping[str, Mapping[int, tuple[float, float]]] | None = None,
+    rivals: Mapping[str, set[int]] | None = None,
 ) -> dict:
     periods = {k: v for k, v in PERIODS.items() if include_holdout or k != "holdout"}
     years = [y for lo, hi in periods.values() for y in range(lo, hi + 1)]
@@ -546,6 +585,7 @@ def run(
         chunk = {k: [r for r in v if lo <= r["year"] <= hi] for k, v in all_records.items()}
         out["danger"][name] = danger_check(chunk)
     out["onset_lists"] = onset_lists(all_records, periods)
+    out["experiments"] = experiments(histories, first_years, years, periods, violence, rivals)
     # Conflict onset variants (Fable round 4, #5): plain transitions vs a one-year lull counted
     # as continuing.
     out["conflict_variants"] = {}
@@ -589,6 +629,134 @@ def run(
                 corrected = offset_records(records, LAG[EventType.COUP_ATTEMPT], min(years), l2)
                 name = f"offset model on {label}" + ("" if l2 == 20.0 else f", L2 {l2:g}")
                 out["coup_variants"][name] = _by_period(corrected, periods)
+    return out
+
+
+SITE_LAG = 1  # site-like check: the UCDP release for the last year is out by 1 July
+
+
+def _paired(variant: list[dict], current: list[dict], periods: Mapping) -> dict:
+    """Variant against the current model on the same rows: summaries and the skill of the
+    variant over the current model (above zero: the variant is better)."""
+    now = {(r["iso3"], r["year"]): r["p"] for r in current}
+    rows = [
+        {**r, "current": now[(r["iso3"], r["year"])]}
+        for r in variant
+        if (r["iso3"], r["year"]) in now
+    ]
+    out = {}
+    for name, (lo, hi) in periods.items():
+        chunk = [r for r in rows if lo <= r["year"] <= hi]
+        cur = [r for r in current if lo <= r["year"] <= hi]
+        out[name] = {
+            "current": summarise(cur),
+            "variant": summarise(chunk),
+            "variant_vs_current": None
+            if not chunk
+            else list(skill_interval(chunk, "current") or [None, None, None]),
+        }
+    return out
+
+
+def experiments(
+    histories: Mapping[EventType, TypeHistory | None],
+    first_years: Mapping[str, int | None],
+    years: list[int],
+    periods: Mapping[str, tuple[int, int]],
+    violence: Mapping[str, Mapping[int, tuple[float, float]]] | None = None,
+    rivals: Mapping[str, set[int]] | None = None,
+) -> dict:
+    """Site-like check and experiments A, B, C (docs/backtest-rules.md, written before the
+    run). All in the site-like setup: data up to the year before the target year."""
+    out: dict = {"site_lag": {}}
+    internal = histories.get(EventType.INTERNAL_ARMED_CONFLICT)
+    interstate = histories.get(EventType.INTERSTATE_CONFLICT)
+    site = {}
+    for key, history in (
+        (EventType.INTERNAL_ARMED_CONFLICT, internal),
+        (EventType.INTERSTATE_CONFLICT, interstate),
+    ):
+        if history is None:
+            continue
+        records = run_type(key, history, first_years, True, years, None, {"lag": SITE_LAG})
+        site[key] = records
+        out["site_lag"][key.value] = {
+            name: {
+                state: summarise(
+                    [r for r in records if lo <= r["year"] <= hi and r["state"] == state]
+                )
+                for state in ("onset", "continuation")
+            }
+            for name, (lo, hi) in periods.items()
+        }
+    out["site_lag_onsets"] = onset_lists(site, periods)
+    state_rows = lambda recs, st: [r for r in recs if r["state"] == st]  # noqa: E731
+    if internal is not None:
+        a = run_type(
+            EventType.INTERNAL_ARMED_CONFLICT,
+            internal,
+            first_years,
+            True,
+            years,
+            None,
+            {"lag": SITE_LAG, "experiment": {"continuation": "world"}},
+        )
+        out["A_continuation_world"] = _paired(
+            state_rows(a, "continuation"),
+            state_rows(site[EventType.INTERNAL_ARMED_CONFLICT], "continuation"),
+            periods,
+        )
+    if internal is not None and violence:
+
+        def violence_group(iso3: str, year: int) -> str:
+            state, other = (violence.get(iso3) or {}).get(year, (0.0, 0.0))
+            if other >= 25:
+                return "other_25_plus"
+            if state >= 1:
+                return "state_1_24"
+            return "none"
+
+        b = run_type(
+            EventType.INTERNAL_ARMED_CONFLICT,
+            internal,
+            first_years,
+            True,
+            years,
+            None,
+            {
+                "lag": SITE_LAG,
+                "experiment": {"onset_groups": violence_group, "onset_mode": "factor"},
+            },
+        )
+        out["B_subthreshold_violence"] = _paired(
+            state_rows(b, "onset"),
+            state_rows(site[EventType.INTERNAL_ARMED_CONFLICT], "onset"),
+            periods,
+        )
+    if interstate is not None:
+
+        def rival_group(iso3: str, year: int) -> str:
+            if year in (rivals or {}).get(iso3, set()):
+                return "rival"
+            events = interstate.years_with_event.get(iso3, frozenset())
+            if any(year - k in events for k in range(10)):
+                return "rival"
+            return "other"
+
+        c = run_type(
+            EventType.INTERSTATE_CONFLICT,
+            interstate,
+            first_years,
+            True,
+            years,
+            None,
+            {"lag": SITE_LAG, "experiment": {"onset_groups": rival_group, "onset_mode": "pooled"}},
+        )
+        out["C_rivalries"] = _paired(
+            state_rows(c, "onset"),
+            state_rows(site[EventType.INTERSTATE_CONFLICT], "onset"),
+            periods,
+        )
     return out
 
 

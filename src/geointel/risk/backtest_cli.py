@@ -11,6 +11,33 @@ from pathlib import Path
 SOURCES = "ucdp_acd,ucdp_term,coups,protests,usgs,tsunami,worldbank,fts,regimes"
 
 
+def _experiment_data(raw_dir: Path) -> tuple[dict, dict]:
+    """GED country-year deaths (experiment B) and strategic rivalries (experiment C).
+    Failures leave the experiment out; they never stop the run."""
+    import httpx
+
+    from geointel.risk.sources import rivalries, ucdp_ged
+
+    violence: dict = {}
+    rivals: dict = {}
+    with httpx.Client(timeout=120, follow_redirects=True) as client:
+        try:
+            urls = ucdp_ged.links(client.get(ucdp_ged.DOWNLOADS).text)
+            text = ucdp_ged.read_zip_csv(client.get(urls["ged"]).content)
+            violence = ucdp_ged.country_year(text)
+            print(f"[backtest] GED country-years: {len(violence)} countries from {urls['ged']}")
+        except Exception as exc:  # noqa: BLE001
+            print(f"[backtest] GED for experiment B failed: {type(exc).__name__} {exc}")
+        try:
+            for name, url in (("riv.rda", rivalries.DATA), ("states.rda", rivalries.STATES)):
+                (raw_dir / name).write_bytes(client.get(url).content)
+            rivals = rivalries.load(str(raw_dir / "riv.rda"), str(raw_dir / "states.rda"))
+            print(f"[backtest] rivalries: {len(rivals)} countries")
+        except Exception as exc:  # noqa: BLE001
+            print(f"[backtest] rivalries for experiment C failed: {type(exc).__name__} {exc}")
+    return violence, rivals
+
+
 def run(out: Path, raw_dir: Path) -> int:
     from geointel.risk import MODEL_VERSION, backtest_base
     from geointel.risk.__main__ import load_histories
@@ -84,6 +111,28 @@ def run(out: Path, raw_dir: Path) -> int:
             print(
                 f"[backtest] onset [{label}] {period}: n={s['n']} events={s['events']} "
                 f"BSS vs world={s['bss_vs_world']} brier={s['brier']} log={s['log_score']}"
+            )
+    exps = result.get("experiments") or {}
+    for key, periods in (exps.get("site_lag") or {}).items():
+        for period, states in periods.items():
+            for state, s in states.items():
+                print(
+                    f"[backtest] site-lag {key} {period} {state}: n={s['n']} events={s['events']} "
+                    f"brier={s['brier']} BSS vs reference={s.get('bss_vs_base')}"
+                )
+    for key, periods in (exps.get("site_lag_onsets") or {}).items():
+        for period, items in periods.items():
+            print(
+                f"[backtest] site-lag onsets {key} {period}: {len(items)}, repeats "
+                f"{sum(1 for x in items if x['repeat'])}"
+            )
+    for name in ("A_continuation_world", "B_subthreshold_violence", "C_rivalries"):
+        for period, r in (exps.get(name) or {}).items():
+            print(
+                f"[backtest] experiment {name} {period}: current brier={r['current']['brier']} "
+                f"vs ref={r['current'].get('bss_vs_base')}; variant brier={r['variant']['brier']} "
+                f"vs ref={r['variant'].get('bss_vs_base')}; variant vs current="
+                f"{r['variant_vs_current']}"
             )
     for period, d in result["danger"].items():
         print(

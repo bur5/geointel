@@ -152,3 +152,36 @@ def test_onset_lists_mark_repeats_and_danger_bands():
     danger = result["danger"]["validation"]
     assert "bands" in danger and isinstance(danger["order_violations"], list)
     assert all(e["level"] <= 2 for e in danger["events_at_levels_1_2"])
+
+
+def test_experiments_run_on_toy_data():
+    internal = _history(
+        {"AAA": set(range(1995, 2026)), "BBB": {2003, 2004, 2012, 2018, 2019}, "CCC": {2010}},
+        key=EventType.INTERNAL_ARMED_CONFLICT,
+    )
+    interstate = _history({"DDD": {2001, 2014}, "EEE": {2014}}, key=EventType.INTERSTATE_CONFLICT)
+    violence = {"BBB": {y: (10.0, 0.0) for y in range(1990, 2026)}, "CCC": {2009: (0.0, 40.0)}}
+    rivals = {"DDD": set(range(1990, 2031)), "EEE": set(range(1990, 2031))}
+    out = bt.experiments(
+        {EventType.INTERNAL_ARMED_CONFLICT: internal, EventType.INTERSTATE_CONFLICT: interstate},
+        COUNTRIES,
+        list(range(2000, 2021)),
+        {"tuning": (2000, 2015), "validation": (2016, 2020)},
+        violence,
+        rivals,
+    )
+    for name in ("A_continuation_world", "B_subthreshold_violence", "C_rivalries"):
+        assert set(out[name]) == {"tuning", "validation"}
+        assert out[name]["tuning"]["variant"]["n"] == out[name]["tuning"]["current"]["n"]
+    assert out["site_lag"]["internal_armed_conflict"]["tuning"]["onset"]["n"] > 0
+
+
+def test_pooled_onset_group_gives_one_rate_per_group():
+    interstate = _history({"DDD": {2001, 2014}, "EEE": {2014}}, key=EventType.INTERSTATE_CONFLICT)
+    exp = {
+        "onset_groups": lambda c, y: "rival" if c in ("DDD", "EEE") else "other",
+        "onset_mode": "pooled",
+    }
+    fc = bt.forecasts(interstate, COUNTRIES, True, 2019, 1, experiment=exp)
+    others = {round(v["p"], 8) for c, v in fc.items() if c not in ("DDD", "EEE")}
+    assert len(others) == 1

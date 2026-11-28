@@ -151,6 +151,14 @@ jobs:
           cp ../data/raw/manifest.json latest/manifest.json
           cp ../data/site/risk.json "history/${day}.json"
           cp ../data/site/signals.json "history/${day}-signals.json"
+          # Forward check (docs/forward-check.md): the first published forecast of each month
+          # is kept unchanged under forward/.
+          month=$(date -u +%Y-%m)
+          if [ ! -f "forward/${month}-risk.json" ]; then
+            mkdir -p forward
+            cp ../data/site/risk.json "forward/${month}-risk.json"
+            cp ../data/site/signals.json "forward/${month}-signals.json"
+          fi
           [ -f ../data/trained.json ] && mkdir -p models && cp ../data/trained.json models/trained.json
           [ -f ../data/site/regional.json ] && cp ../data/site/regional.json latest/regional.json
           if [ -d ../data/site/regions ]; then rm -rf latest/regions && cp -r ../data/site/regions latest/regions; fi
