@@ -18,7 +18,9 @@ on:
 permissions:
   contents: write
 concurrency:
-  group: risk-snapshot-main
+  # Only runs that write to risk-data share the daily pipeline's group; a dry run must not
+  # queue behind it (a second pending run in a group cancels the first).
+  group: ${{ (inputs.mode == 'carnegie' || inputs.max_usd != '0') && 'risk-snapshot-main' || 'protest-dry-run' }}
   cancel-in-progress: false
 jobs:
   build:
