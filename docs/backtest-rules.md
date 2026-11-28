@@ -207,3 +207,24 @@ rule written here beforehand. Planned:
   Danger level: share of country-years with a war by level 1–4 = 2.1%, 1.4%, 8.1%, 87.9%;
   levels 2–4 in order, **level 1 above level 2** (5 of 239 vs 6 of 437; intervals overlap);
   level 3 from a probability 8.1% (3.3–13.0%), inside the promised 5–20%.
+- 2026-11-28, **re-scoring: same forecasts, new reference** (model 1.16.0, run 46125669078;
+  second look at the control period 2021–2025, approved by the owner). Brier skill score
+  against the primary reference (rate for the known state; world frequency for types without
+  states), tuning / validation / control, 95% intervals over countries and years:
+  - internal conflict onset +0.01 (−0.11…+0.11) / **+0.21** (+0.09…+0.31) / +0.14
+    (−0.12…+0.31); continuation −0.04 / **−0.25** (−0.69…−0.03) / −0.05 (−0.17…+0.04);
+  - interstate onset −0.08 / +0.01 / +0.01 (−0.01…+0.01);
+  - coups +0.03 / +0.02 / +0.02 (+0.00…+0.06);
+  - earthquakes +0.50 / +0.50 / +0.42; tsunami +0.28 / +0.27 / +0.36;
+  - economic crisis −0.07 / 0.00 / +0.08;
+  - humanitarian onset +0.05 / +0.09 / +0.11; continuation +0.01 / 0.00 / +0.14;
+  - mass protests +0.23 / +0.11 / no truth.
+  Against the world frequency (reported until now) internal onset was +0.33 / +0.38 / +0.55
+  and continuation +0.68 / +0.73 / +0.79: those gains came mostly from the easy reference.
+  Danger level, rule from 2026-11-28: no order violations in any period; every level is
+  inside its band in every period (control: level 1 2.1% (0.9–4.8%), level 2 1.4%
+  (0.6–3.0%), level 3 8.1% (4.5–14.3%)). Onset repeats caused by the two-year lag: internal
+  27 of 90 / 13 of 34 / 5 of 16; interstate 2 of 14 / 2 of 7 / 9 of 22 (lists in
+  `docs/onset-lists.md`). Wars at levels 1–2 in the control period: Benin and Togo 2022–23
+  (spillover from the Sahel), the UK and USA 2024–25 (strikes in Yemen), Kyrgyzstan 2021–22,
+  Cambodia 2025.
