@@ -1,0 +1,35 @@
+name: Political crisis history
+# Builds cache/polcrisis_history.json on the risk-data branch: political crises 2000–2025
+# (early leader exits, snap elections, impeachments, political emergencies, coups) from
+# Wikidata (CC0), the Cline Center coup data (CC BY 4.0) and a hand-checked impeachment list.
+# See docs/polcrisis-history.md. Run by hand; rarely needs re-running.
+on:
+  workflow_dispatch:
+  push:
+    branches: [polcrisis-history]
+    paths:
+      - src/geointel/risk/sources/polcrisis.py
+      - data/polcrisis/**
+      - .github/workflows/polcrisis-history.yml
+permissions:
+  contents: write
+concurrency:
+  # writes to risk-data only when run by hand, so only then share the daily pipeline's group
+  group: ${{ github.event_name == 'workflow_dispatch' && 'risk-snapshot-main' || 'polcrisis-branch' }}
+  cancel-in-progress: false
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12", cache: pip }
+      - run: python -m pip install -e . pandas pyreadr
+      - name: Download sources
+        run: python -m geointel.risk.sources.polcrisis fetch work
+      - uses: actions/upload-artifact@v4
+        with:
+          name: polcrisis-raw
+          path: work/
+          retention-days: 14
