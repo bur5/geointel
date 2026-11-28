@@ -66,7 +66,10 @@ def run(out: Path, raw_dir: Path) -> int:
 
         termination = ucdp_term.episodes((raw_dir / term["file"]).read_text("utf-8-sig"))
         print(f"[backtest] conflict endings: {len(termination)} countries, {term.get('version')}")
-    result = backtest_base.run(wanted, first_years, persistent, regime_series, holdout, termination)
+    violence, rivals = _experiment_data(raw_dir)
+    result = backtest_base.run(
+        wanted, first_years, persistent, regime_series, holdout, termination, violence, rivals
+    )
     try:
         commit = subprocess.run(
             ["git", "rev-parse", "HEAD"], capture_output=True, text=True, check=False
