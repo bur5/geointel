@@ -25,14 +25,15 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with: { python-version: "3.12", cache: pip }
-      - run: python -m pip install -e . pandas pyreadr
+      - run: python -m pip install -e . pandas pyreadr pyreadstat
       - name: Download sources
         run: python -m geointel.risk.sources.polcrisis fetch work
       - name: Dump raw (temporary, for development)
         run: |
           python - <<'PY'
-          import pandas as pd, pyreadr
-          pd.read_stata("work/archigos.dta", convert_categoricals=True).to_csv("work/archigos.csv", index=False)
+          import pyreadr, pyreadstat
+          frame, _meta = pyreadstat.read_dta("work/archigos.dta", encoding="cp1252")
+          frame.to_csv("work/archigos.csv", index=False)
           for name, frame in pyreadr.read_r("work/nelda.rda").items():
               frame.to_csv("work/nelda.csv", index=False)
           PY
