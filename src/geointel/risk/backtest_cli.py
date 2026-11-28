@@ -62,7 +62,7 @@ def run(out: Path, raw_dir: Path) -> int:
         for period, s in periods.items():
             print(
                 f"[backtest] coups [{label}] {period}: BSS vs world={s['bss_vs_world']} "
-                f"brier={s['brier']} log={s['log_score']}"
+                f"brier={s['brier']} log={s['log_score']} auc_pr={s['auc_pr']}"
             )
     for period, d in result["danger"].items():
         print(f"[backtest] danger {period}: order_ok={d['order_ok']} band={d['band_level3']}")

@@ -102,6 +102,7 @@ def forecasts(
     lag: int,
     groups: Mapping[str, str] | None = None,
     cap_mult: float | None = None,
+    world_cap_mult: float | None = None,
 ) -> dict[str, dict]:
     """P(event in ``issue_year``) per country from data up to ``issue_year - lag``.
 
@@ -130,9 +131,11 @@ def forecasts(
             }
         return out
     simple = {iso3: bernoulli_counts(known, iso3, f) for iso3, f in countries.items()}
-    if not groups and cap_mult is not None and cap_mult < 1e8:
+    if world_cap_mult is not None:
         usable = [c for c in simple.values() if c.trials >= 1.0]
-        world = fit_prior(usable, max_strength=max(2.0, cap_mult * fmean(c.trials for c in usable)))
+        world = fit_prior(
+            usable, max_strength=max(2.0, world_cap_mult * fmean(c.trials for c in usable))
+        )
     else:
         world = fit_prior(simple.values())
     group_prior = {}
@@ -276,6 +279,21 @@ def skill_interval(
     return round(point, 4), round(lo, 4), round(hi, 4)
 
 
+def coup_features(known: TypeHistory, iso3: str, regime: int | None) -> list[float]:
+    """Features for the coup offset model, from as-of data only."""
+    years = known.years_with_event.get(iso3, frozenset())
+    since = min(known.end_year - max(years), 50) if years else 50
+    recent = sum(1 for y in years if y > known.end_year - 10)
+    return [
+        1.0,
+        math.log1p(since),
+        float(recent),
+        float(regime == 0) if regime is not None else 0.0,
+        float(regime == 1) if regime is not None else 0.0,
+        float(regime is not None and regime >= 2),
+    ]
+
+
 def run_type(
     key: EventType,
     history: TypeHistory,
@@ -283,33 +301,78 @@ def run_type(
     persistent: bool,
     years: Iterable[int],
     regime_series: Mapping[str, Mapping[int, int]] | None = None,
-    variant: tuple[bool, float | None] = (True, None),
+    variant: Mapping | None = None,
 ) -> list[dict]:
-    """``variant`` (coups): (use regime groups, prior cap multiplier or None for default)."""
+    """``variant`` (coups only): {"groups": "all" | "democracies" | None,
+    "cap": group prior cap multiplier, "world_cap": world prior cap multiplier}."""
+    variant = variant or {"groups": "all", "cap": None, "world_cap": None}
     lag = LAG.get(key, 2)
     records = []
     for year in years:
         groups = None
-        if key == EventType.COUP_ATTEMPT and regime_series and variant[0]:
-            known = as_of(history, year - lag)
-            groups = coup_groups_as_of(known, regimes_as_of(regime_series, year - REGIME_LAG))
-        fc = forecasts(history, first_years, persistent, year, lag, groups, variant[1])
+        regimes: dict[str, int] = {}
+        known = as_of(history, year - lag)
+        if key == EventType.COUP_ATTEMPT and regime_series:
+            regimes = regimes_as_of(regime_series, year - REGIME_LAG)
+            if variant.get("groups"):
+                groups = coup_groups_as_of(known, regimes)
+                if variant["groups"] == "democracies":
+                    groups = {c: g for c, g in groups.items() if g in ("3|none20", "2|none20")}
+        fc = forecasts(
+            history,
+            first_years,
+            persistent,
+            year,
+            lag,
+            groups,
+            variant.get("cap"),
+            variant.get("world_cap"),
+        )
         refs = references(history, first_years, year, lag)
         for iso3, item in fc.items():
             y = outcome(history, iso3, year)
             if y is None or iso3 not in refs:
                 continue
-            records.append(
-                {
-                    "iso3": iso3,
-                    "year": year,
-                    "state": item["state"],
-                    "p": item["p"],
-                    "y": y,
-                    **refs[iso3],
-                }
-            )
+            record = {
+                "iso3": iso3,
+                "year": year,
+                "state": item["state"],
+                "p": item["p"],
+                "y": y,
+                **refs[iso3],
+            }
+            if key == EventType.COUP_ATTEMPT:
+                record["x"] = coup_features(known, iso3, regimes.get(iso3))
+            records.append(record)
     return records
+
+
+def offset_records(records: list[dict], lag: int, first_fit_year: int) -> list[dict]:
+    """Coup offset model on top of a base variant's records: for each year Y, fit on the
+    records whose outcome was known by then (year <= Y - lag) and correct Y's base forecast."""
+    from geointel.risk.trained import fit_offset_logistic, predict_offset
+
+    by_year: dict[int, list[dict]] = {}
+    for r in records:
+        by_year.setdefault(r["year"], []).append(r)
+
+    def logit(p: float) -> float:
+        p = min(max(p, EPS), 1 - EPS)
+        return math.log(p / (1 - p))
+
+    out = []
+    for year in sorted(by_year):
+        if year < first_fit_year:
+            continue
+        train = [r for y, rs in by_year.items() if y <= year - lag for r in rs]
+        if sum(r["y"] for r in train) < 20:
+            continue
+        model = fit_offset_logistic(
+            [r["x"] for r in train], [r["y"] for r in train], [logit(r["p"]) for r in train]
+        )
+        for r in by_year[year]:
+            out.append({**r, "p": predict_offset(model, r["x"], logit(r["p"]))})
+    return out
 
 
 def summarise(records: list[dict]) -> dict:
@@ -408,26 +471,39 @@ def run(
     coups = histories.get(EventType.COUP_ATTEMPT)
     if coups is not None:
         # Variants of the coup base rate, compared on the tuning period (rules: choose on
-        # tuning, confirm on validation; every look is logged).
+        # tuning, confirm on validation; every look is logged). The offset variant needs
+        # earlier base forecasts to learn from, so base records start in 1992.
         out["coup_variants"] = {}
+        early = list(range(1992, min(years))) + years
+        base_for_offset = None
         for label, variant in COUP_VARIANTS.items():
             records = run_type(
-                EventType.COUP_ATTEMPT, coups, first_years, False, years, regime_series, variant
+                EventType.COUP_ATTEMPT, coups, first_years, False, early, regime_series, variant
             )
-            out["coup_variants"][label] = {
-                name: summarise([r for r in records if lo <= r["year"] <= hi])
-                for name, (lo, hi) in periods.items()
-            }
+            if label == OFFSET_BASE:
+                base_for_offset = records
+            out["coup_variants"][label] = _by_period(records, periods)
+        if base_for_offset:
+            corrected = offset_records(base_for_offset, LAG[EventType.COUP_ATTEMPT], min(years))
+            out["coup_variants"]["offset model on " + OFFSET_BASE] = _by_period(corrected, periods)
     return out
 
 
+def _by_period(records: list[dict], periods: Mapping[str, tuple[int, int]]) -> dict:
+    return {
+        name: summarise([r for r in records if lo <= r["year"] <= hi])
+        for name, (lo, hi) in periods.items()
+    }
+
+
 COUP_VARIANTS = {
-    "world prior, no groups": (False, None),
-    "world prior, cap 2x": (False, 2.0),
-    "world prior, cap 5x": (False, 5.0),
-    "world prior, cap 10x": (False, 10.0),
-    "groups, cap 2x": (True, 2.0),
-    "groups, cap 5x": (True, 5.0),
-    "groups, cap 10x": (True, 10.0),
-    "groups, cap 400 (1.9)": (True, 1e9),
+    "groups, cap 2x (1.10 live)": {"groups": "all", "cap": 2.0, "world_cap": None},
+    "world prior, no groups": {"groups": None, "cap": None, "world_cap": None},
+    "world prior, cap 2x": {"groups": None, "cap": None, "world_cap": 2.0},
+    "hybrid: groups for democracies only, world cap 2x": {
+        "groups": "democracies",
+        "cap": 2.0,
+        "world_cap": 2.0,
+    },
 }
+OFFSET_BASE = "world prior, cap 2x"

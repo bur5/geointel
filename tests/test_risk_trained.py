@@ -58,3 +58,34 @@ def test_run_type_end_to_end():
     assert result["test_events"] > 0 and "bss_vs_base" in result
     assert set(result["predictions"]) == set(countries)
     assert result["decision"] in {"switch on", "keep base rate", "not enough data"}
+
+
+def test_covariance_is_inverse_hessian_and_offset_model_defaults_to_offset():
+    import math
+
+    from geointel.risk import trained
+
+    x = [[1.0, float(i % 5)] for i in range(200)]
+    y = [1 if i % 7 == 0 else 0 for i in range(200)]
+    model = trained.fit_logistic(x, y)
+    cov = model["cov"]
+    assert cov[0][0] > 0 and cov[1][1] > 0
+    assert trained.link_se(model, [1.0, 2.0]) > 0
+    # features that carry nothing: the offset model returns the offset forecast
+    offset = [math.log(0.1 / 0.9)] * 200
+    noise = [[1.0, 0.0] for _ in range(200)]
+    flat = trained.fit_offset_logistic(
+        noise, [1 if i % 10 == 0 else 0 for i in range(200)], offset, l2=20.0
+    )
+    assert abs(trained.predict_offset(flat, [1.0, 0.0], offset[0]) - 0.1) < 0.01
+
+
+def test_fill_missing_uses_reference_medians():
+    from geointel.risk import trained
+
+    base = {f: 1.0 for f in trained.FEATURES}
+    train = [dict(base), dict(base)]
+    test = [dict(base, edi=None)]
+    test_other = dict(base, edi=99.0)
+    filled = trained.fill_missing(train + test + [test_other], reference=train)
+    assert filled[2][1 + trained.FEATURES.index("edi")] == 1.0
