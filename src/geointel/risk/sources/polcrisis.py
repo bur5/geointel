@@ -20,11 +20,21 @@ REIGN_LEADERS_URL = (
 )
 
 COUNTRIES_QUERY = """
-SELECT ?c ?iso3 ?type ?dissolved WHERE {
+SELECT ?c ?iso3 ?type ?dissolved ?alias WHERE {
   VALUES ?iso3 { %s }
-  ?c wdt:P298 ?iso3 .
-  OPTIONAL { ?c wdt:P31 ?type . VALUES ?type { wd:Q3624078 wd:Q6256 } }
-  OPTIONAL { ?c wdt:P576 ?dissolved }
+  ?k wdt:P298 ?iso3 .
+  {
+    BIND(?k AS ?c)
+    OPTIONAL { ?c wdt:P31 ?type . VALUES ?type { wd:Q3624078 wd:Q6256 } }
+    OPTIONAL { ?c wdt:P576 ?dissolved }
+  } UNION {
+    # the country proper inside a realm (Netherlands in the Kingdom of the Netherlands):
+    # a part with the same capital
+    { ?k wdt:P150 ?c } UNION { ?c wdt:P361 ?k }
+    ?c wdt:P31 wd:Q6256 ; wdt:P36 ?capital . ?k wdt:P36 ?capital .
+    FILTER NOT EXISTS { ?k wdt:P576 ?gone }
+    BIND(true AS ?alias)
+  }
 }
 """
 OFFICES_QUERY = """
@@ -315,6 +325,8 @@ def pick_countries(bindings: list[dict]) -> dict[str, dict]:
     best: dict[str, tuple[int, dict]] = {}
     for b in bindings:
         iso3 = _value(b, "iso3").upper()
+        if _value(b, "alias"):
+            continue
         score = (2 if _value(b, "type") else 0) + (0 if _value(b, "dissolved") else 1)
         if iso3 not in best or score > best[iso3][0]:
             best[iso3] = (score, b)
@@ -481,12 +493,16 @@ def national_elections(elections, types, qid_to_iso3) -> list[dict]:
     labels = {_qid(_value(b, "type")): _value(b, "typeLabel") for b in types}
     kinds = {_qid(_value(b, "type")): election_type_kind(b) for b in types}
     result: dict[tuple[str, str], dict] = {}
+    owners: dict[str, set[str]] = {}
+    for b in elections:
+        owners.setdefault(_qid(_value(b, "e")), set()).add(_qid(_value(b, "c")))
     foreign_jurisdiction: set[str] = set()
     for b in elections:
         iso3 = qid_to_iso3.get(_qid(_value(b, "c")))
-        jur = _value(b, "jur")
-        if iso3 and jur and qid_to_iso3.get(_qid(jur)) != iso3:
-            foreign_jurisdiction.add(_qid(_value(b, "e")))
+        jur = _qid(_value(b, "jur")) if _value(b, "jur") else ""
+        item = _qid(_value(b, "e"))
+        if iso3 and jur and qid_to_iso3.get(jur) != iso3 and jur not in owners[item]:
+            foreign_jurisdiction.add(item)
     for b in elections:
         iso3 = qid_to_iso3.get(_qid(_value(b, "c")))
         type_id = _qid(_value(b, "type"))
@@ -529,6 +545,15 @@ SNAP_PATTERNS = (
     r"\b(elections?|polls?|vote)\s+(?:\w+\s+){0,3}(brought forward|called early|held early)",
     r"\bahead of schedule\b",
     r"\bearlier than (scheduled|planned|required|originally)",
+    r"\belections?\s+(?:was|were|had been)\s+called\s+(?:early|following|after)\b",
+    r"\b(?:barely|only|just|less than)\s+(?:a|one|two|three|\d+)\s+(?:\w+\s+)?"
+    r"(?:years?|months?)\s+after\s+the\s+previous\b",
+    r"\b(?:following|after)\s+the\s+(?:collapse|fall|dissolution|resignation)\b",
+)
+# Sentences about other elections ("the previous election was a snap election") are skipped.
+OTHER_ELECTION = (
+    r"\b(previous|last|preceding|prior|next|subsequent|upcoming)\s+(?:\w+\s+){0,2}"
+    r"(elections?|vote)\b(?!\.)"
 )
 
 
@@ -536,10 +561,15 @@ def snap_in_intro(text: str) -> str | None:
     """The phrase in a Wikipedia lead that says the election was early, else None."""
     import re
 
-    lead = " ".join(re.split(r"(?<=[.!?])\s+", text.strip())[:3])
-    for pattern in SNAP_PATTERNS:
-        match = re.search(pattern, lead, flags=re.IGNORECASE)
-        if match and "early voting" not in match.group(0).lower():
+    for sentence in re.split(r"(?<=[.!?])\s+", text.strip())[:4]:
+        for pattern in SNAP_PATTERNS:
+            match = re.search(pattern, sentence, flags=re.IGNORECASE)
+            if not match or "early voting" in match.group(0).lower():
+                continue
+            if "after the previous" not in match.group(0).lower() and re.search(
+                OTHER_ELECTION, sentence, flags=re.IGNORECASE
+            ):
+                continue
             return match.group(0)
     return None
 
