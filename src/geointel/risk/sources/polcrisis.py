@@ -152,23 +152,26 @@ def _wikipedia_intros(client, titles: list[str]) -> dict[str, str]:
 
 
 SNAP_LIST_PAGES = ("Snap election",)
-BACKGROUND_HEADINGS = r"^==+\s*(background|context|prelude|history|electoral background)"
+BACKGROUND_HEADINGS = (
+    r"^==+\s*(background|context|prelude|history|electoral background|pre-election|"
+    r"lead-up|events leading|political situation|dissolution)"
+)
 
 
 def background_section(text: str) -> str:
-    """The first Background / Context section of a plain-text Wikipedia article."""
+    """Background-type sections of a plain-text Wikipedia article (up to 4000 characters):
+    every section whose heading matches BACKGROUND_HEADINGS, in article order."""
     lines = text.splitlines()
-    for i, line in enumerate(lines):
-        if re.match(BACKGROUND_HEADINGS, line.strip(), flags=re.IGNORECASE):
-            body = []
-            for nxt in lines[i + 1 :]:
-                if nxt.strip().startswith("=="):
-                    if body:
-                        break
-                    continue
-                body.append(nxt)
-            return " ".join(body).strip()[:2500]
-    return ""
+    parts: list[str] = []
+    keep = False
+    for line in lines:
+        stripped = line.strip()
+        if stripped.startswith("=="):
+            keep = re.match(BACKGROUND_HEADINGS, stripped, flags=re.IGNORECASE) is not None
+            continue
+        if keep and stripped:
+            parts.append(stripped)
+    return " ".join(parts)[:4000]
 
 
 def _wiki_get(client, params: dict) -> dict:
@@ -849,7 +852,7 @@ def snap_elections(
         phrase = snap_in_intro(intros.get(article, "")) if article else None
         where = "lead"
         if not phrase and article and background.get(article):
-            phrase, where = snap_in_intro(background[article], sentences=8), "Background"
+            phrase, where = snap_in_intro(background[article], sentences=15), "Background"
         if item["snap"]:
             detail = f"{item['label']} (Wikidata: snap election)"
         elif article and article in listed:
