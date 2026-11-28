@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 import sys
 import time
 from pathlib import Path
@@ -507,11 +508,13 @@ def national_elections(elections, types, qid_to_iso3) -> list[dict]:
                 "label": label,
                 "date": when,
                 "types": set(),
+                "kinds": set(),
                 "snap": False,
                 "article": article,
             },
         )
         item["types"].add(type_id)
+        item["kinds"].add(election_kind(labels.get(type_id, ""), label) or kind)
         if kind == "snap":
             item["snap"] = True
     return sorted(result.values(), key=lambda e: (e["iso3"], e["date"]))
@@ -538,14 +541,23 @@ def snap_in_intro(text: str) -> str | None:
     return None
 
 
+MONARCH = (
+    r"\b(monarch|king|queen|emir|sultan|emperor|grand duke|prince|sheikh|amir|"
+    r"yang di-pertuan|druk gyalpo)\b"
+)
+
+
 def leader_exits(terms, offices, elections, covered=None) -> list[dict]:
     """Exits of heads of state/government outside the normal schedule (see the docs)."""
     from datetime import date, timedelta
 
     lo, hi = date(FIRST_YEAR, 1, 1), date(LAST_YEAR, 12, 31)
-    election_dates: dict[str, list] = {}
+    any_dates: dict[str, list] = {}
+    presidential_dates: dict[str, list] = {}
     for item in elections:
-        election_dates.setdefault(item["iso3"], []).append(item["date"])
+        any_dates.setdefault(item["iso3"], []).append(item["date"])
+        if "presidential" in item["kinds"]:
+            presidential_dates.setdefault(item["iso3"], []).append(item["date"])
     starts: dict[tuple[str, str], list] = {}
     for term in terms:
         for iso3 in offices[term["office"]]["iso3"]:
@@ -562,6 +574,8 @@ def leader_exits(terms, offices, elections, covered=None) -> list[dict]:
         info = offices[term["office"]]
         if "governor" in info["label"].lower():
             continue  # governors-general represent the monarch; they are not the head of state
+        hereditary = re.search(MONARCH, info["label"].lower()) is not None
+        head_of_state_only = info["roles"] == {"head_of_state"}
         causes = " ".join(sorted(term["causes"])).lower()
         irregular = any(word in causes for word in IRREGULAR_CAUSES)
         regular = not irregular and any(word in causes for word in REGULAR_CAUSES)
@@ -582,15 +596,20 @@ def leader_exits(terms, offices, elections, covered=None) -> list[dict]:
                     continue
                 if full_term(term["start"], end):
                     continue
-                near_election = any(
+                dates = any_dates.get(iso3, [])
+                if head_of_state_only and presidential_dates.get(iso3):
+                    dates = presidential_dates[iso3]
+                near_election = not hereditary and any(
                     end - timedelta(days=ELECTION_BEFORE_DAYS)
                     <= when
                     <= end + timedelta(days=ELECTION_AFTER_DAYS)
-                    for when in election_dates.get(iso3, [])
+                    for when in dates
                 )
                 if near_election:
                     continue
-            why = ", ".join(sorted(term["causes"])) or "no national election in the 250 days before"
+            why = ", ".join(sorted(term["causes"])) or (
+                "hereditary office" if hereditary else "no national election in the 250 days before"
+            )
             detail = f"{term['name']} left office as {info['label']} ({why})"
             key = (iso3, term["person"], end.isoformat()[:7])
             events.setdefault(
@@ -712,8 +731,17 @@ def cline_events(rows: list[dict], resolve) -> tuple[list[dict], int]:
 
 
 def manual_events(rows: list[dict], component: str, universe: frozenset[str]) -> list[dict]:
+    """Events from a hand-made CSV; an impeachment row with ``removed_on`` also yields the
+    removal from office as a ``leader_exit``."""
     events = []
     for row in rows:
+        removed = _date(row.get("removed_on"))
+        iso3 = (row.get("iso3") or "").strip().upper()
+        if removed and iso3 in universe and row.get("source"):
+            detail = f"{(row.get('person') or '').strip()} removed from office after impeachment"
+            events.append(
+                _event(iso3, removed, "leader_exit", detail, "manual", row["source"].strip())
+            )
         when = _date(row.get("date"))
         iso3 = (row.get("iso3") or "").strip().upper()
         if when is None or iso3 not in universe or not row.get("source"):

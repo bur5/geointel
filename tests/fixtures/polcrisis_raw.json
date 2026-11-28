@@ -1,0 +1,1515 @@
+{
+ "countries": [
+  {
+   "c": {
+    "type": "uri",
+    "value": "http://www.wikidata.org/entity/Q419"
+   },
+   "iso3": {
+    "type": "literal",
+    "value": "PER"
+   },
+   "type": {
+    "type": "uri",
+    "value": "http://www.wikidata.org/entity/Q3624078"
+   }
+  },
+  {
+   "c": {
+    "type": "uri",
+    "value": "http://www.wikidata.org/entity/Q55"
+   },
+   "iso3": {
+    "type": "literal",
+    "value": "NLD"
+   }
+  },
+  {
+   "c": {
+    "type": "uri",
+    "value": "http://www.wikidata.org/entity/Q29999"
+   },
+   "iso3": {
+    "type": "literal",
+    "value": "NLD"
+   },
+   "type": {
+    "type": "uri",
+    "value": "http://www.wikidata.org/entity/Q3624078"
+   }
+  },
+  {
+   "c": {
+    "type": "uri",
+    "value": "http://www.wikidata.org/entity/Q999"
+   },
+   "iso3": {
+    "type": "literal",
+    "value": "PER"
+   },
+   "dissolved": {
+    "type": "literal",
+    "value": "1990-01-01T00:00:00Z"
+   }
+  }
+ ],
+ "offices": [
+  {
+   "c": {
+    "type": "uri",
+    "value": "http://www.wikidata.org/entity/Q419"
+   },
+   "role": {
+    "type": "literal",
+    "value": "head_of_state"
+   },
+   "office": {
+    "type": "uri",
+    "value": "http://www.wikidata.org/entity/Q1"
+   },
+   "officeLabel": {
+    "type": "literal",
+    "value": "President of Peru"
+   }
+  },
+  {
+   "c": {
+    "type": "uri",
+    "value": "http://www.wikidata.org/entity/Q419"
+   },
+   "role": {
+    "type": "literal",
+    "value": "head_of_government"
+   },
+   "office": {
+    "type": "uri",
+    "value": "http://www.wikidata.org/entity/Q1"
+   },
+   "officeLabel": {
+    "type": "literal",
+    "value": "President of Peru"
+   }
+  },
+  {
+   "c": {
+    "type": "uri",
+    "value": "http://www.wikidata.org/entity/Q29999"
+   },
+   "role": {
+    "type": "literal",
+    "value": "head_of_state"
+   },
+   "office": {
+    "type": "uri",
+    "value": "http://www.wikidata.org/entity/Q2"
+   },
+   "officeLabel": {
+    "type": "literal",
+    "value": "monarch of the Netherlands"
+   }
+  },
+  {
+   "c": {
+    "type": "uri",
+    "value": "http://www.wikidata.org/entity/Q29999"
+   },
+   "role": {
+    "type": "literal",
+    "value": "head_of_government"
+   },
+   "office": {
+    "type": "uri",
+    "value": "http://www.wikidata.org/entity/Q3"
+   },
+   "officeLabel": {
+    "type": "literal",
+    "value": "Prime Minister of the Netherlands"
+   }
+  },
+  {
+   "c": {
+    "type": "uri",
+    "value": "http://www.wikidata.org/entity/Q29999"
+   },
+   "role": {
+    "type": "literal",
+    "value": "head_of_state"
+   },
+   "office": {
+    "type": "uri",
+    "value": "http://www.wikidata.org/entity/Q4"
+   },
+   "officeLabel": {
+    "type": "literal",
+    "value": "Governor of Sint Maarten"
+   }
+  }
+ ],
+ "holders": [
+  {
+   "office": {
+    "type": "uri",
+    "value": "http://www.wikidata.org/entity/Q1"
+   },
+   "st": {
+    "type": "literal",
+    "value": "http://www.wikidata.org/entity/statement/S1"
+   },
+   "p": {
+    "type": "uri",
+    "value": "http://www.wikidata.org/entity/P1"
+   },
+   "pLabel": {
+    "type": "literal",
+    "value": "Alberto Fujimori"
+   },
+   "start": {
+    "type": "literal",
+    "value": "1990-07-28T00:00:00Z"
+   },
+   "end": {
+    "type": "literal",
+    "value": "2000-11-22T00:00:00Z"
+   },
+   "endPrecision": {
+    "type": "literal",
+    "value": "11"
+   }
+  },
+  {
+   "office": {
+    "type": "uri",
+    "value": "http://www.wikidata.org/entity/Q1"
+   },
+   "st": {
+    "type": "literal",
+    "value": "http://www.wikidata.org/entity/statement/S2"
+   },
+   "p": {
+    "type": "uri",
+    "value": "http://www.wikidata.org/entity/P7"
+   },
+   "pLabel": {
+    "type": "literal",
+    "value": "Valentín Paniagua"
+   },
+   "start": {
+    "type": "literal",
+    "value": "2000-11-22T00:00:00Z"
+   },
+   "end": {
+    "type": "literal",
+    "value": "2001-07-28T00:00:00Z"
+   },
+   "endPrecision": {
+    "type": "literal",
+    "value": "11"
+   }
+  },
+  {
+   "office": {
+    "type": "uri",
+    "value": "http://www.wikidata.org/entity/Q1"
+   },
+   "st": {
+    "type": "literal",
+    "value": "http://www.wikidata.org/entity/statement/S3"
+   },
+   "p": {
+    "type": "uri",
+    "value": "http://www.wikidata.org/entity/P2"
+   },
+   "pLabel": {
+    "type": "literal",
+    "value": "Alejandro Toledo"
+   },
+   "start": {
+    "type": "literal",
+    "value": "2001-07-28T00:00:00Z"
+   },
+   "end": {
+    "type": "literal",
+    "value": "2006-07-28T00:00:00Z"
+   },
+   "endPrecision": {
+    "type": "literal",
+    "value": "11"
+   }
+  },
+  {
+   "office": {
+    "type": "uri",
+    "value": "http://www.wikidata.org/entity/Q1"
+   },
+   "st": {
+    "type": "literal",
+    "value": "http://www.wikidata.org/entity/statement/S4"
+   },
+   "p": {
+    "type": "uri",
+    "value": "http://www.wikidata.org/entity/P8"
+   },
+   "pLabel": {
+    "type": "literal",
+    "value": "Alan García"
+   },
+   "start": {
+    "type": "literal",
+    "value": "2006-07-28T00:00:00Z"
+   },
+   "end": {
+    "type": "literal",
+    "value": "2011-07-28T00:00:00Z"
+   },
+   "endPrecision": {
+    "type": "literal",
+    "value": "11"
+   }
+  },
+  {
+   "office": {
+    "type": "uri",
+    "value": "http://www.wikidata.org/entity/Q1"
+   },
+   "st": {
+    "type": "literal",
+    "value": "http://www.wikidata.org/entity/statement/S5"
+   },
+   "p": {
+    "type": "uri",
+    "value": "http://www.wikidata.org/entity/P9"
+   },
+   "pLabel": {
+    "type": "literal",
+    "value": "Ollanta Humala"
+   },
+   "start": {
+    "type": "literal",
+    "value": "2011-07-28T00:00:00Z"
+   },
+   "end": {
+    "type": "literal",
+    "value": "2016-07-28T00:00:00Z"
+   },
+   "endPrecision": {
+    "type": "literal",
+    "value": "11"
+   }
+  },
+  {
+   "office": {
+    "type": "uri",
+    "value": "http://www.wikidata.org/entity/Q1"
+   },
+   "st": {
+    "type": "literal",
+    "value": "http://www.wikidata.org/entity/statement/S6"
+   },
+   "p": {
+    "type": "uri",
+    "value": "http://www.wikidata.org/entity/P3"
+   },
+   "pLabel": {
+    "type": "literal",
+    "value": "Pedro Pablo Kuczynski"
+   },
+   "start": {
+    "type": "literal",
+    "value": "2016-07-28T00:00:00Z"
+   },
+   "end": {
+    "type": "literal",
+    "value": "2018-03-23T00:00:00Z"
+   },
+   "endPrecision": {
+    "type": "literal",
+    "value": "11"
+   },
+   "cause": {
+    "type": "uri",
+    "value": "http://www.wikidata.org/entity/Q796919"
+   },
+   "causeLabel": {
+    "type": "literal",
+    "value": "resignation"
+   }
+  },
+  {
+   "office": {
+    "type": "uri",
+    "value": "http://www.wikidata.org/entity/Q1"
+   },
+   "st": {
+    "type": "literal",
+    "value": "http://www.wikidata.org/entity/statement/S7"
+   },
+   "p": {
+    "type": "uri",
+    "value": "http://www.wikidata.org/entity/P5"
+   },
+   "pLabel": {
+    "type": "literal",
+    "value": "Martín Vizcarra"
+   },
+   "start": {
+    "type": "literal",
+    "value": "2018-03-23T00:00:00Z"
+   },
+   "end": {
+    "type": "literal",
+    "value": "2020-11-10T00:00:00Z"
+   },
+   "endPrecision": {
+    "type": "literal",
+    "value": "11"
+   }
+  },
+  {
+   "office": {
+    "type": "uri",
+    "value": "http://www.wikidata.org/entity/Q1"
+   },
+   "st": {
+    "type": "literal",
+    "value": "http://www.wikidata.org/entity/statement/S8"
+   },
+   "p": {
+    "type": "uri",
+    "value": "http://www.wikidata.org/entity/P4"
+   },
+   "pLabel": {
+    "type": "literal",
+    "value": "Manuel Merino"
+   },
+   "start": {
+    "type": "literal",
+    "value": "2020-11-10T00:00:00Z"
+   },
+   "end": {
+    "type": "literal",
+    "value": "2020-11-15T00:00:00Z"
+   },
+   "endPrecision": {
+    "type": "literal",
+    "value": "11"
+   },
+   "nature": {
+    "type": "uri",
+    "value": "http://www.wikidata.org/entity/Q4676846"
+   },
+   "natureLabel": {
+    "type": "literal",
+    "value": "acting"
+   }
+  },
+  {
+   "office": {
+    "type": "uri",
+    "value": "http://www.wikidata.org/entity/Q1"
+   },
+   "st": {
+    "type": "literal",
+    "value": "http://www.wikidata.org/entity/statement/S9"
+   },
+   "p": {
+    "type": "uri",
+    "value": "http://www.wikidata.org/entity/P6"
+   },
+   "pLabel": {
+    "type": "literal",
+    "value": "Francisco Sagasti"
+   },
+   "start": {
+    "type": "literal",
+    "value": "2020-11-17T00:00:00Z"
+   }
+  },
+  {
+   "office": {
+    "type": "uri",
+    "value": "http://www.wikidata.org/entity/Q2"
+   },
+   "st": {
+    "type": "literal",
+    "value": "http://www.wikidata.org/entity/statement/S10"
+   },
+   "p": {
+    "type": "uri",
+    "value": "http://www.wikidata.org/entity/B1"
+   },
+   "pLabel": {
+    "type": "literal",
+    "value": "Beatrix"
+   },
+   "start": {
+    "type": "literal",
+    "value": "1980-04-30T00:00:00Z"
+   },
+   "end": {
+    "type": "literal",
+    "value": "2013-04-30T00:00:00Z"
+   },
+   "endPrecision": {
+    "type": "literal",
+    "value": "11"
+   }
+  },
+  {
+   "office": {
+    "type": "uri",
+    "value": "http://www.wikidata.org/entity/Q2"
+   },
+   "st": {
+    "type": "literal",
+    "value": "http://www.wikidata.org/entity/statement/S11"
+   },
+   "p": {
+    "type": "uri",
+    "value": "http://www.wikidata.org/entity/B2"
+   },
+   "pLabel": {
+    "type": "literal",
+    "value": "Willem-Alexander"
+   },
+   "start": {
+    "type": "literal",
+    "value": "2013-04-30T00:00:00Z"
+   }
+  },
+  {
+   "office": {
+    "type": "uri",
+    "value": "http://www.wikidata.org/entity/Q3"
+   },
+   "st": {
+    "type": "literal",
+    "value": "http://www.wikidata.org/entity/statement/S12"
+   },
+   "p": {
+    "type": "uri",
+    "value": "http://www.wikidata.org/entity/K1"
+   },
+   "pLabel": {
+    "type": "literal",
+    "value": "Wim Kok"
+   },
+   "start": {
+    "type": "literal",
+    "value": "1994-08-22T00:00:00Z"
+   },
+   "end": {
+    "type": "literal",
+    "value": "2002-07-22T00:00:00Z"
+   },
+   "endPrecision": {
+    "type": "literal",
+    "value": "11"
+   }
+  },
+  {
+   "office": {
+    "type": "uri",
+    "value": "http://www.wikidata.org/entity/Q3"
+   },
+   "st": {
+    "type": "literal",
+    "value": "http://www.wikidata.org/entity/statement/S13"
+   },
+   "p": {
+    "type": "uri",
+    "value": "http://www.wikidata.org/entity/J1"
+   },
+   "pLabel": {
+    "type": "literal",
+    "value": "Jan Peter Balkenende"
+   },
+   "start": {
+    "type": "literal",
+    "value": "2002-07-22T00:00:00Z"
+   },
+   "end": {
+    "type": "literal",
+    "value": "2003-05-27T00:00:00Z"
+   },
+   "endPrecision": {
+    "type": "literal",
+    "value": "11"
+   }
+  },
+  {
+   "office": {
+    "type": "uri",
+    "value": "http://www.wikidata.org/entity/Q3"
+   },
+   "st": {
+    "type": "literal",
+    "value": "http://www.wikidata.org/entity/statement/S14"
+   },
+   "p": {
+    "type": "uri",
+    "value": "http://www.wikidata.org/entity/J1"
+   },
+   "pLabel": {
+    "type": "literal",
+    "value": "Jan Peter Balkenende"
+   },
+   "start": {
+    "type": "literal",
+    "value": "2003-05-27T00:00:00Z"
+   },
+   "end": {
+    "type": "literal",
+    "value": "2006-07-07T00:00:00Z"
+   },
+   "endPrecision": {
+    "type": "literal",
+    "value": "11"
+   }
+  },
+  {
+   "office": {
+    "type": "uri",
+    "value": "http://www.wikidata.org/entity/Q3"
+   },
+   "st": {
+    "type": "literal",
+    "value": "http://www.wikidata.org/entity/statement/S15"
+   },
+   "p": {
+    "type": "uri",
+    "value": "http://www.wikidata.org/entity/J1"
+   },
+   "pLabel": {
+    "type": "literal",
+    "value": "Jan Peter Balkenende"
+   },
+   "start": {
+    "type": "literal",
+    "value": "2006-07-07T00:00:00Z"
+   },
+   "end": {
+    "type": "literal",
+    "value": "2007-02-22T00:00:00Z"
+   },
+   "endPrecision": {
+    "type": "literal",
+    "value": "11"
+   }
+  },
+  {
+   "office": {
+    "type": "uri",
+    "value": "http://www.wikidata.org/entity/Q3"
+   },
+   "st": {
+    "type": "literal",
+    "value": "http://www.wikidata.org/entity/statement/S16"
+   },
+   "p": {
+    "type": "uri",
+    "value": "http://www.wikidata.org/entity/J1"
+   },
+   "pLabel": {
+    "type": "literal",
+    "value": "Jan Peter Balkenende"
+   },
+   "start": {
+    "type": "literal",
+    "value": "2007-02-22T00:00:00Z"
+   },
+   "end": {
+    "type": "literal",
+    "value": "2010-10-14T00:00:00Z"
+   },
+   "endPrecision": {
+    "type": "literal",
+    "value": "11"
+   }
+  },
+  {
+   "office": {
+    "type": "uri",
+    "value": "http://www.wikidata.org/entity/Q3"
+   },
+   "st": {
+    "type": "literal",
+    "value": "http://www.wikidata.org/entity/statement/S17"
+   },
+   "p": {
+    "type": "uri",
+    "value": "http://www.wikidata.org/entity/R1"
+   },
+   "pLabel": {
+    "type": "literal",
+    "value": "Mark Rutte"
+   },
+   "start": {
+    "type": "literal",
+    "value": "2010-10-14T00:00:00Z"
+   },
+   "end": {
+    "type": "literal",
+    "value": "2024-07-02T00:00:00Z"
+   },
+   "endPrecision": {
+    "type": "literal",
+    "value": "11"
+   }
+  },
+  {
+   "office": {
+    "type": "uri",
+    "value": "http://www.wikidata.org/entity/Q3"
+   },
+   "st": {
+    "type": "literal",
+    "value": "http://www.wikidata.org/entity/statement/S18"
+   },
+   "p": {
+    "type": "uri",
+    "value": "http://www.wikidata.org/entity/S1"
+   },
+   "pLabel": {
+    "type": "literal",
+    "value": "Dick Schoof"
+   },
+   "start": {
+    "type": "literal",
+    "value": "2024-07-02T00:00:00Z"
+   }
+  },
+  {
+   "office": {
+    "type": "uri",
+    "value": "http://www.wikidata.org/entity/Q4"
+   },
+   "st": {
+    "type": "literal",
+    "value": "http://www.wikidata.org/entity/statement/S19"
+   },
+   "p": {
+    "type": "uri",
+    "value": "http://www.wikidata.org/entity/G1"
+   },
+   "pLabel": {
+    "type": "literal",
+    "value": "Eugene Holiday"
+   },
+   "start": {
+    "type": "literal",
+    "value": "2010-10-10T00:00:00Z"
+   },
+   "end": {
+    "type": "literal",
+    "value": "2022-10-10T00:00:00Z"
+   },
+   "endPrecision": {
+    "type": "literal",
+    "value": "11"
+   }
+  }
+ ],
+ "elections": [
+  {
+   "c": {
+    "type": "uri",
+    "value": "http://www.wikidata.org/entity/Q419"
+   },
+   "e": {
+    "type": "uri",
+    "value": "http://www.wikidata.org/entity/QP1995"
+   },
+   "eLabel": {
+    "type": "literal",
+    "value": "1995 Peruvian general election"
+   },
+   "date": {
+    "type": "literal",
+    "value": "1995-04-09T00:00:00Z"
+   },
+   "precision": {
+    "type": "literal",
+    "value": "11"
+   },
+   "type": {
+    "type": "uri",
+    "value": "http://www.wikidata.org/entity/Q100"
+   }
+  },
+  {
+   "c": {
+    "type": "uri",
+    "value": "http://www.wikidata.org/entity/Q419"
+   },
+   "e": {
+    "type": "uri",
+    "value": "http://www.wikidata.org/entity/QP2000"
+   },
+   "eLabel": {
+    "type": "literal",
+    "value": "2000 Peruvian general election"
+   },
+   "date": {
+    "type": "literal",
+    "value": "2000-04-09T00:00:00Z"
+   },
+   "precision": {
+    "type": "literal",
+    "value": "11"
+   },
+   "type": {
+    "type": "uri",
+    "value": "http://www.wikidata.org/entity/Q100"
+   }
+  },
+  {
+   "c": {
+    "type": "uri",
+    "value": "http://www.wikidata.org/entity/Q419"
+   },
+   "e": {
+    "type": "uri",
+    "value": "http://www.wikidata.org/entity/QP2001"
+   },
+   "eLabel": {
+    "type": "literal",
+    "value": "2001 Peruvian general election"
+   },
+   "date": {
+    "type": "literal",
+    "value": "2001-04-08T00:00:00Z"
+   },
+   "precision": {
+    "type": "literal",
+    "value": "11"
+   },
+   "type": {
+    "type": "uri",
+    "value": "http://www.wikidata.org/entity/Q100"
+   }
+  },
+  {
+   "c": {
+    "type": "uri",
+    "value": "http://www.wikidata.org/entity/Q419"
+   },
+   "e": {
+    "type": "uri",
+    "value": "http://www.wikidata.org/entity/QP2006"
+   },
+   "eLabel": {
+    "type": "literal",
+    "value": "2006 Peruvian general election"
+   },
+   "date": {
+    "type": "literal",
+    "value": "2006-04-09T00:00:00Z"
+   },
+   "precision": {
+    "type": "literal",
+    "value": "11"
+   },
+   "type": {
+    "type": "uri",
+    "value": "http://www.wikidata.org/entity/Q100"
+   }
+  },
+  {
+   "c": {
+    "type": "uri",
+    "value": "http://www.wikidata.org/entity/Q419"
+   },
+   "e": {
+    "type": "uri",
+    "value": "http://www.wikidata.org/entity/QP2011"
+   },
+   "eLabel": {
+    "type": "literal",
+    "value": "2011 Peruvian general election"
+   },
+   "date": {
+    "type": "literal",
+    "value": "2011-04-10T00:00:00Z"
+   },
+   "precision": {
+    "type": "literal",
+    "value": "11"
+   },
+   "type": {
+    "type": "uri",
+    "value": "http://www.wikidata.org/entity/Q100"
+   }
+  },
+  {
+   "c": {
+    "type": "uri",
+    "value": "http://www.wikidata.org/entity/Q419"
+   },
+   "e": {
+    "type": "uri",
+    "value": "http://www.wikidata.org/entity/QP2016"
+   },
+   "eLabel": {
+    "type": "literal",
+    "value": "2016 Peruvian general election"
+   },
+   "date": {
+    "type": "literal",
+    "value": "2016-04-10T00:00:00Z"
+   },
+   "precision": {
+    "type": "literal",
+    "value": "11"
+   },
+   "type": {
+    "type": "uri",
+    "value": "http://www.wikidata.org/entity/Q100"
+   }
+  },
+  {
+   "c": {
+    "type": "uri",
+    "value": "http://www.wikidata.org/entity/Q419"
+   },
+   "e": {
+    "type": "uri",
+    "value": "http://www.wikidata.org/entity/QP2021"
+   },
+   "eLabel": {
+    "type": "literal",
+    "value": "2021 Peruvian general election"
+   },
+   "date": {
+    "type": "literal",
+    "value": "2021-04-11T00:00:00Z"
+   },
+   "precision": {
+    "type": "literal",
+    "value": "11"
+   },
+   "type": {
+    "type": "uri",
+    "value": "http://www.wikidata.org/entity/Q100"
+   }
+  },
+  {
+   "c": {
+    "type": "uri",
+    "value": "http://www.wikidata.org/entity/Q55"
+   },
+   "e": {
+    "type": "uri",
+    "value": "http://www.wikidata.org/entity/QN1994-05-03"
+   },
+   "eLabel": {
+    "type": "literal",
+    "value": "1994 Dutch general election"
+   },
+   "date": {
+    "type": "literal",
+    "value": "1994-05-03T00:00:00Z"
+   },
+   "precision": {
+    "type": "literal",
+    "value": "11"
+   },
+   "type": {
+    "type": "uri",
+    "value": "http://www.wikidata.org/entity/Q101"
+   },
+   "article": {
+    "type": "literal",
+    "value": "https://en.wikipedia.org/wiki/1994_Dutch_general_election"
+   }
+  },
+  {
+   "c": {
+    "type": "uri",
+    "value": "http://www.wikidata.org/entity/Q55"
+   },
+   "e": {
+    "type": "uri",
+    "value": "http://www.wikidata.org/entity/QN1998-05-06"
+   },
+   "eLabel": {
+    "type": "literal",
+    "value": "1998 Dutch general election"
+   },
+   "date": {
+    "type": "literal",
+    "value": "1998-05-06T00:00:00Z"
+   },
+   "precision": {
+    "type": "literal",
+    "value": "11"
+   },
+   "type": {
+    "type": "uri",
+    "value": "http://www.wikidata.org/entity/Q101"
+   },
+   "article": {
+    "type": "literal",
+    "value": "https://en.wikipedia.org/wiki/1998_Dutch_general_election"
+   }
+  },
+  {
+   "c": {
+    "type": "uri",
+    "value": "http://www.wikidata.org/entity/Q55"
+   },
+   "e": {
+    "type": "uri",
+    "value": "http://www.wikidata.org/entity/QN2002-05-15"
+   },
+   "eLabel": {
+    "type": "literal",
+    "value": "2002 Dutch general election"
+   },
+   "date": {
+    "type": "literal",
+    "value": "2002-05-15T00:00:00Z"
+   },
+   "precision": {
+    "type": "literal",
+    "value": "11"
+   },
+   "type": {
+    "type": "uri",
+    "value": "http://www.wikidata.org/entity/Q101"
+   },
+   "article": {
+    "type": "literal",
+    "value": "https://en.wikipedia.org/wiki/2002_Dutch_general_election"
+   }
+  },
+  {
+   "c": {
+    "type": "uri",
+    "value": "http://www.wikidata.org/entity/Q55"
+   },
+   "e": {
+    "type": "uri",
+    "value": "http://www.wikidata.org/entity/QN2003-01-22"
+   },
+   "eLabel": {
+    "type": "literal",
+    "value": "2003 Dutch general election"
+   },
+   "date": {
+    "type": "literal",
+    "value": "2003-01-22T00:00:00Z"
+   },
+   "precision": {
+    "type": "literal",
+    "value": "11"
+   },
+   "type": {
+    "type": "uri",
+    "value": "http://www.wikidata.org/entity/Q101"
+   },
+   "article": {
+    "type": "literal",
+    "value": "https://en.wikipedia.org/wiki/2003_Dutch_general_election"
+   }
+  },
+  {
+   "c": {
+    "type": "uri",
+    "value": "http://www.wikidata.org/entity/Q55"
+   },
+   "e": {
+    "type": "uri",
+    "value": "http://www.wikidata.org/entity/QN2006-11-22"
+   },
+   "eLabel": {
+    "type": "literal",
+    "value": "2006 Dutch general election"
+   },
+   "date": {
+    "type": "literal",
+    "value": "2006-11-22T00:00:00Z"
+   },
+   "precision": {
+    "type": "literal",
+    "value": "11"
+   },
+   "type": {
+    "type": "uri",
+    "value": "http://www.wikidata.org/entity/Q101"
+   },
+   "article": {
+    "type": "literal",
+    "value": "https://en.wikipedia.org/wiki/2006_Dutch_general_election"
+   }
+  },
+  {
+   "c": {
+    "type": "uri",
+    "value": "http://www.wikidata.org/entity/Q55"
+   },
+   "e": {
+    "type": "uri",
+    "value": "http://www.wikidata.org/entity/QN2010-06-09"
+   },
+   "eLabel": {
+    "type": "literal",
+    "value": "2010 Dutch general election"
+   },
+   "date": {
+    "type": "literal",
+    "value": "2010-06-09T00:00:00Z"
+   },
+   "precision": {
+    "type": "literal",
+    "value": "11"
+   },
+   "type": {
+    "type": "uri",
+    "value": "http://www.wikidata.org/entity/Q101"
+   },
+   "article": {
+    "type": "literal",
+    "value": "https://en.wikipedia.org/wiki/2010_Dutch_general_election"
+   }
+  },
+  {
+   "c": {
+    "type": "uri",
+    "value": "http://www.wikidata.org/entity/Q55"
+   },
+   "e": {
+    "type": "uri",
+    "value": "http://www.wikidata.org/entity/QN2012-09-12"
+   },
+   "eLabel": {
+    "type": "literal",
+    "value": "2012 Dutch general election"
+   },
+   "date": {
+    "type": "literal",
+    "value": "2012-09-12T00:00:00Z"
+   },
+   "precision": {
+    "type": "literal",
+    "value": "11"
+   },
+   "type": {
+    "type": "uri",
+    "value": "http://www.wikidata.org/entity/Q101"
+   },
+   "article": {
+    "type": "literal",
+    "value": "https://en.wikipedia.org/wiki/2012_Dutch_general_election"
+   }
+  },
+  {
+   "c": {
+    "type": "uri",
+    "value": "http://www.wikidata.org/entity/Q55"
+   },
+   "e": {
+    "type": "uri",
+    "value": "http://www.wikidata.org/entity/QN2017-03-15"
+   },
+   "eLabel": {
+    "type": "literal",
+    "value": "2017 Dutch general election"
+   },
+   "date": {
+    "type": "literal",
+    "value": "2017-03-15T00:00:00Z"
+   },
+   "precision": {
+    "type": "literal",
+    "value": "11"
+   },
+   "type": {
+    "type": "uri",
+    "value": "http://www.wikidata.org/entity/Q101"
+   },
+   "article": {
+    "type": "literal",
+    "value": "https://en.wikipedia.org/wiki/2017_Dutch_general_election"
+   }
+  },
+  {
+   "c": {
+    "type": "uri",
+    "value": "http://www.wikidata.org/entity/Q55"
+   },
+   "e": {
+    "type": "uri",
+    "value": "http://www.wikidata.org/entity/QN2021-03-17"
+   },
+   "eLabel": {
+    "type": "literal",
+    "value": "2021 Dutch general election"
+   },
+   "date": {
+    "type": "literal",
+    "value": "2021-03-17T00:00:00Z"
+   },
+   "precision": {
+    "type": "literal",
+    "value": "11"
+   },
+   "type": {
+    "type": "uri",
+    "value": "http://www.wikidata.org/entity/Q101"
+   },
+   "article": {
+    "type": "literal",
+    "value": "https://en.wikipedia.org/wiki/2021_Dutch_general_election"
+   }
+  },
+  {
+   "c": {
+    "type": "uri",
+    "value": "http://www.wikidata.org/entity/Q55"
+   },
+   "e": {
+    "type": "uri",
+    "value": "http://www.wikidata.org/entity/QN2023-11-22"
+   },
+   "eLabel": {
+    "type": "literal",
+    "value": "2023 Dutch general election"
+   },
+   "date": {
+    "type": "literal",
+    "value": "2023-11-22T00:00:00Z"
+   },
+   "precision": {
+    "type": "literal",
+    "value": "11"
+   },
+   "type": {
+    "type": "uri",
+    "value": "http://www.wikidata.org/entity/Q101"
+   },
+   "article": {
+    "type": "literal",
+    "value": "https://en.wikipedia.org/wiki/2023_Dutch_general_election"
+   }
+  },
+  {
+   "c": {
+    "type": "uri",
+    "value": "http://www.wikidata.org/entity/Q419"
+   },
+   "e": {
+    "type": "uri",
+    "value": "http://www.wikidata.org/entity/QLIMA"
+   },
+   "eLabel": {
+    "type": "literal",
+    "value": "2010 Lima municipal election"
+   },
+   "date": {
+    "type": "literal",
+    "value": "2010-10-03T00:00:00Z"
+   },
+   "precision": {
+    "type": "literal",
+    "value": "11"
+   },
+   "type": {
+    "type": "uri",
+    "value": "http://www.wikidata.org/entity/Q103"
+   }
+  },
+  {
+   "c": {
+    "type": "uri",
+    "value": "http://www.wikidata.org/entity/Q55"
+   },
+   "e": {
+    "type": "uri",
+    "value": "http://www.wikidata.org/entity/QCAR"
+   },
+   "eLabel": {
+    "type": "literal",
+    "value": "2010 Curaçao general election"
+   },
+   "date": {
+    "type": "literal",
+    "value": "2010-08-27T00:00:00Z"
+   },
+   "precision": {
+    "type": "literal",
+    "value": "11"
+   },
+   "type": {
+    "type": "uri",
+    "value": "http://www.wikidata.org/entity/Q101"
+   },
+   "jur": {
+    "type": "uri",
+    "value": "http://www.wikidata.org/entity/Q25279"
+   }
+  },
+  {
+   "c": {
+    "type": "uri",
+    "value": "http://www.wikidata.org/entity/Q29999"
+   },
+   "e": {
+    "type": "uri",
+    "value": "http://www.wikidata.org/entity/QSNAP"
+   },
+   "eLabel": {
+    "type": "literal",
+    "value": "2025 Dutch general election"
+   },
+   "date": {
+    "type": "literal",
+    "value": "2025-10-29T00:00:00Z"
+   },
+   "precision": {
+    "type": "literal",
+    "value": "11"
+   },
+   "type": {
+    "type": "uri",
+    "value": "http://www.wikidata.org/entity/Q1333366"
+   }
+  }
+ ],
+ "election_types": [
+  {
+   "type": {
+    "type": "uri",
+    "value": "http://www.wikidata.org/entity/Q100"
+   },
+   "typeLabel": {
+    "type": "literal",
+    "value": "Peruvian general election"
+   },
+   "snap": {
+    "type": "literal",
+    "value": "false"
+   }
+  },
+  {
+   "type": {
+    "type": "uri",
+    "value": "http://www.wikidata.org/entity/Q101"
+   },
+   "typeLabel": {
+    "type": "literal",
+    "value": "Dutch general election"
+   },
+   "snap": {
+    "type": "literal",
+    "value": "false"
+   }
+  },
+  {
+   "type": {
+    "type": "uri",
+    "value": "http://www.wikidata.org/entity/Q1333366"
+   },
+   "typeLabel": {
+    "type": "literal",
+    "value": "snap election"
+   },
+   "snap": {
+    "type": "literal",
+    "value": "true"
+   }
+  },
+  {
+   "type": {
+    "type": "uri",
+    "value": "http://www.wikidata.org/entity/Q103"
+   },
+   "typeLabel": {
+    "type": "literal",
+    "value": "municipal election"
+   },
+   "snap": {
+    "type": "literal",
+    "value": "false"
+   }
+  }
+ ],
+ "emergencies": [
+  {
+   "e": {
+    "type": "uri",
+    "value": "http://www.wikidata.org/entity/QE1"
+   },
+   "eLabel": {
+    "type": "literal",
+    "value": "2015 Dutch state of emergency"
+   },
+   "c": {
+    "type": "uri",
+    "value": "http://www.wikidata.org/entity/Q55"
+   },
+   "point": {
+    "type": "literal",
+    "value": "2015-06-01T00:00:00Z"
+   }
+  },
+  {
+   "e": {
+    "type": "uri",
+    "value": "http://www.wikidata.org/entity/QE2"
+   },
+   "eLabel": {
+    "type": "literal",
+    "value": "COVID-19 state of emergency in Peru"
+   },
+   "c": {
+    "type": "uri",
+    "value": "http://www.wikidata.org/entity/Q419"
+   },
+   "start": {
+    "type": "literal",
+    "value": "2020-03-15T00:00:00Z"
+   }
+  }
+ ],
+ "intros": {
+  "2006_Dutch_general_election": "Early general elections were held in the Netherlands on 22 November 2006. The CDA remained the largest party.",
+  "2017_Dutch_general_election": "General elections were held in the Netherlands on 15 March 2017. Early voting was not available."
+ },
+ "cline": [
+  {
+   "cowcode": "135",
+   "country": "Peru",
+   "coup_id": "13510292000",
+   "year": "2000",
+   "month": "10",
+   "day": "29",
+   "event_type": "attempted coup",
+   "realized": "0",
+   "conspiracy": "0"
+  },
+  {
+   "cowcode": "135",
+   "country": "Peru",
+   "coup_id": "13504052001",
+   "year": "2001",
+   "month": "4",
+   "day": "5",
+   "event_type": "conspiracy",
+   "realized": "0",
+   "conspiracy": "1"
+  },
+  {
+   "cowcode": "135",
+   "country": "Peru",
+   "coup_id": "13504051992",
+   "year": "1992",
+   "month": "4",
+   "day": "5",
+   "event_type": "coup",
+   "realized": "1",
+   "conspiracy": "0"
+  },
+  {
+   "cowcode": "999",
+   "country": "Atlantis",
+   "coup_id": "99901012005",
+   "year": "2005",
+   "month": "1",
+   "day": "1",
+   "event_type": "coup",
+   "realized": "1",
+   "conspiracy": "0"
+  }
+ ],
+ "archigos": [
+  {
+   "ccode": "135",
+   "leader": "Fujimori",
+   "enddate": "2000-11-22",
+   "exit": "Irregular"
+  },
+  {
+   "ccode": "135",
+   "leader": "Kuczynski",
+   "enddate": "2018-03-23",
+   "exit": "Irregular"
+  },
+  {
+   "ccode": "210",
+   "leader": "Kok",
+   "enddate": "2002-07-22",
+   "exit": "Regular"
+  },
+  {
+   "ccode": "210",
+   "leader": "Beatrix",
+   "enddate": "2013-04-30",
+   "exit": "Retired Due to Ill Health"
+  }
+ ],
+ "nelda": [
+  {
+   "nelda_ccode": "210",
+   "nelda_country": "Netherlands",
+   "year": "2003",
+   "mmdd": "122",
+   "nelda6": "yes",
+   "nelda6notes": "Early elections after the cabinet fell."
+  },
+  {
+   "nelda_ccode": "135",
+   "nelda_country": "Peru",
+   "year": "2001",
+   "mmdd": "408",
+   "nelda6": "yes",
+   "nelda6notes": "Elections were held early after Fujimori fled."
+  },
+  {
+   "nelda_ccode": "135",
+   "nelda_country": "Peru",
+   "year": "2001",
+   "mmdd": "603",
+   "nelda6": "yes",
+   "nelda6notes": "Runoff of the early election."
+  },
+  {
+   "nelda_ccode": "210",
+   "nelda_country": "Netherlands",
+   "year": "2006",
+   "mmdd": "1122",
+   "nelda6": "yes",
+   "nelda6notes": ""
+  },
+  {
+   "nelda_ccode": "135",
+   "nelda_country": "Peru",
+   "year": "2006",
+   "mmdd": "409",
+   "nelda6": "yes",
+   "nelda6notes": "Elections were held late."
+  }
+ ],
+ "cow_names": [
+  [
+   "135",
+   "Peru"
+  ],
+  [
+   "210",
+   "Netherlands"
+  ]
+ ],
+ "impeachments": [
+  {
+   "iso3": "PER",
+   "date": "2020-11-09",
+   "person": "Martín Vizcarra",
+   "office": "president",
+   "removed_on": "2020-11-09",
+   "detail": "Congress declares the presidency vacant",
+   "source": "https://en.wikipedia.org/wiki/Second_impeachment_process_against_Mart%C3%ADn_Vizcarra"
+  }
+ ],
+ "emergency_list": [],
+ "checks": []
+}

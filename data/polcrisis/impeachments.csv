@@ -1,20 +1,20 @@
-iso3,date,person,office,detail,source
-PHL,2000-11-13,Joseph Estrada,president,House of Representatives transmits articles of impeachment to the Senate,https://en.wikipedia.org/wiki/Impeachment_of_Joseph_Estrada
-PER,2000-11-21,Alberto Fujimori,president,Congress declares the presidency vacant (moral incapacity) after his resignation by fax,https://en.wikipedia.org/wiki/Alberto_Fujimori
-IDN,2001-07-23,Abdurrahman Wahid,president,People's Consultative Assembly special session removes the president,https://en.wikipedia.org/wiki/Abdurrahman_Wahid
-KOR,2004-03-12,Roh Moo-hyun,president,National Assembly passes impeachment motion,https://en.wikipedia.org/wiki/Impeachment_of_Roh_Moo-hyun
-LTU,2004-04-06,Rolandas Paksas,president,Seimas votes to remove the president in impeachment proceedings,https://en.wikipedia.org/wiki/Rolandas_Paksas
-ROU,2007-04-19,Traian Băsescu,president,Parliament votes to suspend the president (impeachment referendum follows),https://en.wikipedia.org/wiki/2007_Romanian_presidential_impeachment_referendum
-PRY,2012-06-21,Fernando Lugo,president,Chamber of Deputies votes to impeach; Senate removes him the next day,https://en.wikipedia.org/wiki/Impeachment_of_Fernando_Lugo
-ROU,2012-07-06,Traian Băsescu,president,Parliament votes to suspend the president (impeachment referendum follows),https://en.wikipedia.org/wiki/2012_Romanian_presidential_impeachment_referendum
-CZE,2013-03-04,Václav Klaus,president,Senate files a high-treason charge against the president with the Constitutional Court,https://en.wikipedia.org/wiki/V%C3%A1clav_Klaus
-MDG,2015-05-26,Hery Rajaonarimampianina,president,National Assembly votes to impeach (later annulled by the High Constitutional Court),https://en.wikipedia.org/wiki/Hery_Rajaonarimampianina
-BRA,2016-04-17,Dilma Rousseff,president,Chamber of Deputies approves impeachment; Senate removes her on 2016-08-31,https://en.wikipedia.org/wiki/Impeachment_of_Dilma_Rousseff
-KOR,2016-12-09,Park Geun-hye,president,National Assembly passes impeachment motion,https://en.wikipedia.org/wiki/Impeachment_of_Park_Geun-hye
-USA,2019-12-18,Donald Trump,president,House of Representatives impeaches the president (first impeachment),https://en.wikipedia.org/wiki/First_impeachment_of_Donald_Trump
-PER,2020-11-09,Martín Vizcarra,president,Congress declares the presidency vacant (moral incapacity),https://en.wikipedia.org/wiki/Second_impeachment_process_against_Mart%C3%ADn_Vizcarra
-USA,2021-01-13,Donald Trump,president,House of Representatives impeaches the president (second impeachment),https://en.wikipedia.org/wiki/Second_impeachment_of_Donald_Trump
-PER,2022-12-07,Pedro Castillo,president,Congress removes the president after his attempt to dissolve it,https://en.wikipedia.org/wiki/Removal_of_Pedro_Castillo
-KOR,2024-12-14,Yoon Suk Yeol,president,National Assembly passes impeachment motion after the martial law declaration,https://en.wikipedia.org/wiki/Impeachment_of_Yoon_Suk_Yeol
-KOR,2024-12-27,Han Duck-soo,prime minister and acting president,National Assembly passes impeachment motion against the acting president,https://en.wikipedia.org/wiki/Impeachment_of_Han_Duck-soo
-PER,2025-10-10,Dina Boluarte,president,Congress declares the presidency vacant (moral incapacity),https://en.wikipedia.org/wiki/Dina_Boluarte
+iso3,date,person,office,detail,removed_on,source
+PHL,2000-11-13,Joseph Estrada,president,House of Representatives transmits articles of impeachment to the Senate,,https://en.wikipedia.org/wiki/Impeachment_of_Joseph_Estrada
+PER,2000-11-21,Alberto Fujimori,president,Congress declares the presidency vacant (moral incapacity) after his resignation by fax,2000-11-21,https://en.wikipedia.org/wiki/Alberto_Fujimori
+IDN,2001-07-23,Abdurrahman Wahid,president,People's Consultative Assembly special session removes the president,2001-07-23,https://en.wikipedia.org/wiki/Abdurrahman_Wahid
+KOR,2004-03-12,Roh Moo-hyun,president,National Assembly passes impeachment motion,,https://en.wikipedia.org/wiki/Impeachment_of_Roh_Moo-hyun
+LTU,2004-04-06,Rolandas Paksas,president,Seimas votes to remove the president in impeachment proceedings,2004-04-06,https://en.wikipedia.org/wiki/Rolandas_Paksas
+ROU,2007-04-19,Traian Băsescu,president,Parliament votes to suspend the president (impeachment referendum follows),,https://en.wikipedia.org/wiki/2007_Romanian_presidential_impeachment_referendum
+PRY,2012-06-21,Fernando Lugo,president,Chamber of Deputies votes to impeach; Senate removes him the next day,2012-06-22,https://en.wikipedia.org/wiki/Impeachment_of_Fernando_Lugo
+ROU,2012-07-06,Traian Băsescu,president,Parliament votes to suspend the president (impeachment referendum follows),,https://en.wikipedia.org/wiki/2012_Romanian_presidential_impeachment_referendum
+CZE,2013-03-04,Václav Klaus,president,Senate files a high-treason charge against the president with the Constitutional Court,,https://en.wikipedia.org/wiki/V%C3%A1clav_Klaus
+MDG,2015-05-26,Hery Rajaonarimampianina,president,National Assembly votes to impeach (later annulled by the High Constitutional Court),,https://en.wikipedia.org/wiki/Hery_Rajaonarimampianina
+BRA,2016-04-17,Dilma Rousseff,president,Chamber of Deputies approves impeachment; Senate removes her on 2016-08-31,2016-08-31,https://en.wikipedia.org/wiki/Impeachment_of_Dilma_Rousseff
+KOR,2016-12-09,Park Geun-hye,president,National Assembly passes impeachment motion,2017-03-10,https://en.wikipedia.org/wiki/Impeachment_of_Park_Geun-hye
+USA,2019-12-18,Donald Trump,president,House of Representatives impeaches the president (first impeachment),,https://en.wikipedia.org/wiki/First_impeachment_of_Donald_Trump
+PER,2020-11-09,Martín Vizcarra,president,Congress declares the presidency vacant (moral incapacity),2020-11-09,https://en.wikipedia.org/wiki/Second_impeachment_process_against_Mart%C3%ADn_Vizcarra
+USA,2021-01-13,Donald Trump,president,House of Representatives impeaches the president (second impeachment),,https://en.wikipedia.org/wiki/Second_impeachment_of_Donald_Trump
+PER,2022-12-07,Pedro Castillo,president,Congress removes the president after his attempt to dissolve it,2022-12-07,https://en.wikipedia.org/wiki/Removal_of_Pedro_Castillo
+KOR,2024-12-14,Yoon Suk Yeol,president,National Assembly passes impeachment motion after the martial law declaration,2025-04-04,https://en.wikipedia.org/wiki/Impeachment_of_Yoon_Suk_Yeol
+KOR,2024-12-27,Han Duck-soo,prime minister and acting president,National Assembly passes impeachment motion against the acting president,,https://en.wikipedia.org/wiki/Impeachment_of_Han_Duck-soo
+PER,2025-10-10,Dina Boluarte,president,Congress declares the presidency vacant (moral incapacity),2025-10-10,https://en.wikipedia.org/wiki/Dina_Boluarte
