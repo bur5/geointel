@@ -103,6 +103,7 @@ def forecasts(
     groups: Mapping[str, str] | None = None,
     cap_mult: float | None = None,
     world_cap_mult: float | None = None,
+    gap: int | None = None,
 ) -> dict[str, dict]:
     """P(event in ``issue_year``) per country from data up to ``issue_year - lag``.
 
@@ -115,7 +116,7 @@ def forecasts(
     }
     out: dict[str, dict] = {}
     if persistent:
-        trans = {iso3: transition_counts(known, iso3, f) for iso3, f in countries.items()}
+        trans = {iso3: transition_counts(known, iso3, f, gap) for iso3, f in countries.items()}
         prior01 = fit_prior(t[0] for t in trans.values())
         prior11 = fit_prior(t[1] for t in trans.values() if t[1].trials > 0)
         for iso3, first in countries.items():
@@ -328,6 +329,7 @@ def run_type(
             groups,
             variant.get("cap"),
             variant.get("world_cap"),
+            variant.get("gap"),
         )
         refs = references(history, first_years, year, lag)
         for iso3, item in fc.items():
@@ -469,6 +471,24 @@ def run(
     for name, (lo, hi) in periods.items():
         chunk = {k: [r for r in v if lo <= r["year"] <= hi] for k, v in all_records.items()}
         out["danger"][name] = danger_check(chunk)
+    # Conflict onset variants (Fable round 4, #5): plain transitions vs a one-year lull counted
+    # as continuing.
+    out["conflict_variants"] = {}
+    for key in CLASS_A:
+        history = histories.get(key)
+        if history is None:
+            continue
+        for gap in (0, 1):
+            records = run_type(key, history, first_years, True, years, None, {"gap": gap})
+            out["conflict_variants"][f"{key.value}, lull gap {gap}"] = {
+                name: {
+                    state: summarise(
+                        [r for r in records if lo <= r["year"] <= hi and r["state"] == state]
+                    )
+                    for state in ("onset", "continuation")
+                }
+                for name, (lo, hi) in periods.items()
+            }
     coups = histories.get(EventType.COUP_ATTEMPT)
     if coups is not None:
         # Variants of the coup base rate, compared on the tuning period (rules: choose on

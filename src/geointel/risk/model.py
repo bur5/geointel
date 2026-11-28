@@ -106,10 +106,17 @@ def bernoulli_counts(history: TypeHistory, iso3: str, first_year: int | None) ->
     return Counts(s, t)
 
 
+# A single quiet year between two conflict years is a lull, not peace: with gap 1 such a year
+# is counted as continuing the conflict, so conflicts that hover around the 25-death threshold
+# no longer produce a high onset rate (Fable round 4, #5). 0 keeps the plain transitions.
+FLICKER_GAP = 0
+
+
 def transition_counts(
-    history: TypeHistory, iso3: str, first_year: int | None
+    history: TypeHistory, iso3: str, first_year: int | None, gap: int | None = None
 ) -> tuple[Counts, Counts]:
     """Weighted (onset | peace) and (continuation | active) counts."""
+    gap = FLICKER_GAP if gap is None else gap
     years = history.years_with_event.get(iso3, frozenset())
     span = exposure(history, first_year, iso3)
     observed = set(span)
@@ -119,7 +126,12 @@ def transition_counts(
             continue  # no transition across a data gap
         w = _weight(year, history.end_year, history.half_life_years)
         now = year in years
-        if (year - 1) in years:
+        lull = (
+            gap > 0
+            and (year - 1) not in years
+            and any((year - 1 - k) in years for k in range(1, gap + 1))
+        )
+        if (year - 1) in years or lull:
             t11 += w
             s11 += w * now
         else:
