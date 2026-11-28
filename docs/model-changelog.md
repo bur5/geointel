@@ -3,6 +3,20 @@
 Every change that can move a published probability gets a new `MODEL_VERSION`
 (`src/geointel/risk/__init__.py`), an entry here, and a before/after report.
 
+## 1.13.0 — 2026-11-28 (Fable round 4, 3.2–3.3: regions by population)
+- Population per region from the GHSL population grid (epoch 2025, about 1 km, CC BY 4.0)
+  instead of cities of 15,000+, so rural people count. Built by a separate workflow into
+  `cache/popgrid.json`; without it the old proxy is used.
+- Regional conflict levels use deaths per 100,000 as well as absolute counts. State-based
+  fighting: 5 = 250+ deaths in 90 days and 2+ per 100,000; 4 = 50+ in 90 days and 0.5+ per
+  100,000, or 150+ in 12 months and 2+ per 100,000. Violence between armed groups (cartels)
+  and against civilians stops at 4, and reaches 4 only at 150+ deaths and 10+ per 100,000 a
+  year; such regions are labelled as armed-group violence, not war.
+- A country's level (the level most people live at) counts a region's conflict level only
+  for the people within one 0.25° cell of a cell with deaths; the rest of the region counts
+  at its other level. Fighting in part of a huge region (Oromia, Amhara) no longer sets the
+  whole country.
+
 ## 1.12.0 — 2026-11-28 (Fable round 4, priority-2/3 fixes)
 - Regional hazard frequencies: each hazard uses one source with that source's own start year
   (USGS for earthquakes, NCEI for tsunamis, GDACS for cyclones, floods, droughts, fires,

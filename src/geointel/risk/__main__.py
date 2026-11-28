@@ -821,9 +821,12 @@ def main(argv: list[str] | None = None) -> int:
     signals["model_version"] = MODEL_VERSION
     regional = {}
     if extras.get("region_index") is not None:
+        from geointel.risk import popgrid as popgrid_mod
         from geointel.risk.regional import build_regional
         from geointel.risk.regions import simplified_geojson
 
+        grid = popgrid_mod.load(_cache_dirs()[0] / popgrid_mod.FILE)
+        print(f"[regional] population grid: {'GHSL' if grid else 'missing, cities used'}")
         conflict_levels = {}
         ged_payload = extras.get("ged")
         if ged_payload:
@@ -845,6 +848,7 @@ def main(argv: list[str] | None = None) -> int:
                 [*ged_payload.get("annual", []), *ged_payload.get("candidate", [])],
                 extras["region_index"].locate,
                 now.date(),
+                grid.regions if grid else None,
             )
             print(
                 f"[regional] conflict regions: "
@@ -864,6 +868,7 @@ def main(argv: list[str] | None = None) -> int:
             extras.get("volcanoes"),
             now.year - 1,
             conflict_levels,
+            grid,
         )
         (args.out.parent / "regional.json").write_text(
             json.dumps(

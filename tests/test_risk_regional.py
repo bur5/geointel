@@ -206,3 +206,45 @@ def test_window_starts_at_the_source_used():
     assert eq["regions"][0]["years"] == 2  # the GDACS duplicate is not mixed in
     only_gdacs = build_regional(INDEX, gdacs, {}, {}, [], 2025)["USA"]
     assert only_gdacs["hazards"]["major_earthquake"]["window"] == [2010, 2025]
+
+
+def test_per_capita_thresholds_and_cartel_density():
+    from geointel.risk.sources.ucdp_ged import conflict_level
+
+    # 260 state-based deaths in 90 days: a war zone for 5 million people, not for 40 million.
+    assert conflict_level(260, 260, 0, 0, 5_000_000) == 5
+    assert conflict_level(260, 260, 0, 0, 40_000_000) == 4  # 0.65 per 100k in 90 days
+    assert conflict_level(260, 260, 0, 0, None) == 5  # no population: absolute rule
+    # Cartel violence: 4 only at 10+ per 100,000 a year.
+    assert conflict_level(0, 0, 100, 400, 10_000_000) == 3
+    assert conflict_level(0, 0, 100, 1_200, 10_000_000) == 4
+    assert conflict_level(0, 0, 500, 5_000, 1_000_000) == 4  # never 5
+
+
+def test_country_level_counts_only_people_near_fighting():
+    from geointel.risk.popgrid import PopGrid, cell_of
+
+    fl_hot = cell_of(27.0, -82.0)
+    far = cell_of(30.5, -86.5)
+    grid = PopGrid(
+        {
+            "version": 1,
+            "regions": {"USA": {"FL": 6_000_000, "MN": 2_000_000, "CA": 3_000_000}},
+            "cells": {
+                "USA": {
+                    "FL": [[*fl_hot, 500_000], [*far, 5_500_000]],
+                    "MN": [[*cell_of(45.0, -93.0), 2_000_000]],
+                    "CA": [[*cell_of(34.0, -118.0), 3_000_000]],
+                }
+            },
+        }
+    )
+    extra = {"USA": {"FL": {"level": 5, "reason_ru": "", "reason_en": "", "hot_cells": [fl_hot]}}}
+    regional = build_regional(INDEX, [], {}, {}, [], 2025, extra, grid)["USA"]
+    fl = next(r for r in regional["regions"] if r["code"] == "FL")
+    assert fl["level"] == 5 and fl["zone_population"] == 500_000
+    assert regional["population_source"] == "ghsl"
+    # Without the zone split Florida (6 of 11 million) would set the country to 5.
+    assert regional["level_median"] == 1 and regional["level_max"] == 5
+    assert regional["max_population_share"] == round(500_000 / 11_000_000, 3)
+    assert "hot_cells" not in fl["reasons"][0]
