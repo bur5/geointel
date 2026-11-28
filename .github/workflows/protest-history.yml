@@ -1,0 +1,58 @@
+name: Protest history after 2020
+# docs/protest-history.md. Two paths, both run by hand:
+#   mode=label, max_usd=0  -> dry run: counts candidate articles and estimates the cost (free)
+#   mode=label, max_usd=N  -> paid labelling, stops at N USD (only with the owner's approval)
+#   mode=carnegie, carnegie_url=<spreadsheet URL> -> only with Carnegie's permission
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "label or carnegie"
+        default: "label"
+      max_usd:
+        description: "Spending cap in USD for labelling; 0 = dry run"
+        default: "0"
+      carnegie_url:
+        description: "Carnegie spreadsheet URL (carnegie mode)"
+        default: ""
+permissions:
+  contents: write
+concurrency:
+  group: risk-snapshot-main
+  cancel-in-progress: false
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12", cache: pip }
+      - run: python -m pip install -e .
+      - name: Run
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          MODE: ${{ inputs.mode }}
+          MAX_USD: ${{ inputs.max_usd }}
+          CARNEGIE_URL: ${{ inputs.carnegie_url }}
+        run: |
+          mkdir -p out
+          if [ "$MODE" = "carnegie" ]; then
+            python -m geointel.risk.sources.protest_history_run carnegie "$CARNEGIE_URL" out/protest_history.json
+          else
+            python -m geointel.risk.sources.protest_history_run label "$MAX_USD" out/protest_history.json
+          fi
+      - name: Store in risk-data (not for dry runs)
+        if: inputs.mode == 'carnegie' || inputs.max_usd != '0'
+        run: |
+          set -e
+          git config user.name "geointel-bot"
+          git config user.email "geointel-bot@users.noreply.github.com"
+          git fetch --depth=1 origin risk-data
+          git worktree add publish FETCH_HEAD
+          cd publish && git checkout -B risk-data
+          mkdir -p cache
+          cp ../out/protest_history.json cache/protest_history.json
+          git add cache/protest_history.json
+          git commit -qm "Protest history $(date -u +%Y-%m-%d)" || { echo "No changes"; exit 0; }
+          git push origin risk-data

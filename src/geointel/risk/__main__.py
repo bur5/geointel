@@ -218,8 +218,14 @@ def load_histories(
         from geointel.risk.sources import protests, vdem_mob
 
         payload = json.loads(path.read_text())
+        from geointel.risk.sources import protest_history
+
+        checked = _load(_cache_dirs()[0] / protest_history.FILE) or None
         vdem = vdem_mob.load(_cache_dirs()[0] / vdem_mob.FILE)
-        if vdem:
+        if isinstance(checked, dict) and protest_history.usable(checked):
+            payload = protest_history.extend(payload, checked)
+            print(f"[protests] extended to {payload['last']} from {checked.get('source')}")
+        elif vdem:
             score = vdem_mob.scores(vdem)
             check = vdem_mob.calibrate(score, payload["years"], payload["covered"])
             extras["protest_proxy"] = check
