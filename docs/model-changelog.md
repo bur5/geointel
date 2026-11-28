@@ -3,6 +3,20 @@
 Every change that can move a published probability gets a new `MODEL_VERSION`
 (`src/geointel/risk/__init__.py`), an entry here, and a before/after report.
 
+## 1.17.0 — 2026-11-28 (Fable round 5: honest measure, fewer false numbers)
+- Accuracy page: skill against a simple rule for the known state (onset among countries at
+  peace, continuation among countries at war), intervals over countries and years, and the
+  2021–2025 control period. The earlier comparison with the world average overstated the
+  gains for conflicts and humanitarian crises.
+- Interstate war: no per-country probability and no danger level from it (experiment C did
+  not pass; owner's decision recorded before the run). Shown: war going on or not,
+  preparation signs as observations, one sentence on the world rate.
+- Coups and economic crises: shown as "background" or "elevated" (2× the world average or
+  more) instead of a percentage.
+- 10-year horizon shown only for natural hazards.
+- Time machine: site-like check (lag 1), experiments A and B not adopted; monthly forecast
+  copies for the forward check from December 2026 (`docs/forward-check.md`).
+
 ## 1.16.0 — 2026-11-28 (silent scale error, humanitarian crises)
 - INFORM Severity publishes an index on a 0–10 scale and a category 1–5. The danger rule
   "4+ gives level 3" read the 0–10 index as the 1–5 category, so crises of "medium"

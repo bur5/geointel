@@ -251,3 +251,21 @@ current" not below zero). Group definitions:
   `docs/onset-lists.md`). Wars at levels 1–2 in the control period: Benin and Togo 2022–23
   (spillover from the Sahel), the UK and USA 2024–25 (strikes in Yemen), Kyrgyzstan 2021–22,
   Cambodia 2025.
+- 2026-11-28, **site-like check** (lag 1 for UCDP types; run 46134656658). Brier skill score
+  against the primary reference, tuning / validation: internal onset +0.03 (−0.05…+0.10) /
+  **+0.14** (+0.06…+0.22); internal continuation +0.04 (−0.04…+0.11) / −0.01 (−0.12…+0.07);
+  interstate onset −0.01 / +0.01. No onset is counted twice any more (0 repeats). The
+  continuation deficit seen with lag 2 (−0.25 on validation) was mostly an effect of the
+  two-year gap, not of the model.
+- 2026-11-28, **experiment A** (continuation from the world rate; site-like setup): variant vs
+  current −0.16 (−0.28…−0.08) on tuning, −0.08 on validation. **Not adopted.**
+- 2026-11-28, **experiment B** (onset scaled by sub-threshold violence group; GED 26.1):
+  variant vs current −0.53 (−0.97…−0.21) on tuning. **Not adopted.** The multiplier counts
+  twice what the country's own record already says; a pooled design was not tried (one run
+  per experiment).
+- 2026-11-28, **experiment C** (interstate onset by rivalry group). A first run (46134124573)
+  lacked the rivalry and GED data because the command did not pass them (a wiring bug, fixed
+  in #164); it is not counted. Proper run (46134656658): skill against the primary reference
+  on tuning +0.008 (−0.027…+0.015), lower end below zero; validation not worse than the
+  current model. **Not adopted.** By the owner's decision recorded before the run, the
+  per-country probability of interstate war is removed from the site (1.17.0).

@@ -248,6 +248,11 @@ def country_danger(
                 }
             )
             continue
+        if risk == "interstate_conflict" and not state.get("active"):
+            # No level from the onset probability of interstate war (1.17.0): it was not
+            # better than the world rate on the time machine. Preparation signs are shown as
+            # observations; only an ongoing war sets the level.
+            continue
         if risk == "humanitarian_crisis" and state.get("active"):
             # An active UN appeal ranges from a cyclone flash appeal to famine; until severity
             # (INFORM Severity, IPC) is loaded, an active appeal alone means level 2.

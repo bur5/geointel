@@ -173,8 +173,25 @@ function rangeBar(v: Probability, cls: string) {
 const isHidden = (risk: Risk | undefined, h: HorizonKey) => !!risk?.hidden_horizons?.includes(h);
 const hiddenNote = () => (lang === 'ru' ? 'не показываем: на этом сроке прогноз нельзя проверить' : 'not shown: this horizon cannot be checked');
 
+// Types shown as a group instead of a percentage (no skill over a simple rule; Fable round 5).
+const groupText = (risk: Risk) => {
+  const d = risk.display;
+  if (!d || d.mode !== 'group') return '';
+  const ratio = (d.ratio ?? 1).toFixed(1).replace('.', lang === 'ru' ? ',' : '.');
+  return d.group === 'elevated'
+    ? (lang === 'ru' ? `повышенный (в ${ratio} раза выше среднего по миру)` : `elevated (${ratio}× the world average)`)
+    : (lang === 'ru' ? 'фоновый (около среднего по миру или ниже)' : 'background (about the world average or lower)');
+};
+const groupNote = () => (lang === 'ru' ? 'процент не показываем: на прошлом он не точнее средней по миру' : 'no percentage: on past data it is no better than the world average');
+
+const statusNote = () => (lang === 'ru'
+  ? 'не идёт. Вероятность по стране не показываем: на прошлом она не точнее простого правила. В мире новые межгосударственные войны начинаются примерно у 1–2 стран из 100 в год; смотрите признаки подготовки ниже.'
+  : 'not going on. No per-country probability: on past data it is no better than a simple rule. Worldwide, new interstate wars start in about 1–2 countries in 100 a year; see the preparation signs below.');
+
 function value(risk: Risk, h: HorizonKey, size: 'lg' | 'sm' = 'sm') {
+  if (risk.display?.mode === 'status') return `<div class="value value-${size}"><span class="muted-text small">${statusNote()}</span></div>`;
   if (isHidden(risk, h)) return `<div class="value value-${size}"><span class="muted-text small">${hiddenNote()}</span></div>`;
+  if (risk.display?.mode === 'group' && risk.question === 'onset_within') return `<div class="value value-${size}"><span class="num">${groupText(risk)}</span><span class="muted-text small">${groupNote()}</span></div>`;
   const v = risk.horizons[h];
   const cls = risk.question === 'active_at_end' ? 'active' : band(v.p);
   return `<div class="value value-${size}"><span class="num">${pct(v.p)}</span>${rangeBar(v, cls)}<span class="range">${pct(v.low)} – ${pct(v.high)}</span></div>`;
@@ -193,6 +210,7 @@ function summarySentences(country: CountryEntry | undefined, h: HorizonKey): str
     .filter(({ e, r }) => r.question === 'onset_within' && r.horizons[h].p >= (worldAverage(e.key, h) ?? 1) * 1.5)
     .sort((a, b) => b.r.horizons[h].p - a.r.horizons[h].p);
   for (const { e, r } of elevated) {
+    if (r.display?.mode === 'group') { lines.push(`${typeLabel(e)}: ${groupText(r)}.`); continue; }
     lines.push(t().summaryOnset(typeLabel(e), pct(r.horizons[h].p), t().horizonGenitive[h], comparison(e.key, h, r.horizons[h].p)));
   }
   if (!lines.length) lines.push(t().summaryCalm);
