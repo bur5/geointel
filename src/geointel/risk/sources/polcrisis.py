@@ -398,7 +398,7 @@ SOURCES = {
 ROTATING_HEAD_OF_STATE = frozenset({"AND", "BIH", "CHE", "MYS", "SMR"})
 # Offices whose holder changed on a fixed rotation in a period, whatever the role.
 ROTATING_PERIODS = {
-    "CHE": ("1848-01-01", "2100-01-01"),  # yearly President of the Confederation
+    "CHE": ("1848-01-01", "2100-01-01"),  # Federal Council and its yearly President
     "BTN": ("1998-07-20", "2008-04-09"),  # yearly chair of the Council of Ministers
 }
 SHORT_TERM_DAYS = 60  # shorter terms without a stated reason are caretakers
@@ -789,11 +789,11 @@ def leader_exits(terms, offices, elections, covered=None) -> list[dict]:
             )
             if continued:
                 continue
+            period = ROTATING_PERIODS.get(iso3)
+            if period and period[0] <= end.isoformat() <= period[1]:
+                continue  # collegial or rotating executive: changes are routine
             if not irregular:
                 if "head_of_state" in info["roles"] and iso3 in ROTATING_HEAD_OF_STATE:
-                    continue
-                period = ROTATING_PERIODS.get(iso3)
-                if period and period[0] <= end.isoformat() <= period[1]:
                     continue
                 if term["start"] and (end - term["start"]).days < SHORT_TERM_DAYS:
                     continue  # an acting or caretaker term Wikidata does not mark as such
