@@ -142,11 +142,14 @@ def features(
     return row
 
 
-def fill_missing(rows: list[dict]) -> list[list[float]]:
-    """Median imputation per feature (computed on the rows given)."""
+def fill_missing(rows: list[dict], reference: list[dict] | None = None) -> list[list[float]]:
+    """Median imputation per feature. Medians come from ``reference`` (the training rows)
+    when given, so test rows never inform their own filling (Fable round 4, #10)."""
     medians = {}
     for f in FEATURES:
-        vals = sorted(r[f] for r in rows if r[f] is not None)
+        vals = sorted(
+            r[f] for r in (reference if reference is not None else rows) if r[f] is not None
+        )
         medians[f] = vals[len(vals) // 2] if vals else 0.0
     return [[1.0] + [r[f] if r[f] is not None else medians[f] for f in FEATURES] for r in rows]
 
@@ -230,8 +233,61 @@ def fit_logistic(x: list[list[float]], y: list[int], l2: float = L2, iters: int 
         beta, gain, current = trial, value - current, value
         if max(abs(scale * s_) for s_ in step) < 1e-6 or gain < 1e-8:
             break
-    cov_diag = [1 / hess[i][i] if hess[i][i] > 0 else 0.0 for i in range(k)]
-    return {"beta": beta, "means": means, "sds": sds, "var": cov_diag}
+    cov = _inverse(hess)  # covariance = inverse Hessian, not 1/diagonal (Fable round 4, #9)
+    return {"beta": beta, "means": means, "sds": sds, "cov": cov}
+
+
+def _inverse(a: list[list[float]]) -> list[list[float]]:
+    n = len(a)
+    cols = [_solve(a, [1.0 if i == j else 0.0 for i in range(n)]) for j in range(n)]
+    return [[cols[j][i] for j in range(n)] for i in range(n)]
+
+
+def link_se(model: Mapping, row: list[float]) -> float:
+    """Standard error of the linear predictor: sqrt(zᵀ Σ z) with the full covariance."""
+    z = [((v - model["means"][j]) / model["sds"][j]) if j else 1.0 for j, v in enumerate(row)]
+    cov = model["cov"]
+    total = sum(z[i] * cov[i][j] * z[j] for i in range(len(z)) for j in range(len(z)))
+    return math.sqrt(max(total, 0.0))
+
+
+def fit_offset_logistic(
+    x: list[list[float]], y: list[int], offset: list[float], l2: float = 20.0, iters: int = 40
+) -> dict:
+    """Logistic regression around a given forecast: logit p = offset + β·z, every coefficient
+    (intercept included) shrunk to zero. With uninformative features the model returns the
+    offset forecast itself (Fable round 4, 3.4)."""
+    means, sds = standardise(x)
+    z = [[(v - means[j]) / sds[j] if j else 1.0 for j, v in enumerate(row)] for row in x]
+    k = len(z[0])
+    beta = [0.0] * k
+    for _ in range(iters):
+        grad = [-l2 * b for b in beta]
+        hess = [[l2 if i == j else 0.0 for j in range(k)] for i in range(k)]
+        for row, target, off in zip(z, y, offset, strict=True):
+            eta = off + sum(b * v for b, v in zip(beta, row, strict=True))
+            p = 1 / (1 + math.exp(-max(min(eta, 30), -30)))
+            w = p * (1 - p)
+            for i in range(k):
+                grad[i] += (target - p) * row[i]
+                for j in range(i, k):
+                    hess[i][j] += w * row[i] * row[j]
+        for i in range(k):
+            for j in range(i):
+                hess[i][j] = hess[j][i]
+        step = _solve(hess, grad)
+        beta = [b + s_ for b, s_ in zip(beta, step, strict=True)]
+        if max(abs(s_) for s_ in step) < 1e-7:
+            break
+    return {"beta": beta, "means": means, "sds": sds}
+
+
+def predict_offset(model: Mapping, row: list[float], offset: float) -> float:
+    eta = offset + sum(
+        b * ((v - model["means"][j]) / model["sds"][j] if j else 1.0)
+        for j, (b, v) in enumerate(zip(model["beta"], row, strict=True))
+    )
+    return 1 / (1 + math.exp(-max(min(eta, 30), -30)))
 
 
 def _expit(x: float) -> float:
@@ -361,18 +417,22 @@ def run_type(
         test = rows_for(range(test_year, test_year + 1))
         if not test or sum(y for *_, y in train) < 10:
             continue
-        x_all = fill_missing([f for _, _, f, _ in train] + [f for _, _, f, _ in test])
+        x_all = fill_missing(
+            [f for _, _, f, _ in train] + [f for _, _, f, _ in test],
+            reference=[f for _, _, f, _ in train],
+        )
         x_train, x_test = x_all[: len(train)], x_all[len(train) :]
         model = fit_logistic(x_train, [y for *_, y in train])
         truncated = _truncate(history, test_year - 1)
         groups = None
         if key == "coup_attempt" and regimes:
-            groups = {
-                c: f"{regimes[c].get(test_year - 1, regimes[c].get(max(regimes[c])))}|"
-                f"{'coup20' if any(y >= test_year - 20 for y in events.get(c, ())) else 'none20'}"
-                for c in countries
-                if c in regimes and regimes[c]
-            }
+            groups = {}
+            for c in countries:
+                known = [y for y in (regimes.get(c) or {}) if y <= test_year - 1]
+                if not known:  # never a regime from the future (Fable round 4, #11)
+                    continue
+                n20 = sum(1 for y in events.get(c, ()) if test_year - 20 <= y <= test_year - 1)
+                groups[c] = f"{regimes[c][max(known)]}|{'coup20' if n20 >= 2 else 'none20'}"
         base = {
             r.iso3: r.horizons["1y"].p
             for r in assess_type(truncated, countries, onset_only, groups)
@@ -436,19 +496,17 @@ def run_type(
         for c in countries
         if at_risk(c, last_year + 1)
     ]
-    x_all = fill_missing([f for _, _, f, _ in train] + [f for *_, f in nxt])
+    x_all = fill_missing(
+        [f for _, _, f, _ in train] + [f for *_, f in nxt],
+        reference=[f for _, _, f, _ in train],
+    )
     model = fit_logistic(x_all[: len(train)], [y for *_, y in train])
     preds = {}
     for (iso3, _, _), row in zip(nxt, x_all[len(train) :], strict=True):
         p = predict(model, row)
         p = min(max(p, 1e-9), 1 - 1e-9)
         eta = math.log(p / (1 - p))
-        se = math.sqrt(
-            sum(
-                v * (((x - model["means"][j]) / model["sds"][j]) if j else 1.0) ** 2
-                for j, (v, x) in enumerate(zip(model["var"], row, strict=True))
-            )
-        )
+        se = link_se(model, row)
         preds[iso3] = {
             "p": round(p, 5),
             "low": round(_expit(eta - 1.645 * se), 5),

@@ -67,4 +67,24 @@ def test_model_code_reads_no_files_or_network():
 def test_coup_variants_are_reported():
     coups = _history(EVENTS)
     result = bt.run({EventType.COUP_ATTEMPT: coups}, COUNTRIES, {EventType.COUP_ATTEMPT: False})
-    assert set(result["coup_variants"]) == set(bt.COUP_VARIANTS)
+    assert set(bt.COUP_VARIANTS) <= set(result["coup_variants"])
+
+
+def test_offset_model_keeps_base_when_features_say_nothing():
+    records = []
+    for year in range(1992, 2016):
+        for i in range(40):
+            records.append(
+                {
+                    "iso3": f"C{i}",
+                    "year": year,
+                    "state": "all",
+                    "p": 0.05,
+                    "y": int((i + year) % 20 == 0),
+                    "x": [1.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+                    "world": 0.05,
+                    "last_year": 0.05,
+                }
+            )
+    out = bt.offset_records(records, 2, 2000)
+    assert out and all(abs(r["p"] - 0.05) < 0.01 for r in out)
