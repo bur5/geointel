@@ -98,7 +98,7 @@ def _sparql(client, query: str, attempts: int = 4) -> list[dict]:
                 WIKIDATA,
                 data={"query": query, "format": "json"},
                 headers={"User-Agent": USER_AGENT, "Accept": "application/sparql-results+json"},
-                timeout=180,
+                timeout=120,
             )
             if response.status_code == 429 or response.status_code >= 500:
                 raise RuntimeError(f"status {response.status_code}")
@@ -189,8 +189,9 @@ def fetch(work: Path) -> None:
     )
     print(f"[wikidata] election types: {len(types)}, national: {len(wanted)}")
     elections: list[dict] = []
-    for batch in _batches(wanted, 150):
+    for number, batch in enumerate(_batches(wanted, 40)):
         elections += _sparql(client, ELECTIONS_QUERY % " ".join(batch))
+        print(f"[wikidata] elections batch {number}: {len(elections)} rows")
         time.sleep(1)
     (work / "wd_elections.json").write_text(json.dumps(elections))
     titles = sorted(
@@ -201,8 +202,10 @@ def fetch(work: Path) -> None:
         }
     )
     intros: dict[str, str] = {}
-    for batch in _batches(titles, 20):
+    for number, batch in enumerate(_batches(titles, 20)):
         intros.update(_wikipedia_intros(client, batch))
+        if number % 25 == 0:
+            print(f"[wikipedia] batch {number}: {len(intros)} intros")
         time.sleep(0.5)
     (work / "wp_intros.json").write_text(json.dumps(intros))
     print(f"[wikipedia] election intros: {len(intros)} of {len(titles)}")

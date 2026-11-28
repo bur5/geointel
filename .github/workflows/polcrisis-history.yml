@@ -20,6 +20,8 @@ concurrency:
   # writes to risk-data only when run by hand, so only then share the daily pipeline's group
   group: ${{ github.event_name == 'workflow_dispatch' && 'risk-snapshot-main' || 'polcrisis-branch' }}
   cancel-in-progress: false
+env:
+  PYTHONUNBUFFERED: "1"
 jobs:
   build:
     runs-on: ubuntu-latest
