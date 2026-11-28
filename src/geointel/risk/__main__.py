@@ -913,6 +913,24 @@ def main(argv: list[str] | None = None) -> int:
                 f"MFA {d['ministry_median']}) "
                 + ", ".join(f"{x['risk']}:{x['level']}" for x in d["drivers"][:4])
             )
+    from geointel.risk import anomalies
+
+    prev_signals_path = args.raw_dir.parent / "previous-signals.json"
+    findings = anomalies.check(
+        snapshot,
+        signals,
+        previous,
+        json.loads(prev_signals_path.read_text()) if prev_signals_path.is_file() else None,
+        extras.get("regimes"),
+    )
+    signals["anomalies"] = {
+        "generated_at": now.isoformat(),
+        "summary": anomalies.summary(findings),
+        "items": findings[:200],
+    }
+    print(f"[anomalies] {anomalies.summary(findings)}")
+    for item in findings[:40]:
+        print(f"[anomalies] {item['kind']} {item.get('iso3', '')}: {item['en']}")
     (args.out.parent / "signals.json").write_text(
         json.dumps(signals, ensure_ascii=False, separators=(",", ":"))
     )

@@ -43,6 +43,7 @@ jobs:
           mkdir -p data
           if git fetch --depth=1 origin risk-data 2>/dev/null; then
             git show FETCH_HEAD:latest/risk.json > data/previous.json 2>/dev/null || rm -f data/previous.json
+            git show FETCH_HEAD:latest/signals.json > data/previous-signals.json 2>/dev/null || rm -f data/previous-signals.json
             git show FETCH_HEAD:models/trained.json > data/trained.json 2>/dev/null || rm -f data/trained.json
             mkdir -p data/cache
             for f in $(git ls-tree --name-only FETCH_HEAD cache/ 2>/dev/null); do
