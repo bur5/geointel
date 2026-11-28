@@ -5,12 +5,18 @@ import type { Lang } from './data';
 export interface Severity { score: number; category: string; crisis: string; impact: number | null; conditions: number | null; complexity: number | null }
 
 type Band = 1 | 2 | 3 | 4;
-const band = (score: number): Band => (score >= 4 ? 4 : score >= 3 ? 3 : score >= 2 ? 2 : 1);
+// INFORM Severity: index 0–10, category 1 (very low) – 5 (very high). The band follows the
+// category; without it, the index (≥8 very high, ≥6 high, ≥4 medium).
+const band = (s: Severity): Band => {
+  const cat = parseInt(s.category, 10);
+  if (cat >= 1 && cat <= 5) return (cat >= 5 ? 4 : cat === 4 ? 3 : cat === 3 ? 2 : 1) as Band;
+  return s.score >= 8 ? 4 : s.score >= 6 ? 3 : s.score >= 4 ? 2 : 1;
+};
 
 const T = {
   ru: {
     title: 'Гуманитарная ситуация',
-    lead: (crisis: string, score: string, cat: string) => `Самый тяжёлый текущий кризис: «${crisis}». Индекс тяжести INFORM: ${score} из 5 (${cat}).`,
+    lead: (crisis: string, score: string, cat: string) => `Самый тяжёлый текущий кризис: «${crisis}». Индекс тяжести INFORM: ${score} из 10 (категория ${cat} из 5).`,
     dims: 'Из чего складывается',
     impact: 'Масштаб последствий', conditions: 'Условия жизни людей', complexity: 'Сложность (доступ, безопасность)',
     bands: ['', 'Низкая тяжесть', 'Умеренная тяжесть', 'Высокая тяжесть', 'Очень высокая тяжесть'],
@@ -32,7 +38,7 @@ const T = {
   },
   en: {
     title: 'Humanitarian situation',
-    lead: (crisis: string, score: string, cat: string) => `Most severe current crisis: "${crisis}". INFORM severity: ${score} of 5 (${cat}).`,
+    lead: (crisis: string, score: string, cat: string) => `Most severe current crisis: "${crisis}". INFORM severity: ${score} of 10 (category ${cat} of 5).`,
     dims: 'What it is made of',
     impact: 'Scale of impact', conditions: "People's living conditions", complexity: 'Complexity (access, security)',
     bands: ['', 'Low severity', 'Moderate severity', 'High severity', 'Very high severity'],
@@ -57,11 +63,11 @@ const T = {
 export function humanitarianCard(s: Severity | null | undefined, lang: Lang, esc: (x: string) => string) {
   if (!s) return '';
   const t = T[lang];
-  const b = band(s.score);
-  const num = (v: number) => String(v).replace('.', lang === 'ru' ? ',' : '.');
+  const b = band(s);
+  const num = (v: number) => (Math.round(v * 10) / 10).toString().replace('.', lang === 'ru' ? ',' : '.');
   const dims = ([['impact', s.impact], ['conditions', s.conditions], ['complexity', s.complexity]] as const)
     .filter(([, v]) => v !== null && v !== undefined)
-    .map(([k, v]) => `<li>${t[k]}: <b>${num(v as number)}</b> / 5</li>`).join('');
+    .map(([k, v]) => `<li>${t[k]}: <b>${num(v as number)}</b> / 10</li>`).join('');
   const col = (k: keyof typeof t.who) => `<div><h4>${t.who[k]}</h4><p>${esc(t.advice[k][b])}</p></div>`;
   return `<section class="hum-card hum-${b}" id="humanitarian"><h3>${t.title}: ${t.bands[b]}</h3>
     <p>${esc(t.lead(s.crisis || '—', num(s.score), s.category || t.bands[b]))}</p><p>${esc(t.meaning[b])}</p>
