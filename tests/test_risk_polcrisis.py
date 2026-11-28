@@ -55,17 +55,14 @@ def test_monarch_exit_is_not_excused_by_a_parliamentary_election():
     assert "Holiday" not in details
 
 
-def test_snap_elections_from_wikidata_wikipedia_and_interval():
+def test_snap_elections_from_wikidata_and_wikipedia():
     result = _build()
     dutch = _find(result, "NLD", "snap_election")
-    assert "2025-10-29" in dutch  # typed as snap election in Wikidata
-    assert "2006-11-22" in dutch  # "Early general elections" in the Wikipedia lead
-    assert {"2003-01-22", "2012-09-12", "2023-11-22"} <= set(dutch)  # well before 4 years
-    assert "2017-03-15" not in dutch and "2021-03-17" not in dutch
-    assert _find(result, "PER", "snap_election") == ["2001-04-08"]
-    # municipal votes and elections in another jurisdiction are not national elections
-    assert "2010-10-03" not in _find(result, "PER", "snap_election")
-    assert "2010-08-27" not in dutch
+    # Wikidata snap type; "Early general elections" in the lead; Wikipedia snap-election list
+    assert dutch == ["2003-01-22", "2006-11-22", "2012-09-12", "2025-10-29"]
+    # a postponed election, a lead about the previous snap election, no interval guessing
+    assert "2021-03-17" not in dutch and "2023-11-22" not in dutch
+    assert _find(result, "PER", "snap_election") == []
 
 
 def test_snap_phrase_detection():
@@ -73,6 +70,37 @@ def test_snap_phrase_detection():
     assert pc.snap_in_intro("Elections were brought forward after the coalition collapsed.")
     assert pc.snap_in_intro("Early voting started on 1 May. The vote was on 5 May.") is None
     assert pc.snap_in_intro("General elections were held in X on 5 May.") is None
+    assert pc.snap_in_intro("Elections were held after the death of President Y.")
+    assert pc.snap_in_intro("It was originally scheduled for May but was delayed.") is None
+    assert pc.snap_in_intro("They were held following the resignation of the government.") is None
+
+
+def test_rotation_and_short_caretaker_terms_are_not_exits():
+    offices = {
+        "B": {"iso3": {"BTN"}, "roles": {"head_of_government"}, "label": "Prime Minister"},
+        "L": {"iso3": {"LTU"}, "roles": {"head_of_government"}, "label": "Prime Minister"},
+    }
+
+    def term(office, person, start, end):
+        return {
+            "office": office,
+            "person": person,
+            "name": person,
+            "start": date.fromisoformat(start),
+            "end": date.fromisoformat(end),
+            "end_precision": 11,
+            "causes": set(),
+            "nature": set(),
+            "statement": person,
+        }
+
+    terms = [
+        term("B", "Zimba", "2000-07-20", "2001-08-08"),  # yearly rotation 1998–2008
+        term("B", "Tobgay", "2013-07-27", "2016-03-01"),  # outside the rotation period
+        term("L", "Sadzius", "2025-08-04", "2025-09-25"),  # 52-day caretaker
+    ]
+    exits = pc.leader_exits(terms, offices, [])
+    assert [(e["iso3"], e["date"]) for e in exits] == [("BTN", "2016-03-01")]
 
 
 def test_full_term():
@@ -86,7 +114,6 @@ def test_coups_emergencies_and_impeachments():
     assert _find(result, "PER", "coup") == ["2000-10-29"]  # conspiracy and 1992 excluded
     assert result["unresolved"]["cline_countries"] == 1
     assert _find(result, "NLD", "emergency") == ["2015-06-01"]
-    assert _find(result, "PER", "emergency") == []  # COVID emergency is not political
     assert _find(result, "PER", "impeachment") == ["2020-11-09"]
 
 
@@ -111,7 +138,7 @@ def test_recall_against_reference_sets():
     assert archigos["reference"] == 2  # irregular / ill-health exits 2000–2015 only
     nelda = quality["snap_election_vs_nelda_2000_2010"]
     # early (by note) once per round pair; late and note-less elections are not in the reference
-    assert nelda == {"reference": 2, "found": 2, "recall": 1.0, "missed": []}
+    assert nelda == {"reference": 2, "found": 1, "recall": 0.5, "missed": ["PER 2001-04-08"]}
 
 
 def test_sample_is_reproducible_and_checks_are_applied():

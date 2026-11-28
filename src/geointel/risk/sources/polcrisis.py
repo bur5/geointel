@@ -80,26 +80,6 @@ SELECT ?c ?e ?eLabel ?date ?precision ?type ?jur ?article WHERE {
   SERVICE wikibase:label { bd:serviceParam wikibase:language "en". }
 }
 """
-EMERGENCY_QUERY = """
-SELECT ?e ?eLabel ?eDescription ?c ?start ?point ?cls ?clsLabel WHERE {
-  VALUES ?cls { %s }
-  ?e wdt:P31 ?cls .
-  ?e wdt:P17 ?c .
-  OPTIONAL { ?e wdt:P580 ?start }
-  OPTIONAL { ?e wdt:P585 ?point }
-  SERVICE wikibase:label { bd:serviceParam wikibase:language "en". }
-}
-"""
-EMERGENCY_CLASSES_QUERY = """
-SELECT DISTINCT ?cls WHERE {
-  VALUES ?label { "state of emergency"@en "martial law"@en "state of siege"@en
-                  "state of exception"@en "national emergency"@en }
-  ?root rdfs:label ?label .
-  ?cls wdt:P279* ?root .
-}
-"""
-
-
 # ---------------------------------------------------------------- network (CI only)
 
 
@@ -163,12 +143,80 @@ def _wikipedia_intros(client, titles: list[str]) -> dict[str, str]:
             for page in query.get("pages", {}).values():
                 title = page.get("title", "")
                 original = renamed.get(title, title)
-                result[original.replace(" ", "_")] = (page.get("extract") or "")[:1500]
+                result[original.replace(" ", "_")] = (page.get("extract") or "")[:3000]
             return result
         except Exception as exc:  # noqa: BLE001 - retry, then skip the batch
             print(f"[wikipedia] attempt {attempt + 1} failed: {type(exc).__name__}: {exc}")
             time.sleep(5 * (attempt + 1))
     return {}
+
+
+SNAP_LIST_PAGES = ("Snap election",)
+
+
+def _wiki_get(client, params: dict) -> dict:
+    for attempt in range(3):
+        try:
+            response = client.get(
+                WIKIPEDIA_API,
+                params={**params, "format": "json", "formatversion": 2},
+                headers={"User-Agent": USER_AGENT},
+                timeout=60,
+            )
+            response.raise_for_status()
+            return response.json()
+        except Exception as exc:  # noqa: BLE001 - retry, then give up on this call
+            print(f"[wikipedia] attempt {attempt + 1} failed: {type(exc).__name__}: {exc}")
+            time.sleep(5 * (attempt + 1))
+    return {}
+
+
+def _wikipedia_snap_lists(client) -> dict[str, str]:
+    """Election articles linked from Wikipedia's "Snap election" article and from the
+    "List of snap elections in ..." pages: canonical title (underscores) -> list page."""
+    pages = list(SNAP_LIST_PAGES)
+    found = _wiki_get(
+        client,
+        {
+            "action": "query",
+            "list": "search",
+            "srsearch": 'intitle:"snap elections"',
+            "srlimit": 50,
+        },
+    )
+    for hit in (found.get("query") or {}).get("search", []):
+        if hit.get("title", "").startswith("List of snap elections"):
+            pages.append(hit["title"])
+    links: dict[str, str] = {}
+    for page in pages:
+        params = {
+            "action": "query",
+            "prop": "links",
+            "titles": page,
+            "plnamespace": 0,
+            "pllimit": "max",
+        }
+        while True:
+            data = _wiki_get(client, params)
+            for item in (data.get("query") or {}).get("pages", []):
+                for link in item.get("links", []):
+                    title = link.get("title", "")
+                    if re.search(r"\b(19|20)\d\d\b", title) and "election" in title.lower():
+                        links.setdefault(title, page)
+            if "continue" not in data:
+                break
+            params = {**params, **data["continue"]}
+    resolved: dict[str, str] = {}
+    titles = sorted(links)
+    for batch in _batches(titles, 50):
+        data = _wiki_get(client, {"action": "query", "titles": "|".join(batch), "redirects": 1})
+        query = data.get("query") or {}
+        target = {r["from"]: r["to"] for r in query.get("redirects", [])}
+        for title in batch:
+            canonical = target.get(title, title)
+            resolved[canonical.replace(" ", "_")] = links[title]
+    print(f"[wikipedia] snap lists: {pages}")
+    return resolved
 
 
 def fetch(work: Path) -> None:
@@ -225,19 +273,13 @@ def fetch(work: Path) -> None:
             print(f"[wikipedia] batch {number}: {len(intros)} intros")
         time.sleep(0.5)
     (work / "wp_intros.json").write_text(json.dumps(intros))
+    listed = _wikipedia_snap_lists(client)
+    (work / "wp_snap_listed.json").write_text(json.dumps(listed))
+    print(f"[wikipedia] election articles linked from snap-election lists: {len(listed)}")
     print(f"[wikipedia] election intros: {len(intros)} of {len(titles)}")
-    emergencies: list[dict] = []
-    try:
-        classes = _sparql(client, EMERGENCY_CLASSES_QUERY)
-        cls_ids = sorted({"wd:" + _qid(_value(b, "cls")) for b in classes})
-        for batch in _batches(cls_ids, 40):
-            emergencies += _sparql(client, EMERGENCY_QUERY % " ".join(batch))
-    except RuntimeError as exc:
-        print(f"[wikidata] emergencies skipped: {exc}")
-    (work / "wd_emergencies.json").write_text(json.dumps(emergencies))
     print(
         f"[wikidata] countries={len(countries)} offices={len(offices)} holders={len(holders)} "
-        f"elections={len(elections)} emergencies={len(emergencies)}"
+        f"elections={len(elections)}"
     )
     browser = {"User-Agent": "Mozilla/5.0 (X11; Linux x86_64) GeoIntel"}
     downloads = [(link, "cline_coups.csv") for link in coups.CLINE_FILES] + [
@@ -260,7 +302,7 @@ def fetch(work: Path) -> None:
 # ---------------------------------------------------------------- pure parsing
 
 FIRST_YEAR, LAST_YEAR = 2000, 2025
-SEED = 20261128
+SEED = 20261205  # attempt 2 (attempt 1 used 20261128); see docs/polcrisis-history.md
 SAMPLE_SIZE = 100
 MAX_ERROR_RATE = 0.10  # written in docs/polcrisis-history.md before the first full run
 MIN_RECALL = 0.70
@@ -274,6 +316,12 @@ SOURCES = {
 # Offices that change on a fixed rotation; their changes are scheduled unless Wikidata names
 # an irregular reason (death, resignation, abdication...).
 ROTATING_HEAD_OF_STATE = frozenset({"AND", "BIH", "CHE", "MYS", "SMR"})
+# Offices whose holder changed on a fixed rotation in a period, whatever the role.
+ROTATING_PERIODS = {
+    "CHE": ("1848-01-01", "2100-01-01"),  # yearly President of the Confederation
+    "BTN": ("1998-07-20", "2008-04-09"),  # yearly chair of the Council of Ministers
+}
+SHORT_TERM_DAYS = 60  # shorter terms without a stated reason are caretakers
 ACTING = ("acting", "interim", "caretaker", "provisional")
 IRREGULAR_CAUSES = (
     "resign",
@@ -304,29 +352,6 @@ REGULAR_CAUSES = ("end of term", "term limit", "re-elect", "election", "expiry",
 ELECTION_BEFORE_DAYS = 250  # exit up to this long after a national election is scheduled
 ELECTION_AFTER_DAYS = 45
 CONTINUATION_DAYS = 45
-DISASTER_WORDS = (
-    "covid",
-    "pandemic",
-    "epidemic",
-    "ebola",
-    "drought",
-    "flood",
-    "earthquake",
-    "hurricane",
-    "cyclone",
-    "typhoon",
-    "tsunami",
-    "volcan",
-    "wildfire",
-    "fire",
-    "storm",
-    "natural disaster",
-    "cholera",
-    "disease",
-    "energy",
-    "lockdown",
-)
-EMERGENCY_WORDS = ("state of emergency", "martial law", "state of siege", "state of exception")
 
 
 def pick_countries(bindings: list[dict]) -> dict[str, dict]:
@@ -491,6 +516,16 @@ def coverage(terms, offices, first_years: dict[str, int], threshold: float = 0.9
     return result
 
 
+def _national_kind(type_label: str, label: str) -> str | None:
+    """``sources/elections.kind`` plus federal elections (Australia, Germany, Belgium...)."""
+    from geointel.risk.sources.elections import kind as election_kind
+
+    result = election_kind(type_label, label)
+    if result is None and "federal election" in f"{type_label} {label}".lower():
+        result = election_kind(type_label.replace("federal", "general"), "")
+    return None if result == "referendum" else result
+
+
 # Dependent territories, constituent units and breakaway regions whose elections carry the
 # sovereign country in P17 but are not national elections of that country.
 TERRITORY = (
@@ -504,7 +539,12 @@ TERRITORY = (
     r"ontario|bavarian|azores|madeira|sicilian|sardinian|corsican|tibet|xinjiang|chechen|"
     r"tatarstan|bashkortostan|crimea|kosovo serb|gagauz|adjar|nakhchivan|karakalpak|"
     r"gilgit|azad|kashmir|bangsamoro|aceh|papua(?! new)|tamil nadu|kerala|punjab|state of|"
-    r"provincial|territorial)\b"
+    r"provincial|territorial|faroese|greenlandic|aruban|bermudian|gibraltarian|manx|"
+    r"cura[cç]aoan|caymanian|anguillan|montserratian|falkland islands|zanzibari|[aå]landic|"
+    r"new caledonian|french polynesian|macanese|puerto rican|guamanian|northern mariana|"
+    r"american samoan|tokelauan|niuean|transnistrian|abkhazian|south ossetian|"
+    r"northern cypriot|turkish cypriot|br[cč]ko|northern irish|sahrawi|western sahara|"
+    r"kurdistan region|iraqi kurdistan|autonomous region|autonomous republic|regional)\b"
 )
 
 
@@ -543,7 +583,7 @@ def national_elections(elections, types, qid_to_iso3) -> list[dict]:
         label_year = re.match(r"\s*(?:\w+\s+)?((?:19|20)\d\d)\b", label)
         if label_year and abs(int(label_year.group(1)) - when.year) > 1:
             continue  # the date in Wikidata contradicts the item's own name
-        if kind != "snap" and election_kind(labels.get(type_id, ""), label) is None:
+        if kind != "snap" and _national_kind(labels.get(type_id, ""), label) is None:
             continue
         if kind == "snap" and election_kind("", label.replace("snap", "general")) is None:
             continue
@@ -562,7 +602,7 @@ def national_elections(elections, types, qid_to_iso3) -> list[dict]:
             },
         )
         item["types"].add(type_id)
-        item["kinds"].add(election_kind(labels.get(type_id, ""), label) or kind)
+        item["kinds"].add(_national_kind(labels.get(type_id, ""), label) or kind)
         if kind == "snap":
             item["snap"] = True
     return sorted(result.values(), key=lambda e: (e["iso3"], e["date"]))
@@ -577,8 +617,17 @@ SNAP_PATTERNS = (
     r"\belections?\s+(?:was|were|had been)\s+called\s+(?:early|following|after)\b",
     r"\b(?:barely|only|just|less than)\s+(?:a|one|two|three|\d+)\s+(?:\w+\s+)?"
     r"(?:years?|months?)\s+after\s+the\s+previous\b",
-    r"\b(?:following|after)\s+the\s+(?:collapse|fall|dissolution|resignation)\b",
+    r"\b(?:following|after)\s+the\s+(?:collapse|fall)\s+of\b",
+    r"\b(?:following|after)\s+the\s+(?:early\s+|premature\s+)?dissolution\s+of\b",
+    r"\b(?:triggered|precipitated|necessitated|prompted)\s+by\s+the\s+(?:collapse|fall|"
+    r"resignation|death|dissolution)\b",
+    r"\b(?:following|after)\s+the\s+(?:death|assassination|resignation|removal|impeachment|"
+    r"ouster|overthrow)\s+of\s+(?:the\s+)?(?:incumbent\s+)?(?:\w+\s+){0,3}"
+    r"(?:president|prime minister|king|emir|head of state)\b",
+    r"\b(?:originally|initially)\s+(?:been\s+)?(?:scheduled|expected|planned|due)\b",
 )
+# Words that turn "originally scheduled" into a postponement, not an early election.
+LATE_WORDS = ("delay", "postpon", "deferred", "rescheduled for later", "pushed back")
 # Sentences about other elections ("the previous election was a snap election") are skipped.
 OTHER_ELECTION = (
     r"\b(previous|last|preceding|prior|next|subsequent|upcoming)\s+(?:\w+\s+){0,2}"
@@ -590,10 +639,12 @@ def snap_in_intro(text: str) -> str | None:
     """The phrase in a Wikipedia lead that says the election was early, else None."""
     import re
 
-    for sentence in re.split(r"(?<=[.!?])\s+", text.strip())[:4]:
+    for sentence in re.split(r"(?<=[.!?])\s+", text.strip())[:6]:
         for pattern in SNAP_PATTERNS:
             match = re.search(pattern, sentence, flags=re.IGNORECASE)
             if not match or "early voting" in match.group(0).lower():
+                continue
+            if "originally" in pattern and any(w in sentence.lower() for w in LATE_WORDS):
                 continue
             if "after the previous" not in match.group(0).lower() and re.search(
                 OTHER_ELECTION, sentence, flags=re.IGNORECASE
@@ -656,6 +707,11 @@ def leader_exits(terms, offices, elections, covered=None) -> list[dict]:
             if not irregular:
                 if "head_of_state" in info["roles"] and iso3 in ROTATING_HEAD_OF_STATE:
                     continue
+                period = ROTATING_PERIODS.get(iso3)
+                if period and period[0] <= end.isoformat() <= period[1]:
+                    continue
+                if term["start"] and (end - term["start"]).days < SHORT_TERM_DAYS:
+                    continue  # an acting or caretaker term Wikidata does not mark as such
                 if full_term(term["start"], end):
                     continue
                 dates = any_dates.get(iso3, [])
@@ -688,58 +744,32 @@ def full_term(start, end) -> bool:
     return round(years) in (4, 5, 6, 7) and abs(years - round(years)) * 365.25 <= 30
 
 
-def snap_elections(elections, intros: dict[str, str] | None = None) -> list[dict]:
-    """Snap elections: typed as snap in Wikidata, called early in the Wikipedia lead, or held
-    at least a year before the usual interval of that election series."""
-    from collections import Counter
+def snap_elections(
+    elections, intros: dict[str, str] | None = None, listed: dict[str, str] | None = None
+) -> list[dict]:
+    """Snap elections: typed as snap in Wikidata, linked from a Wikipedia list of snap
+    elections, or called early according to the first sentences of the Wikipedia article."""
     from datetime import date
 
-    intros = intros or {}
+    intros, listed = intros or {}, listed or {}
     lo, hi = date(FIRST_YEAR, 1, 1), date(LAST_YEAR, 12, 31)
     events: dict[str, dict] = {}
     for item in elections:
         if not lo <= item["date"] <= hi:
             continue
-        phrase = snap_in_intro(intros.get(item["article"], "")) if item["article"] else None
+        article = item["article"]
+        phrase = snap_in_intro(intros.get(article, "")) if article else None
         if item["snap"]:
             detail = f"{item['label']} (Wikidata: snap election)"
+        elif article and article in listed:
+            detail = f"{item['label']} (Wikipedia: listed in “{listed[article]}”)"
         elif phrase:
             detail = f"{item['label']} (Wikipedia: “{phrase}”)"
         else:
             continue
-        ref = item["qid"]
         events[item["qid"]] = _event(
-            item["iso3"], item["date"], "snap_election", detail, "wikidata", ref
+            item["iso3"], item["date"], "snap_election", detail, "wikidata", item["qid"]
         )
-    series: dict[tuple[str, str], list] = {}
-    for item in elections:
-        for kind in item["types"]:
-            series.setdefault((item["iso3"], kind), []).append(item)
-    for items in series.values():
-        rounds: list[dict] = []
-        for item in sorted(items, key=lambda e: e["date"]):
-            if rounds and (item["date"] - rounds[-1]["date"]).days < 120:
-                continue  # second round or a same-season vote
-            rounds.append(item)
-        gaps = [
-            (b["date"] - a["date"]).days / 365.25 for a, b in zip(rounds, rounds[1:], strict=False)
-        ]
-        usual = [round(g) for g in gaps if g >= 1.5]
-        if len(usual) < 3:
-            continue
-        term, count = Counter(usual).most_common(1)[0]
-        if not 3 <= term <= 7 or count / len(usual) < 0.5:
-            continue
-        for item, gap in zip(rounds[1:], gaps, strict=False):
-            early = gap < term - 1.0 and gap < 0.75 * term
-            if lo <= item["date"] <= hi and early and item["qid"] not in events:
-                detail = (
-                    f"{item['label']}: {gap:.1f} years after the previous one "
-                    f"(usual interval {term} years)"
-                )
-                events[item["qid"]] = _event(
-                    item["iso3"], item["date"], "snap_election", detail, "wikidata", item["qid"]
-                )
     return _dedupe(sorted(events.values(), key=lambda e: (e["iso3"], e["date"])), 90)
 
 
@@ -814,28 +844,6 @@ def manual_events(rows: list[dict], component: str, universe: frozenset[str]) ->
             detail = f"{row['person'].strip()}: {detail}"
         events.append(_event(iso3, when, component, detail, "manual", row["source"].strip()))
     return events
-
-
-def wikidata_emergencies(bindings, qid_to_iso3) -> list[dict]:
-    """National political emergencies / martial law with an item in Wikidata (partial)."""
-    from datetime import date
-
-    lo, hi = date(FIRST_YEAR, 1, 1), date(LAST_YEAR, 12, 31)
-    events: dict[tuple[str, str], dict] = {}
-    for b in bindings:
-        label = _value(b, "eLabel")
-        text = f"{label} {_value(b, 'eDescription')}".lower()
-        iso3 = qid_to_iso3.get(_qid(_value(b, "c")))
-        when = _date(_value(b, "start")) or _date(_value(b, "point"))
-        if not iso3 or when is None or not lo <= when <= hi:
-            continue
-        if not any(word in text for word in EMERGENCY_WORDS):
-            continue
-        if any(word in text for word in DISASTER_WORDS):
-            continue
-        qid = _qid(_value(b, "e"))
-        events.setdefault((iso3, qid), _event(iso3, when, "emergency", label, "wikidata", qid))
-    return list(events.values())
 
 
 # ---------------------------------------------------------------- reference sets and quality
@@ -951,7 +959,7 @@ def sample(events: list[dict], size: int = SAMPLE_SIZE, seed: int = SEED) -> lis
 
 
 def apply_checks(events: list[dict], checks: list[dict]) -> dict:
-    """Mark checked events and count errors from data/polcrisis/sample_check.csv."""
+    """Mark checked events and count errors from data/polcrisis/sample_check_2.csv."""
     verdicts = {
         (r["iso3"], r["date"], r["component"], r["detail"]): r for r in checks if r.get("verdict")
     }
@@ -986,9 +994,8 @@ def build(raw: dict, universe: frozenset[str], first_years: dict[str, int], reso
     coup_events, coup_unresolved = cline_events(raw["cline"], resolve)
     events = (
         leader_exits(terms, offices, elections)
-        + snap_elections(elections, raw.get("intros", {}))
+        + snap_elections(elections, raw.get("intros", {}), raw.get("snap_listed", {}))
         + manual_events(raw["impeachments"], "impeachment", universe)
-        + wikidata_emergencies(raw["emergencies"], qid_to_iso3)
         + manual_events(raw["emergency_list"], "emergency", universe)
         + coup_events
     )
@@ -1073,7 +1080,6 @@ def load_raw(work: Path, data_dir: Path) -> dict:
         "holders": _json(work / "wd_holders.json"),
         "elections": _json(work / "wd_elections.json"),
         "election_types": _json(work / "wd_election_types.json"),
-        "emergencies": _json(work / "wd_emergencies.json"),
         "intros": json.loads((work / "wp_intros.json").read_text())
         if (work / "wp_intros.json").exists()
         else {},
@@ -1083,7 +1089,10 @@ def load_raw(work: Path, data_dir: Path) -> dict:
         "cow_names": names,
         "impeachments": _csv(data_dir / "impeachments.csv"),
         "emergency_list": _csv(data_dir / "emergencies.csv"),
-        "checks": _csv(data_dir / "sample_check.csv"),
+        "checks": _csv(data_dir / "sample_check_2.csv"),
+        "snap_listed": json.loads((work / "wp_snap_listed.json").read_text())
+        if (work / "wp_snap_listed.json").exists()
+        else {},
     }
 
 

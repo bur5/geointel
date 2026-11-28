@@ -1333,47 +1333,15 @@
    }
   }
  ],
- "emergencies": [
-  {
-   "e": {
-    "type": "uri",
-    "value": "http://www.wikidata.org/entity/QE1"
-   },
-   "eLabel": {
-    "type": "literal",
-    "value": "2015 Dutch state of emergency"
-   },
-   "c": {
-    "type": "uri",
-    "value": "http://www.wikidata.org/entity/Q55"
-   },
-   "point": {
-    "type": "literal",
-    "value": "2015-06-01T00:00:00Z"
-   }
-  },
-  {
-   "e": {
-    "type": "uri",
-    "value": "http://www.wikidata.org/entity/QE2"
-   },
-   "eLabel": {
-    "type": "literal",
-    "value": "COVID-19 state of emergency in Peru"
-   },
-   "c": {
-    "type": "uri",
-    "value": "http://www.wikidata.org/entity/Q419"
-   },
-   "start": {
-    "type": "literal",
-    "value": "2020-03-15T00:00:00Z"
-   }
-  }
- ],
+ "snap_listed": {
+  "2012_Dutch_general_election": "Snap election",
+  "2003_Dutch_general_election": "Snap election"
+ },
  "intros": {
   "2006_Dutch_general_election": "Early general elections were held in the Netherlands on 22 November 2006. The CDA remained the largest party.",
-  "2017_Dutch_general_election": "General elections were held in the Netherlands on 15 March 2017. Early voting was not available."
+  "2017_Dutch_general_election": "General elections were held in the Netherlands on 15 March 2017. Early voting was not available.",
+  "2021_Dutch_general_election": "General elections were held in the Netherlands on 17 March 2021. They had originally been scheduled for 10 March but were delayed by a week.",
+  "2023_Dutch_general_election": "General elections were held in the Netherlands on 22 November 2023. The previous election was a snap election."
  },
  "cline": [
   {
@@ -1510,6 +1478,15 @@
    "source": "https://en.wikipedia.org/wiki/Second_impeachment_process_against_Mart%C3%ADn_Vizcarra"
   }
  ],
- "emergency_list": [],
+ "emergency_list": [
+  {
+   "iso3": "NLD",
+   "date": "2015-06-01",
+   "person": "",
+   "office": "",
+   "detail": "Test emergency",
+   "source": "https://example.org/emergency"
+  }
+ ],
  "checks": []
 }
