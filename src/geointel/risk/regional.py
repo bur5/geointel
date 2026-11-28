@@ -7,14 +7,15 @@ wave), and give each region a current level from active alerts. A country's head
 the level at which most of its population lives (population-weighted median), shown next to
 the most affected regions and the share of the population there.
 
-Population per region is the sum of GeoNames cities of 15,000+ inhabitants located in it — a
-proxy that misses rural people but is good enough to tell where most people live.
+Population per region comes from the GHSL population grid (1.12.0) when its cache is present,
+otherwise from GeoNames cities of 15,000+ inhabitants (a proxy that misses rural people).
 """
 
 from collections import defaultdict
 from collections.abc import Iterable, Mapping
 
 from geointel.risk.model import Counts, fit_prior, posterior
+from geointel.risk.popgrid import PopGrid
 from geointel.risk.regions import RegionIndex, region_list
 
 HAZARD_KEYS = {
@@ -87,6 +88,7 @@ def build_regional(
     volcanoes: Iterable[Mapping] | None,
     end_year: int,
     extra_levels: Mapping[str, Mapping[str, dict]] | None = None,
+    popgrid: PopGrid | None = None,
 ) -> dict:
     """Per country: regions with population, hazard frequencies, notable features and level.
 
@@ -159,7 +161,8 @@ def build_regional(
         regions = region_list(index, iso3)
         if not regions:
             continue
-        pop = region_population(index, iso3, (cities or {}).get(iso3, []))
+        grid_pop = popgrid.region_population(iso3) if popgrid else {}
+        pop = grid_pop or region_population(index, iso3, (cities or {}).get(iso3, []))
         hazards_out = {}
         for hazard, start in first_year.items():
             n = max(end_year - start + 1, 1)
@@ -208,15 +211,25 @@ def build_regional(
                         "level": lvl,
                     }
                 )
+            base_level = level
+            zone = None
             extra = ((extra_levels or {}).get(iso3) or {}).get(code)
             if extra:
                 level = max(level, int(extra["level"]))
-                reasons.append({"kind": "extra", **extra})
+                hot = extra.get("hot_cells") or []
+                if grid_pop and hot and level > base_level:
+                    zone = popgrid.zone_population(iso3, code, [tuple(x) for x in hot])
+                reasons.append(
+                    {"kind": "extra", **{k: v for k, v in extra.items() if k != "hot_cells"}}
+                )
+            people = pop.get(code, 0)
             region_rows.append(
                 {
                     **r,
-                    "population": pop.get(code, 0),
+                    "population": people,
                     "level": level,
+                    "base_level": base_level,
+                    "zone_population": min(zone, people) if zone is not None else None,
                     "reasons": reasons,
                     "volcanoes": sorted(
                         (
@@ -233,19 +246,30 @@ def build_regional(
                 }
             )
         total_pop = sum(r["population"] for r in region_rows)
-        weights = [(r["level"], r["population"] if total_pop else 1.0) for r in region_rows]
+        weights = []
+        for r in region_rows:
+            if not total_pop:
+                weights.append((r["level"], 1.0))
+            elif r["zone_population"] is not None:
+                weights.append((r["level"], r["zone_population"]))
+                weights.append((r["base_level"], r["population"] - r["zone_population"]))
+            else:
+                weights.append((r["level"], r["population"]))
         median = weighted_median(weights)
         top = max(r["level"] for r in region_rows)
         affected = [r for r in region_rows if r["level"] == top and top > median]
-        share = (
-            sum(r["population"] for r in affected) / total_pop if total_pop and affected else None
-        )
+
+        def exposed(r: Mapping) -> int:
+            return r["population"] if r["zone_population"] is None else r["zone_population"]
+
+        share = sum(exposed(r) for r in affected) / total_pop if total_pop and affected else None
         countries[iso3] = {
             "level_median": median,
             "level_max": top,
             "max_regions": [{"code": r["code"], "en": r["en"], "ru": r["ru"]} for r in affected],
             "max_population_share": round(share, 3) if share is not None else None,
             "population_known": total_pop > 0,
+            "population_source": "ghsl" if grid_pop else "cities" if total_pop else None,
             "regions": region_rows,
             "hazards": hazards_out,
         }

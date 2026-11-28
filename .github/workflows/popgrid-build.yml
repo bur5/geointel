@@ -1,0 +1,47 @@
+name: Population grid (GHSL)
+# Builds cache/popgrid.json on the risk-data branch: population per admin-1 region and per
+# 0.25° cell from GHSL GHS-POP R2023A (epoch 2025, CC BY 4.0). Run once, and again when
+# GHSL publishes a new release or the Natural Earth regions change.
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: risk-snapshot-main
+  cancel-in-progress: false
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12", cache: pip }
+      - run: python -m pip install -e . numpy rasterio
+      - name: Download GHSL and Natural Earth
+        run: |
+          set -e
+          mkdir -p work
+          base=https://jeodpp.jrc.ec.europa.eu/ftp/jrc-opendata/GHSL/GHS_POP_GLOBE_R2023A/GHS_POP_E2025_GLOBE_R2023A_4326_30ss/V1-0
+          curl -fsSL --retry 3 -o work/ghsl.zip "$base/GHS_POP_E2025_GLOBE_R2023A_4326_30ss_V1_0.zip"
+          ls -l work/ghsl.zip
+          unzip -o -j work/ghsl.zip '*.tif' -d work
+          rm work/ghsl.zip
+          curl -fsSL --retry 3 -o work/admin1.geojson \
+            https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_10m_admin_1_states_provinces.geojson
+          ls -l work
+      - name: Build the grid
+        run: python -m geointel.risk.popgrid_build work/*.tif work/admin1.geojson work/popgrid.json
+      - name: Store in risk-data
+        run: |
+          set -e
+          git config user.name "geointel-bot"
+          git config user.email "geointel-bot@users.noreply.github.com"
+          git fetch --depth=1 origin risk-data
+          git worktree add publish FETCH_HEAD
+          cd publish && git checkout -B risk-data
+          mkdir -p cache
+          cp ../work/popgrid.json cache/popgrid.json
+          git add cache/popgrid.json
+          git commit -qm "Population grid (GHSL) $(date -u +%Y-%m-%d)" || { echo "No changes"; exit 0; }
+          git push origin risk-data
