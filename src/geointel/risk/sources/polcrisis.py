@@ -33,12 +33,12 @@ SELECT ?c ?role ?office ?officeLabel WHERE {
 }
 """
 HOLDERS_QUERY = """
-SELECT ?office ?st ?p ?pLabel ?start ?end ?cause ?causeLabel ?nature ?natureLabel WHERE {
+SELECT ?office ?st ?p ?pLabel ?start ?end ?endPrecision ?cause ?causeLabel ?nature ?natureLabel WHERE {
   VALUES ?office { %s }
   ?p p:P39 ?st . ?st ps:P39 ?office .
   ?st wikibase:rank ?rank . FILTER(?rank != wikibase:DeprecatedRank)
   OPTIONAL { ?st pq:P580 ?start }
-  OPTIONAL { ?st pq:P582 ?end }
+  OPTIONAL { ?st pqv:P582 [ wikibase:timeValue ?end ; wikibase:timePrecision ?endPrecision ] }
   OPTIONAL { ?st pq:P1534 ?cause }
   OPTIONAL { ?st pq:P5102 ?nature }
   FILTER(!BOUND(?end) || ?end >= "1985-01-01T00:00:00Z"^^xsd:dateTime)
@@ -65,7 +65,7 @@ SELECT ?c ?e ?eLabel ?date ?precision ?type WHERE {
 EMERGENCY_QUERY = """
 SELECT ?e ?eLabel ?eDescription ?c ?start ?point ?cls ?clsLabel WHERE {
   VALUES ?cls { %s }
-  ?e wdt:P31/wdt:P279* ?cls .
+  ?e wdt:P31 ?cls .
   ?e wdt:P17 ?c .
   OPTIONAL { ?e wdt:P580 ?start }
   OPTIONAL { ?e wdt:P585 ?point }
@@ -76,7 +76,8 @@ EMERGENCY_CLASSES_QUERY = """
 SELECT DISTINCT ?cls WHERE {
   VALUES ?label { "state of emergency"@en "martial law"@en "state of siege"@en
                   "state of exception"@en "national emergency"@en }
-  ?cls rdfs:label ?label .
+  ?root rdfs:label ?label .
+  ?cls wdt:P279* ?root .
 }
 """
 
@@ -150,9 +151,14 @@ def fetch(work: Path) -> None:
         elections += _sparql(client, ELECTIONS_QUERY % " ".join(batch))
         time.sleep(1)
     (work / "wd_elections.json").write_text(json.dumps(elections))
-    classes = _sparql(client, EMERGENCY_CLASSES_QUERY)
-    cls_ids = " ".join("wd:" + _qid(_value(b, "cls")) for b in classes)
-    emergencies = _sparql(client, EMERGENCY_QUERY % cls_ids) if cls_ids else []
+    emergencies: list[dict] = []
+    try:
+        classes = _sparql(client, EMERGENCY_CLASSES_QUERY)
+        cls_ids = sorted({"wd:" + _qid(_value(b, "cls")) for b in classes})
+        for batch in _batches(cls_ids, 40):
+            emergencies += _sparql(client, EMERGENCY_QUERY % " ".join(batch))
+    except RuntimeError as exc:
+        print(f"[wikidata] emergencies skipped: {exc}")
     (work / "wd_emergencies.json").write_text(json.dumps(emergencies))
     print(
         f"[wikidata] countries={len(countries)} offices={len(offices)} holders={len(holders)} "
