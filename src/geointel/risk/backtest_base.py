@@ -305,7 +305,8 @@ def run_type(
 ) -> list[dict]:
     """``variant`` (coups only): {"groups": "all" | "democracies" | None,
     "cap": group prior cap multiplier, "world_cap": world prior cap multiplier}."""
-    variant = variant or {"groups": "all", "cap": None, "world_cap": None}
+    if variant is None:
+        variant = LIVE_COUP_VARIANT if key == EventType.COUP_ATTEMPT else {}
     lag = LAG.get(key, 2)
     records = []
     for year in years:
@@ -497,7 +498,7 @@ def _by_period(records: list[dict], periods: Mapping[str, tuple[int, int]]) -> d
 
 
 COUP_VARIANTS = {
-    "groups, cap 2x (1.10 live)": {"groups": "all", "cap": 2.0, "world_cap": None},
+    "groups, cap 2x (1.10)": {"groups": "all", "cap": 2.0, "world_cap": None},
     "world prior, no groups": {"groups": None, "cap": None, "world_cap": None},
     "world prior, cap 2x": {"groups": None, "cap": None, "world_cap": 2.0},
     "hybrid: groups for democracies only, world cap 2x": {
@@ -507,3 +508,5 @@ COUP_VARIANTS = {
     },
 }
 OFFSET_BASE = "world prior, cap 2x"
+# The variant used by the live model since 1.11.0 (chosen on the tuning period, run 4).
+LIVE_COUP_VARIANT = COUP_VARIANTS["hybrid: groups for democracies only, world cap 2x"]

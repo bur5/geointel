@@ -25,6 +25,9 @@ def coup_groups(history: TypeHistory, regimes: dict) -> dict[str, str]:
     return groups
 
 
+COUP_WORLD_CAP = 2.0
+DEMOCRACY_GROUPS = frozenset({"2|none20", "3|none20"})
+
 CHANGE_THRESHOLD = 0.02
 
 METHOD = {
@@ -85,10 +88,24 @@ def build_snapshot(
                 unresolved_labels=history.unresolved_labels,
             )
             groups = None
-            if spec.key == EventType.COUP_ATTEMPT and (extras or {}).get("regimes"):
-                groups = coup_groups(history, extras["regimes"])
-                entry["grouping"] = "regime type (V-Dem RoW) x coup in last 20 years"
-            for item in assess_type(history, first_years, spec.persistent_state, groups):
+            world_cap = None
+            hidden: list[str] = []
+            if spec.key == EventType.COUP_ATTEMPT:
+                # Chosen on the time machine's tuning period (docs/backtest-rules.md, run 4):
+                # democracies without coups are pooled with each other, every other country
+                # with the world, and the prior weighs at most twice a country's own record.
+                # 10-year coup forecasts cannot be checked and are not shown (1.11.0).
+                world_cap = COUP_WORLD_CAP
+                hidden = ["10y"]
+                if (extras or {}).get("regimes"):
+                    groups = {
+                        c: g
+                        for c, g in coup_groups(history, extras["regimes"]).items()
+                        if g in DEMOCRACY_GROUPS
+                    }
+                    entry["grouping"] = "democracies without coups pooled; others: world"
+                entry["hidden_horizons"] = hidden
+            for item in assess_type(history, first_years, spec.persistent_state, groups, world_cap):
                 risks[item.iso3][spec.key.value] = {
                     "question": item.question.value,
                     "active": item.active,
@@ -104,6 +121,8 @@ def build_snapshot(
                         "last_event_year": item.last_event_year,
                     },
                 }
+                if hidden:
+                    risks[item.iso3][spec.key.value]["hidden_horizons"] = hidden
         type_entries.append(entry)
 
     snapshot = {
@@ -163,6 +182,8 @@ def diff_snapshots(previous: dict, current: dict, threshold: float = CHANGE_THRE
                 )
                 continue
             for horizon, value in risk["horizons"].items():
+                if horizon in risk.get("hidden_horizons", ()):
+                    continue
                 previous_p = old.get("horizons", {}).get(horizon, {}).get("p")
                 if previous_p is None:
                     continue

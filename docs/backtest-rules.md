@@ -102,3 +102,10 @@ are always reported next to them.
   grouping added in 1.3.0 (to fix "the whole world red" for 10-year coups) makes forecasts
   worse. Run 3 adds world-prior variants with a capped prior strength, so that a country's
   own record counts more without groups.
+- 2026-11-28, run 4 (coup variants; choice on tuning). Tuning / validation Brier (log score):
+  1.10 groups 0.02602 (0.1163) / 0.01531 (0.0792); world prior 0.02468 / 0.01419; world prior
+  cap 2× 0.02461 (0.1127) / 0.01427; **hybrid (democracies pooled, others world cap 2×)
+  0.02450 (0.1079)** / 0.01418 (0.0726); offset model on world cap 2× 0.02453 (0.1096) /
+  0.01397 (0.0707). By the rules the hybrid is adopted (best on tuning); it also beats 1.10 on
+  validation. The offset model was close and was best on validation; it is a candidate for the
+  next version, to be judged on tuning again once combined with the hybrid.

@@ -231,6 +231,7 @@ def assess_type(
     countries: Mapping[str, int | None],
     persistent: bool,
     groups: Mapping[str, str] | None = None,
+    world_cap_mult: float | None = None,
 ) -> list[CountryRisk]:
     """Assess every country in ``countries`` (iso3 -> first independent year or None).
 
@@ -246,7 +247,14 @@ def assess_type(
         prior11 = fit_prior(t[1] for t in transitions.values() if t[1].trials > 0)
     else:
         simple = {iso3: bernoulli_counts(history, iso3, f) for iso3, f in countries.items()}
-        prior = fit_prior(simple.values())
+        if world_cap_mult is not None:
+            usable = [c for c in simple.values() if c.trials >= 1.0]
+            prior = fit_prior(
+                usable,
+                max_strength=max(2.0, world_cap_mult * fmean(c.trials for c in usable)),
+            )
+        else:
+            prior = fit_prior(simple.values())
         by_group = group_priors(simple, groups, prior) if groups else {}
 
     for iso3, first in countries.items():
