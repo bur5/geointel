@@ -1,0 +1,41 @@
+name: V-Dem extract
+# Builds cache/vdem_mob.json on the risk-data branch from the V-Dem country-year dataset
+# (vdemdata R package on GitHub; CC BY-SA 4.0). Run once a year after V-Dem's March release.
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: risk-snapshot-main
+  cancel-in-progress: false
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12", cache: pip }
+      - run: python -m pip install -e . pyreadr
+      - name: Download and extract
+        run: |
+          set -e
+          mkdir -p work
+          curl -fsSL --retry 3 -o work/vdem.RData \
+            https://raw.githubusercontent.com/vdeminstitute/vdemdata/master/data/vdem.RData
+          ls -l work
+          python -m geointel.risk.sources.vdem_mob work/vdem.RData work/vdem_mob.json
+          ls -l work/vdem_mob.json
+      - name: Store in risk-data
+        run: |
+          set -e
+          git config user.name "geointel-bot"
+          git config user.email "geointel-bot@users.noreply.github.com"
+          git fetch --depth=1 origin risk-data
+          git worktree add publish FETCH_HEAD
+          cd publish && git checkout -B risk-data
+          mkdir -p cache
+          cp ../work/vdem_mob.json cache/vdem_mob.json
+          git add cache/vdem_mob.json
+          git commit -qm "V-Dem extract $(date -u +%Y-%m-%d)" || { echo "No changes"; exit 0; }
+          git push origin risk-data

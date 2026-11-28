@@ -65,12 +65,19 @@ def history(payload: Mapping):
 
     last = int(payload["last"])
     span = frozenset(range(START_YEAR, last + 1))
+    proxy_from = payload.get("proxy_from")
+    source = (
+        f"{SOURCE}; {proxy_from}–{last}: V-Dem mass mobilisation above a threshold "
+        "calibrated on Mass Mobilization"
+        if proxy_from
+        else SOURCE
+    )
     return TypeHistory(
         EventType.MASS_PROTEST,
-        SOURCE,
+        source,
         START_YEAR,
         last,
         {k: frozenset(v) for k, v in payload["years"].items()},
         observed_years={code: span for code in payload["covered"]},
-        metadata={"data_ends": last},
+        metadata={"data_ends": last, **({"proxy_from": proxy_from} if proxy_from else {})},
     )
