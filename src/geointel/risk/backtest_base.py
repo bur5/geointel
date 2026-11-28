@@ -350,7 +350,9 @@ def run_type(
     return records
 
 
-def offset_records(records: list[dict], lag: int, first_fit_year: int) -> list[dict]:
+def offset_records(
+    records: list[dict], lag: int, first_fit_year: int, l2: float = 20.0
+) -> list[dict]:
     """Coup offset model on top of a base variant's records: for each year Y, fit on the
     records whose outcome was known by then (year <= Y - lag) and correct Y's base forecast."""
     from geointel.risk.trained import fit_offset_logistic, predict_offset
@@ -371,7 +373,10 @@ def offset_records(records: list[dict], lag: int, first_fit_year: int) -> list[d
         if sum(r["y"] for r in train) < 20:
             continue
         model = fit_offset_logistic(
-            [r["x"] for r in train], [r["y"] for r in train], [logit(r["p"]) for r in train]
+            [r["x"] for r in train],
+            [r["y"] for r in train],
+            [logit(r["p"]) for r in train],
+            l2=l2,
         )
         for r in by_year[year]:
             out.append({**r, "p": predict_offset(model, r["x"], logit(r["p"]))})
@@ -496,17 +501,19 @@ def run(
         # earlier base forecasts to learn from, so base records start in 1992.
         out["coup_variants"] = {}
         early = list(range(1992, min(years))) + years
-        base_for_offset = None
+        bases: dict[str, list[dict]] = {}
         for label, variant in COUP_VARIANTS.items():
             records = run_type(
                 EventType.COUP_ATTEMPT, coups, first_years, False, early, regime_series, variant
             )
-            if label == OFFSET_BASE:
-                base_for_offset = records
+            if label in OFFSET_BASES:
+                bases[label] = records
             out["coup_variants"][label] = _by_period(records, periods)
-        if base_for_offset:
-            corrected = offset_records(base_for_offset, LAG[EventType.COUP_ATTEMPT], min(years))
-            out["coup_variants"]["offset model on " + OFFSET_BASE] = _by_period(corrected, periods)
+        for label, records in bases.items():
+            for l2 in OFFSET_L2:
+                corrected = offset_records(records, LAG[EventType.COUP_ATTEMPT], min(years), l2)
+                name = f"offset model on {label}" + ("" if l2 == 20.0 else f", L2 {l2:g}")
+                out["coup_variants"][name] = _by_period(corrected, periods)
     return out
 
 
@@ -527,6 +534,8 @@ COUP_VARIANTS = {
         "world_cap": 2.0,
     },
 }
-OFFSET_BASE = "world prior, cap 2x"
+# Run 6 (1.13): the offset model on top of the live hybrid, at two strengths of shrinkage.
+OFFSET_BASES = ("world prior, cap 2x", "hybrid: groups for democracies only, world cap 2x")
+OFFSET_L2 = (20.0, 50.0)
 # The variant used by the live model since 1.11.0 (chosen on the tuning period, run 4).
 LIVE_COUP_VARIANT = COUP_VARIANTS["hybrid: groups for democracies only, world cap 2x"]
