@@ -45,16 +45,20 @@ SELECT ?office ?st ?p ?pLabel ?start ?end ?cause ?causeLabel ?nature ?natureLabe
   SERVICE wikibase:label { bd:serviceParam wikibase:language "en". }
 }
 """
+ELECTION_TYPES_QUERY = """
+SELECT ?type ?typeLabel ?snap WHERE {
+  ?type wdt:P279* wd:Q40231 .
+  BIND(EXISTS { ?type wdt:P279* wd:Q1333366 } AS ?snap)
+  SERVICE wikibase:label { bd:serviceParam wikibase:language "en". }
+}
+"""
 ELECTIONS_QUERY = """
-SELECT ?c ?e ?eLabel ?date ?precision ?type ?typeLabel ?snap WHERE {
-  VALUES ?c { %s }
-  ?e wdt:P17 ?c .
+SELECT ?c ?e ?eLabel ?date ?precision ?type WHERE {
+  VALUES ?type { %s }
+  ?e wdt:P31 ?type ; wdt:P17 ?c .
   ?e p:P585/psv:P585 [ wikibase:timeValue ?date ; wikibase:timePrecision ?precision ] .
   FILTER(?date >= "1975-01-01T00:00:00Z"^^xsd:dateTime
          && ?date < "2026-07-01T00:00:00Z"^^xsd:dateTime)
-  ?e wdt:P31 ?type .
-  ?type rdfs:label ?tl FILTER(LANG(?tl) = "en" && CONTAINS(LCASE(?tl), "election"))
-  BIND(EXISTS { ?e wdt:P31/wdt:P279* wd:Q1333366 } AS ?snap)
   SERVICE wikibase:label { bd:serviceParam wikibase:language "en". }
 }
 """
@@ -135,8 +139,14 @@ def fetch(work: Path) -> None:
         holders += _sparql(client, HOLDERS_QUERY % " ".join(batch))
         time.sleep(1)
     (work / "wd_holders.json").write_text(json.dumps(holders))
+    types = _sparql(client, ELECTION_TYPES_QUERY)
+    (work / "wd_election_types.json").write_text(json.dumps(types))
+    wanted = sorted(
+        {"wd:" + _qid(_value(b, "type")) for b in types if election_type_kind(b) is not None}
+    )
+    print(f"[wikidata] election types: {len(types)}, national: {len(wanted)}")
     elections: list[dict] = []
-    for batch in _batches(qids, 15):
+    for batch in _batches(wanted, 150):
         elections += _sparql(client, ELECTIONS_QUERY % " ".join(batch))
         time.sleep(1)
     (work / "wd_elections.json").write_text(json.dumps(elections))
@@ -178,6 +188,17 @@ def pick_countries(bindings: list[dict]) -> dict[str, dict]:
         if iso3 not in best or score > best[iso3][0]:
             best[iso3] = (score, b)
     return {iso3: b for iso3, (_score, b) in best.items()}
+
+
+def election_type_kind(binding: dict) -> str | None:
+    """'presidential' / 'parliamentary' for national election classes, else None."""
+    from geointel.risk.sources.elections import kind
+
+    label = _value(binding, "typeLabel")
+    if _value(binding, "snap") in ("true", "1") and "local" not in label.lower():
+        return "snap"
+    result = kind(label, "")
+    return None if result == "referendum" else result
 
 
 def main(argv: list[str]) -> int:
