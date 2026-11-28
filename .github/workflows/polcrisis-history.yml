@@ -54,10 +54,6 @@ jobs:
           python -m geointel.risk.sources.polcrisis build work out/polcrisis_history.json
           ls -l out
           echo "SAMPLEBEGIN"; cat out/polcrisis_sample.csv; echo "SAMPLEEND"
-      - name: Dump (temporary, for development)
-        run: |
-          tar czf /tmp/raw.tgz --exclude=archigos.dta --exclude=nelda.rda -C work .
-          echo "RAWBEGIN"; base64 -w 200 /tmp/raw.tgz; echo "RAWEND"
       - uses: actions/upload-artifact@v4
         with:
           name: polcrisis-history

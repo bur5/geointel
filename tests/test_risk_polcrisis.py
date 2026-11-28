@@ -129,3 +129,9 @@ def test_sample_is_reproducible_and_checks_are_applied():
     quality = pc.apply_checks(events, checks)
     assert quality["sample_size"] == 2 and quality["errors"] == 1 and quality["error_rate"] == 0.5
     assert sum(e["checked"] for e in events) == 2
+
+
+def test_quality_threshold_is_reported():
+    quality = _build()["quality"]
+    assert quality["thresholds"] == {"max_error_rate": 0.10, "min_recall": 0.70}
+    assert quality["passed"] is False  # no checked sample in the fixture

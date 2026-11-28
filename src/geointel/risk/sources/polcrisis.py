@@ -262,6 +262,8 @@ def fetch(work: Path) -> None:
 FIRST_YEAR, LAST_YEAR = 2000, 2025
 SEED = 20261128
 SAMPLE_SIZE = 100
+MAX_ERROR_RATE = 0.10  # written in docs/polcrisis-history.md before the first full run
+MIN_RECALL = 0.70
 COMPONENTS = ("leader_exit", "snap_election", "impeachment", "emergency", "coup")
 SOURCES = {
     "wikidata": "Wikidata (CC0), https://www.wikidata.org/",
@@ -1006,6 +1008,13 @@ def build(raw: dict, universe: frozenset[str], first_years: dict[str, int], reso
             nelda_reference(raw.get("nelda", []), resolve), events, ("snap_election",), covered_set
         ),
     }
+    recalls = [v["recall"] for v in quality["recall_vs_reference"].values()]
+    quality["thresholds"] = {"max_error_rate": MAX_ERROR_RATE, "min_recall": MIN_RECALL}
+    quality["passed"] = (
+        quality["error_rate"] is not None
+        and quality["error_rate"] <= MAX_ERROR_RATE
+        and all(r is not None and r >= MIN_RECALL for r in recalls)
+    )
     years: dict[str, list[int]] = {}
     for event in events:
         years.setdefault(event["iso3"], [])
@@ -1091,6 +1100,11 @@ def build_files(work: Path, data_dir: Path, output: Path) -> dict:
         resolve_country_name,
         date.today(),
     )
+    if len(result["covered"]) < 120 or len(result["events"]) < 500:
+        raise SystemExit(
+            f"[build] implausible result ({len(result['covered'])} countries covered, "
+            f"{len(result['events'])} events): not written"
+        )
     output.write_text(json.dumps(result, ensure_ascii=False, indent=1))
     picked = sample(result["events"])
     with (output.parent / "polcrisis_sample.csv").open("w", newline="") as handle:
