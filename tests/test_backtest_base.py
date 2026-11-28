@@ -110,3 +110,45 @@ def test_lull_year_counts_as_continuation():
     onset1, cont1 = transition_counts(flicker, "AAA", None, gap=1)
     assert onset1.successes < onset0.successes
     assert cont1.trials > 0
+
+
+def test_primary_reference_is_the_rate_for_the_known_state():
+    conflict = _history(
+        {"AAA": set(range(1995, 2026)), "BBB": {2010, 2011, 2017, 2018}},
+        key=EventType.INTERNAL_ARMED_CONFLICT,
+    )
+    records = bt.run_type(EventType.INTERNAL_ARMED_CONFLICT, conflict, COUNTRIES, True, [2020])
+    for r in records:
+        assert r["base"] == r["last_year"]  # onset among peace, continuation among war
+        assert r["base"] != r["world"]
+    coups = bt.run_type(EventType.COUP_ATTEMPT, _history(EVENTS), COUNTRIES, False, [2020])
+    assert all(r["base"] == r["world"] for r in coups)
+    summary = bt.summarise(records)
+    assert summary["bss_vs_base"] is not None
+
+
+def test_two_way_interval_contains_point():
+    records = [
+        {"iso3": c, "year": y, "p": 0.2, "y": int((y + i) % 5 == 0), "base": 0.1}
+        for i, c in enumerate(COUNTRIES)
+        for y in range(2000, 2016)
+    ]
+    point, lo, hi = bt.skill_interval(records, "base", samples=200)
+    assert lo <= point <= hi
+
+
+def test_onset_lists_mark_repeats_and_danger_bands():
+    conflict = _history(
+        {"AAA": {2016, 2017, 2018}, "BBB": {2018}}, key=EventType.INTERNAL_ARMED_CONFLICT
+    )
+    result = bt.run(
+        {EventType.INTERNAL_ARMED_CONFLICT: conflict},
+        COUNTRIES,
+        {EventType.INTERNAL_ARMED_CONFLICT: True},
+    )
+    items = result["onset_lists"]["internal_armed_conflict"]["validation"]
+    aaa = [x for x in items if x["iso3"] == "AAA"]
+    assert aaa[0]["year"] == 2016 and not aaa[0]["repeat"] and aaa[1]["repeat"]
+    danger = result["danger"]["validation"]
+    assert "bands" in danger and isinstance(danger["order_violations"], list)
+    assert all(e["level"] <= 2 for e in danger["events_at_levels_1_2"])

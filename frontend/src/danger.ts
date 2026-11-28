@@ -187,7 +187,7 @@ const H = {
     divergenceDown: (m: number, x: number) => `Наша модель оценивает опасность выше (${x}), чем МИД (${m} из 4).`,
     foreigners: 'Риски для иностранцев (по текстам МИД)',
     ministryNames: { us: 'Госдеп США', uk: 'МИД Великобритании', ca: 'МИД Канады', au: 'МИД Австралии', de: 'МИД Германии' } as Record<string, string>,
-    scale: 'Шкала: 1 — обычный, 2 — повышенный, 3 — высокий, 4 — очень высокий, 5 — чрезвычайный (бои в регионе). Уровень считается по самой тяжёлой угрозе; события разной тяжести имеют разные пороги.',
+    scale: 'Шкала: 1 — обычный, 2 — повышенный, 3 — высокий, 4 — очень высокий, 5 — чрезвычайный (бои в регионе; бывает только у регионов, у страны в целом самый высокий уровень — 4). Уровень считается по самой тяжёлой угрозе; события разной тяжести имеют разные пороги.',
   },
   en: {
     title: 'Danger level',
@@ -206,7 +206,7 @@ const H = {
     divergenceDown: (m: number, x: number) => `Our model rates the danger higher (${x}) than foreign ministries (${m} of 4).`,
     foreigners: 'Risks to foreigners (from ministry texts)',
     ministryNames: { us: 'US State Department', uk: 'UK FCDO', ca: 'Global Affairs Canada', au: 'Australia DFAT', de: 'German Foreign Office' } as Record<string, string>,
-    scale: 'Scale: 1 normal, 2 elevated, 3 high, 4 very high, 5 extreme (fighting in the region). The level follows the most severe threat; events of different severity have different thresholds.',
+    scale: 'Scale: 1 normal, 2 elevated, 3 high, 4 very high, 5 extreme (fighting in the region; only regions get it, a whole country's highest level is 4). The level follows the most severe threat; events of different severity have different thresholds.',
   },
 };
 

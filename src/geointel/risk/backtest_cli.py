@@ -63,7 +63,8 @@ def run(out: Path, raw_dir: Path) -> int:
             for state, s in states.items():
                 print(
                     f"[backtest] {key} {period} {state}: n={s['n']} events={s['events']} "
-                    f"BSS vs world={s['bss_vs_world']} vs last year={s['bss_vs_last_year']}"
+                    f"brier={s['brier']} BSS vs reference={s.get('bss_vs_base')} "
+                    f"vs world={s['bss_vs_world']} vs last year={s['bss_vs_last_year']}"
                 )
     for label, periods in (result.get("coup_variants") or {}).items():
         for period, s in periods.items():
@@ -85,5 +86,16 @@ def run(out: Path, raw_dir: Path) -> int:
                 f"BSS vs world={s['bss_vs_world']} brier={s['brier']} log={s['log_score']}"
             )
     for period, d in result["danger"].items():
-        print(f"[backtest] danger {period}: order_ok={d['order_ok']} band={d['band_level3']}")
+        print(
+            f"[backtest] danger {period}: levels={d['levels']} violations="
+            f"{d.get('order_violations')} bands={d.get('bands')}"
+        )
+        print(f"[backtest] danger {period} events at levels 1-2: {d.get('events_at_levels_1_2')}")
+    for key, periods in (result.get("onset_lists") or {}).items():
+        for period, items in periods.items():
+            repeats = [f"{x['iso3']}{x['year']}" for x in items if x["repeat"]]
+            print(
+                f"[backtest] onsets {key} {period}: {len(items)}, repeats {len(repeats)}: "
+                + " ".join(f"{x['iso3']}{x['year']}" for x in items)
+            )
     return 0

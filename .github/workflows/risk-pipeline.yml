@@ -193,6 +193,7 @@ jobs:
           if git fetch --depth=1 origin risk-data 2>/dev/null; then
             git show FETCH_HEAD:latest/backtest-real.json > public/data/backtest-real.json 2>/dev/null || rm -f public/data/backtest-real.json
             git show FETCH_HEAD:models/backtest_base.json > public/data/backtest_base.json 2>/dev/null || rm -f public/data/backtest_base.json
+            git show FETCH_HEAD:models/backtest_holdout_latest.json > public/data/backtest_holdout.json 2>/dev/null || rm -f public/data/backtest_holdout.json
           fi
           npm run build
       - uses: actions/configure-pages@v5
