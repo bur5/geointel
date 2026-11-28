@@ -42,15 +42,19 @@ def extract(rdata_path: str) -> dict:
 
     frame = next(iter(pyreadr.read_r(rdata_path).values()))
     codes = {c.iso3 for c in universe()}
+    present = [c for c in COLUMNS if c in frame.columns]
+    print("[vdem] mobilisation columns:", [c for c in frame.columns if c.startswith("v2ca")][:40])
+    if "v2cagenmob" not in present:
+        raise RuntimeError("v2cagenmob is missing from the V-Dem file")
     data: dict[str, dict[str, list]] = {}
     version = str(frame["version"].iloc[0]) if "version" in frame.columns else ""
-    for row in frame[["country_text_id", "year", *COLUMNS]].itertuples(index=False):
+    for row in frame[["country_text_id", "year", *present]].itertuples(index=False):
         iso3, year = str(row[0]), int(row[1])
         if iso3 not in codes or year < FIRST_YEAR:
             continue
         values = [None if v != v else round(float(v), 3) for v in row[2:]]  # NaN → None
         data.setdefault(iso3, {})[str(year)] = values
-    return {"columns": list(COLUMNS), "version": version, "data": data}
+    return {"columns": present, "version": version, "data": data}
 
 
 def load(path: Path) -> dict | None:
