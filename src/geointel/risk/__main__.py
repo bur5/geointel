@@ -829,6 +829,7 @@ def main(argv: list[str] | None = None) -> int:
     signals, scenario_inputs = build_signal_layer(snapshot, extras, sources, now)
     signals["model_version"] = MODEL_VERSION
     regional = {}
+    home_deaths = None
     if extras.get("region_index") is not None:
         from geointel.risk import popgrid as popgrid_mod
         from geointel.risk.regional import build_regional
@@ -859,6 +860,10 @@ def main(argv: list[str] | None = None) -> int:
                 now.date(),
                 grid.regions if grid else None,
             )
+            home_deaths = {
+                code: float(sum(r.get("deaths_12m", 0) for r in regions.values()))
+                for code, regions in conflict_levels.items()
+            }
             print(
                 f"[regional] conflict regions: "
                 f"{sum(len(v) for v in conflict_levels.values())} in {len(conflict_levels)} "
@@ -917,7 +922,13 @@ def main(argv: list[str] | None = None) -> int:
                 )
     from geointel.risk.danger import apply_danger
 
-    histogram = apply_danger(snapshot, signals, extras.get("war_intensity"), regional)
+    histogram = apply_danger(
+        snapshot,
+        signals,
+        extras.get("war_intensity"),
+        regional,
+        home_deaths,
+    )
     print(f"[danger] levels: {histogram}")
     for code in ("RUS", "UKR", "USA", "IND", "SDN", "NOR", "ISR", "MEX"):
         d = signals["countries"].get(code, {}).get("danger")

@@ -3,6 +3,15 @@
 Every change that can move a published probability gets a new `MODEL_VERSION`
 (`src/geointel/risk/__init__.py`), an entry here, and a before/after report.
 
+## 1.15.0 — 2026-11-28 (Fable round 4, 3.8–3.9)
+- "Fighting abroad" from data: a country at interstate war counts as fighting abroad (level 2
+  from that war) when UCDP GED records fewer than 25 deaths on its own territory in 12
+  months. The hand-written list (USA, GBR, FRA, CAN, AUS) is kept only for days without GED.
+- Migration: the change between UN estimates is labelled as the net change in the number of
+  natives living abroad (left minus returned and died), not as the number who left.
+- Time machine run 7: the ending of the last conflict (UCDP Conflict Termination) did not
+  improve onset forecasts on the tuning period and is not used.
+
 ## 1.14.0 — 2026-11-28 (protest history after 2020, free path)
 - Mass protests 2021 onward from V-Dem's mass mobilisation score, above a threshold
   calibrated on Mass Mobilization 2000–2015 and checked on 2016–2020 by a rule written

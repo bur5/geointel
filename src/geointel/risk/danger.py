@@ -54,8 +54,12 @@ THRESHOLDS = {"A": (0.02, 0.05, 0.20), "B": (0.03, 0.15, 2.0), "C": (0.15, 2.0, 
 # Natural hazards strike regions, not whole countries: at country scale they do not raise the
 # level; they are listed as regional notes until regional estimates replace them.
 HAZARD_CAP = 1
-# Countries whose current interstate wars are fought abroad (expeditionary strikes).
+# Countries whose current interstate wars are fought abroad (expeditionary strikes). Since
+# 1.15.0 this list is only a fallback for days without UCDP GED data: with GED, a country at
+# interstate war counts as fighting abroad when fewer than HOME_DEATHS people died in fighting
+# on its own territory in the last 12 months (Fable round 4, 3.9).
 EXPEDITIONARY = frozenset({"USA", "GBR", "FRA", "CAN", "AUS"})
+HOME_DEATHS = 25
 
 ONSET_CAP = 3
 REGIONAL_FLOOR_CAP = 4
@@ -141,9 +145,15 @@ def annualised(horizons: Mapping) -> float:
     return max(year, min(1.0, 12 * month))
 
 
-def war_level(iso3: str, kind: str, intensity: int) -> int:
+def fought_abroad(iso3: str, home_deaths: Mapping[str, float] | None) -> bool:
+    if home_deaths is None:
+        return iso3 in EXPEDITIONARY
+    return home_deaths.get(iso3, 0.0) < HOME_DEATHS
+
+
+def war_level(iso3: str, kind: str, intensity: int, abroad: bool | None = None) -> int:
     if kind == "interstate":
-        if iso3 in EXPEDITIONARY:
+        if abroad if abroad is not None else iso3 in EXPEDITIONARY:
             return 2
         return 4 if intensity >= 2 else 3
     return 4 if intensity >= 2 else 2
@@ -204,6 +214,7 @@ def country_danger(
     adjusted: Mapping | None = None,
     intensity: Mapping[str, int] | None = None,
     alert: Mapping | None = None,
+    home_deaths: Mapping[str, float] | None = None,
 ) -> dict:
     iso3 = country["iso3"]
     adjusted = adjusted or {}
@@ -213,7 +224,8 @@ def country_danger(
         state = (country.get("risks") or {}).get(risk) or {}
         kind = WAR_KIND.get(risk)
         if kind and state.get("active"):
-            level = war_level(iso3, kind, intensity.get(kind, 1))
+            abroad = kind == "interstate" and fought_abroad(iso3, home_deaths)
+            level = war_level(iso3, kind, intensity.get(kind, 1), abroad)
             drivers.append(
                 {
                     "risk": risk,
@@ -221,7 +233,7 @@ def country_danger(
                     "level": level,
                     "active": True,
                     "intensity": intensity.get(kind, 1),
-                    "abroad": kind == "interstate" and iso3 in EXPEDITIONARY,
+                    "abroad": abroad,
                 }
             )
             continue
@@ -322,8 +334,12 @@ def apply_danger(
     signals: dict,
     intensity: Mapping | None = None,
     regional: Mapping | None = None,
+    home_deaths: Mapping[str, float] | None = None,
 ) -> dict:
-    """Add ``danger`` to every country entry of ``signals``; returns a level histogram."""
+    """Add ``danger`` to every country entry of ``signals``; returns a level histogram.
+
+    ``home_deaths``: ISO3 -> deaths in fighting on the country's territory in 12 months
+    (UCDP GED); None when GED is unavailable, then the EXPEDITIONARY list is used."""
     intensity = intensity or {}
     regional = regional or {}
     histogram = {level: 0 for level in LEVELS}
@@ -335,6 +351,7 @@ def apply_danger(
                 entry.get("adjusted"),
                 intensity.get(country["iso3"]),
                 entry.get("alert"),
+                home_deaths,
             ),
             regional.get(country["iso3"]),
         )
