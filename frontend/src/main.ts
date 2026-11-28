@@ -182,7 +182,7 @@ const groupText = (risk: Risk) => {
     ? (lang === 'ru' ? `повышенный (в ${ratio} раза выше среднего по миру)` : `elevated (${ratio}× the world average)`)
     : (lang === 'ru' ? 'фоновый (около среднего по миру или ниже)' : 'background (about the world average or lower)');
 };
-const groupNote = () => (lang === 'ru' ? 'процент не показываем: на прошлом он не точнее средней по миру' : 'no percentage: on past data it is no better than the world average');
+const groupedNote = () => (lang === 'ru' ? 'процент не показываем: на прошлом он не точнее средней по миру' : 'no percentage: on past data it is no better than the world average');
 
 const statusNote = () => (lang === 'ru'
   ? 'не идёт. Вероятность по стране не показываем: на прошлом она не точнее простого правила. В мире новые межгосударственные войны начинаются примерно у 1–2 стран из 100 в год; смотрите признаки подготовки ниже.'
@@ -191,7 +191,7 @@ const statusNote = () => (lang === 'ru'
 function value(risk: Risk, h: HorizonKey, size: 'lg' | 'sm' = 'sm') {
   if (risk.display?.mode === 'status') return `<div class="value value-${size}"><span class="muted-text small">${statusNote()}</span></div>`;
   if (isHidden(risk, h)) return `<div class="value value-${size}"><span class="muted-text small">${hiddenNote()}</span></div>`;
-  if (risk.display?.mode === 'group' && risk.question === 'onset_within') return `<div class="value value-${size}"><span class="num">${groupText(risk)}</span><span class="muted-text small">${groupNote()}</span></div>`;
+  if (risk.display?.mode === 'group' && risk.question === 'onset_within') return `<div class="value value-${size}"><span class="num">${groupText(risk)}</span><span class="muted-text small">${groupedNote()}</span></div>`;
   const v = risk.horizons[h];
   const cls = risk.question === 'active_at_end' ? 'active' : band(v.p);
   return `<div class="value value-${size}"><span class="num">${pct(v.p)}</span>${rangeBar(v, cls)}<span class="range">${pct(v.low)} – ${pct(v.high)}</span></div>`;
