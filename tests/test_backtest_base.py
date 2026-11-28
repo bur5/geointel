@@ -88,3 +88,15 @@ def test_offset_model_keeps_base_when_features_say_nothing():
             )
     out = bt.offset_records(records, 2, 2000)
     assert out and all(abs(r["p"] - 0.05) < 0.01 for r in out)
+
+
+def test_world_cap_lets_own_record_count_more():
+    from geointel.risk.model import assess_type
+
+    events = {c: {2000 + i} for i, c in enumerate(COUNTRIES)}
+    events["AAA"] = {2000, 2018}
+    history = _history(events)
+    strong = {r.iso3: r.horizons["1y"].p for r in assess_type(history, COUNTRIES, False)}
+    capped = {r.iso3: r.horizons["1y"].p for r in assess_type(history, COUNTRIES, False, None, 2.0)}
+    assert capped["AAA"] > strong["AAA"]
+    assert capped["AAA"] > capped["CCC"]

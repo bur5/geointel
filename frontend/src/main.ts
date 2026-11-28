@@ -149,7 +149,7 @@ const notice = (headline: string, description = '', role = 'status') =>
 function worldAverage(type: string, h: HorizonKey): number | undefined {
   const values = (snapshot?.countries ?? [])
     .map((c) => c.risks[type])
-    .filter((r): r is Risk => !!r && r.question === 'onset_within')
+    .filter((r): r is Risk => !!r && r.question === 'onset_within' && !isHidden(r, h))
     .map((r) => r.horizons[h].p);
   return values.length ? values.reduce((a, b) => a + b, 0) / values.length : undefined;
 }
@@ -169,7 +169,11 @@ function rangeBar(v: Probability, cls: string) {
   return `<span class="bar" aria-hidden="true"><span class="bar-range ${cls}" style="left:${left}%;width:${width}%"></span><span class="bar-dot" style="left:${dot}%"></span></span>`;
 }
 
+const isHidden = (risk: Risk | undefined, h: HorizonKey) => !!risk?.hidden_horizons?.includes(h);
+const hiddenNote = () => (lang === 'ru' ? 'не показываем: на этом сроке прогноз нельзя проверить' : 'not shown: this horizon cannot be checked');
+
 function value(risk: Risk, h: HorizonKey, size: 'lg' | 'sm' = 'sm') {
+  if (isHidden(risk, h)) return `<div class="value value-${size}"><span class="muted-text small">${hiddenNote()}</span></div>`;
   const v = risk.horizons[h];
   const cls = risk.question === 'active_at_end' ? 'active' : band(v.p);
   return `<div class="value value-${size}"><span class="num">${pct(v.p)}</span>${rangeBar(v, cls)}<span class="range">${pct(v.low)} – ${pct(v.high)}</span></div>`;
@@ -179,7 +183,7 @@ function summarySentences(country: CountryEntry | undefined, h: HorizonKey): str
   if (!country || !snapshot) return '';
   const lines: string[] = [];
   const items = snapshot.event_types
-    .filter((e) => e.available && country.risks[e.key])
+    .filter((e) => e.available && country.risks[e.key] && !isHidden(country.risks[e.key], h))
     .map((e) => ({ e, r: country.risks[e.key] }));
   for (const { e, r } of items.filter((x) => x.r.question === 'active_at_end')) {
     lines.push(t().summaryActive(typeLabel(e), pct(r.horizons[h].p), t().horizonAccusative[h]));
@@ -287,7 +291,7 @@ function lensSwitch() {
 /** Group aggregate: probability that at least one member sees the event (independence assumed). */
 function groupStats(g: Group) {
   const members = (snapshot?.countries ?? []).filter((c) => g.members.includes(c.iso3));
-  const withRisk = members.filter((c) => c.risks[eventType]);
+  const withRisk = members.filter((c) => c.risks[eventType] && !isHidden(c.risks[eventType], horizon));
   const active = withRisk.filter((c) => c.risks[eventType].active);
   const any = 1 - withRisk.reduce((acc, c) => acc * (1 - c.risks[eventType].horizons[horizon].p), 1);
   const top = [...withRisk].sort((a, b) => b.risks[eventType].horizons[horizon].p - a.risks[eventType].horizons[horizon].p);
@@ -385,7 +389,7 @@ function ranking() {
         <span class="rank-name">${escape(countryName(c))}</span>${levelBadge(kind, v.level)}</button></li>`).join('')}</ol></section>`;
   }
   const rows = (snapshot?.countries ?? [])
-    .filter((c) => c.risks[eventType])
+    .filter((c) => c.risks[eventType] && !isHidden(c.risks[eventType], horizon))
     .map((c) => ({ c, r: c.risks[eventType] }))
     .sort((a, b) => b.r.horizons[horizon].p - a.r.horizons[horizon].p)
     .slice(0, 20);
@@ -459,7 +463,7 @@ function explainBlock(entry: EventTypeEntry, risk: CountryEntry['risks'][string]
   const lines = explain({
     key: entry.key, sphere: (entry.group ?? 'conflict') as 'conflict' | 'natural' | 'society', p: cell.p,
     horizonLabel: lang === 'ru' ? h.label_ru : h.label_en, median: typeMedian(entry.key, '1y'),
-    p10: risk.horizons['10y']?.p ?? null, active: !!risk.active, lang,
+    p10: isHidden(risk, '10y') ? null : risk.horizons['10y']?.p ?? null, active: !!risk.active, lang,
   });
   return `<details class="explain"><summary>${lang === 'ru' ? 'Как понимать эти цифры' : 'How to read these numbers'}</summary><ul>${lines.map((l) => `<li>${escape(l)}</li>`).join('')}</ul></details>`;
 }
@@ -814,7 +818,7 @@ function render() {
         const group = lens !== 'countries' ? currentGroup() : undefined;
         if (group && !group.members.includes(country?.iso3 ?? '')) return 'dimmed';
         const risk = country?.risks[eventType];
-        if (!risk) return '';
+        if (!risk || isHidden(risk, horizon)) return '';
         return risk.question === 'active_at_end' ? 'active' : band(risk.horizons[horizon].p);
       },
       (key, fallback) => {
@@ -825,6 +829,7 @@ function render() {
         if (country && eventType === 'view_political') { const p = signalsData?.political_crisis?.[country.iso3]; return p ? `${label}: ${p.events[0] ? (lang === 'ru' ? p.events[0].summary_ru : p.events[0].summary_en) : ''}` : `${label}: ${lang === 'ru' ? 'событий не обнаружено' : 'no events detected'}`; }
         if (country && isView(eventType)) return `${label}: ${viewVerdict(country).level} — ${levelLabel(viewKind(), viewVerdict(country).level, lang)}`;
         if (!risk) return label + ': ' + t().legendNoData.toLowerCase();
+        if (isHidden(risk, horizon)) return `${label}: ${hiddenNote()}`;
         const v = risk.horizons[horizon];
         return `${label}: ${pct(v.p)} (${pct(v.low)} – ${pct(v.high)})${risk.active ? ', ' + t().ongoing : ''}`;
       },

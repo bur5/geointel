@@ -12,6 +12,7 @@ export interface Risk {
   horizons: Record<HorizonKey, Probability>;
   basis: { exposure_years: number; event_years: number; last_event_year: number | null };
   model?: 'trained' | 'views_blend';
+  hidden_horizons?: HorizonKey[];
   own_horizons?: Record<HorizonKey, Probability>;
 }
 export interface ViewsForecast { p1m: number; p12m: number; p12m_low: number; p12m_high: number; months: number; run: string | null; skipped?: 'interstate_war' | 'definition' }

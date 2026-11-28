@@ -3,6 +3,18 @@
 Every change that can move a published probability gets a new `MODEL_VERSION`
 (`src/geointel/risk/__init__.py`), an entry here, and a before/after report.
 
+## 1.11.0 — 2026-11-28
+- Coups: chosen on the time machine's tuning period (docs/backtest-rules.md, run 4) among five
+  variants. Democracies without coups (V-Dem RoW 2–3, fewer than two coup years in 20) are
+  pooled with each other; every other country is shrunk to the world rate with a prior that
+  weighs at most twice its own weighted record. Tuning Brier 0.02450 (1.10: 0.02602), log score
+  0.1079 (0.1163); validation Brier 0.01418 (1.10: 0.01531).
+- 10-year coup forecasts are not shown: they cannot be checked, and a one-year rate extended
+  over ten years gave implausible numbers for stable democracies.
+- Trained models: covariance from the inverse Hessian; medians for missing values from
+  training rows only; no regime type from the future.
+- Daily oddity check on the site and in the Telegram digest.
+
 ## 1.10.0 — 2026-11-27 (Fable round 4, priority-1 fixes)
 - War-preparation signs (posture, mobilisation, personnel, medical, logistics, masking,
   pretexts, intelligence warnings, cyber, airspace closures, Russian-media mobilisation and
