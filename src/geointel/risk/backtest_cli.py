@@ -64,6 +64,13 @@ def run(out: Path, raw_dir: Path) -> int:
                 f"[backtest] coups [{label}] {period}: BSS vs world={s['bss_vs_world']} "
                 f"brier={s['brier']} log={s['log_score']} auc_pr={s['auc_pr']}"
             )
+    for label, periods in (result.get("conflict_variants") or {}).items():
+        for period, states in periods.items():
+            for state, s in states.items():
+                print(
+                    f"[backtest] conflict [{label}] {period} {state}: n={s['n']} "
+                    f"events={s['events']} brier={s['brier']} log={s['log_score']}"
+                )
     for period, d in result["danger"].items():
         print(f"[backtest] danger {period}: order_ok={d['order_ok']} band={d['band_level3']}")
     return 0

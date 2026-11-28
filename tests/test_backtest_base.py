@@ -100,3 +100,13 @@ def test_world_cap_lets_own_record_count_more():
     capped = {r.iso3: r.horizons["1y"].p for r in assess_type(history, COUNTRIES, False, None, 2.0)}
     assert capped["AAA"] > strong["AAA"]
     assert capped["AAA"] > capped["CCC"]
+
+
+def test_lull_year_counts_as_continuation():
+    from geointel.risk.model import transition_counts
+
+    flicker = _history({"AAA": {2000, 2002, 2004, 2006}}, key=EventType.INTERNAL_ARMED_CONFLICT)
+    onset0, _ = transition_counts(flicker, "AAA", None, gap=0)
+    onset1, cont1 = transition_counts(flicker, "AAA", None, gap=1)
+    assert onset1.successes < onset0.successes
+    assert cont1.trials > 0
