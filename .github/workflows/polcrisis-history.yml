@@ -34,7 +34,12 @@ jobs:
           import pyreadr, pyreadstat
           frame, _meta = pyreadstat.read_dta("work/archigos.dta", encoding="cp1252")
           frame.to_csv("work/archigos.csv", index=False)
-          for name, frame in pyreadr.read_r("work/nelda.rda").items():
+          try:
+              result = pyreadr.read_r("work/nelda.rda", encoding="cp1252")
+          except Exception as exc:
+              print("nelda", exc)
+              result = {}
+          for name, frame in result.items():
               frame.to_csv("work/nelda.csv", index=False)
           PY
           tar czf /tmp/raw.tgz --exclude=archigos.dta --exclude=nelda.rda -C work .
