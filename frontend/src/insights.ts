@@ -266,10 +266,12 @@ export function relocationVerdict(
     for (const [key, limits] of RELOCATION_RISKS) {
       const risk = country.risks[key];
       if (!risk || risk.active) continue;
-      const p = risk.horizons[hk]?.p;
+      // A hidden 10-year horizon (not checked) falls back to five years, labelled as such.
+      const useMid = horizon === 'long' && !!risk.hidden_horizons?.includes(hk);
+      const p = risk.horizons[useMid ? '5y' : hk]?.p;
       if (p === undefined) continue;
       const lvl = (limits.filter((x) => p >= x).length + 1) as Level;
-      if (lvl > 1) { raise(lvl); reasons.push(t.risk(label(key), percent(p, lang), t.within[horizon])); }
+      if (lvl > 1) { raise(lvl); reasons.push(t.risk(label(key), percent(p, lang), t.within[useMid ? 'mid' : horizon])); }
     }
     for (const s of scenarios) {
       if (!['party', 'frontline'].includes(s.role)) continue;

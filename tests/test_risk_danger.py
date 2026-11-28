@@ -182,3 +182,19 @@ def test_inform_category_not_index_sets_level():
     assert severity_level({"score": 9.5, "category": "5"}) == 3
     assert severity_level({"score": 6.5, "category": ""}) == 3  # no category: index ≥ 6
     assert severity_level(None) == 2
+
+
+def test_interstate_onset_probability_sets_no_level():
+    from geointel.risk.danger import country_danger
+
+    country = {
+        "iso3": "ARM",
+        "risks": {
+            "interstate_conflict": {
+                "question": "onset_within",
+                "active": False,
+                "horizons": {"1m": {"p": 0.02}, "1y": {"p": 0.25}},
+            }
+        },
+    }
+    assert country_danger(country)["level"] == 1

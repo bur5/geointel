@@ -25,6 +25,17 @@ def coup_groups(history: TypeHistory, regimes: dict) -> dict[str, str]:
     return groups
 
 
+TEN_YEAR_SHOWN = frozenset(
+    {
+        EventType.MAJOR_EARTHQUAKE,
+        EventType.TSUNAMI,
+        EventType.VOLCANO,
+        EventType.TROPICAL_CYCLONE,
+        EventType.FLOOD,
+        EventType.DROUGHT,
+        EventType.WILDFIRE,
+    }
+)
 COUP_WORLD_CAP = 2.0
 DEMOCRACY_GROUPS = frozenset({"2|none20", "3|none20"})
 
@@ -54,6 +65,50 @@ METHOD = {
 
 def _round(value: float) -> float:
     return round(value, 4)
+
+
+# Types whose per-country probability is not better than a simple rule on the time machine
+# (coups +0.02, economic crisis about 0): the site shows a group, "background" or "elevated"
+# (2× the world average or more), instead of a percentage (Fable round 5, 3.6.8; 1.17.0).
+GROUP_DISPLAY = ("coup_attempt", "economic_crisis")
+ELEVATED_RATIO = 2.0
+
+
+def mark_grouped(snapshot: dict, keys: tuple[str, ...] = GROUP_DISPLAY) -> None:
+    for key in keys:
+        rows = [
+            r
+            for c in snapshot["countries"]
+            if (r := c["risks"].get(key)) and r.get("question") == "onset_within"
+        ]
+        values = [r["horizons"]["1y"]["p"] for r in rows if r["horizons"].get("1y")]
+        if not values:
+            continue
+        mean = sum(values) / len(values)
+        for r in rows:
+            p = r["horizons"]["1y"]["p"]
+            ratio = p / mean if mean else 1.0
+            r["display"] = {
+                "mode": "group",
+                "group": "elevated" if ratio >= ELEVATED_RATIO else "background",
+                "ratio": round(ratio, 1),
+            }
+
+
+# Interstate war: the per-country onset probability was not better than the world rate on
+# the time machine, and experiment C (rivalries) did not pass (docs/backtest-rules.md). By
+# the owner's decision recorded before the run, the site shows only whether such a war is
+# going on, the preparation signs and one sentence on the world rate (1.17.0).
+STATUS_ONLY = ("interstate_conflict",)
+
+
+def mark_status(snapshot: dict, keys: tuple[str, ...] = STATUS_ONLY) -> None:
+    for key in keys:
+        for c in snapshot["countries"]:
+            r = c["risks"].get(key)
+            if r and r.get("question") == "onset_within":
+                r["display"] = {"mode": "status"}
+                r["hidden_horizons"] = ["1m", "1y", "5y", "10y"]
 
 
 def build_snapshot(
@@ -89,14 +144,18 @@ def build_snapshot(
             )
             groups = None
             world_cap = None
-            hidden: list[str] = []
+            # 10-year forecasts are shown only for natural hazards, whose yearly rate is
+            # stable over decades; for political events a one-year rate extended over ten
+            # years has never been checked (Fable round 5, 3.6.7; 1.17.0).
+            hidden: list[str] = [] if spec.key in TEN_YEAR_SHOWN else ["10y"]
+            if hidden:
+                entry["hidden_horizons"] = hidden
             if spec.key == EventType.COUP_ATTEMPT:
                 # Chosen on the time machine's tuning period (docs/backtest-rules.md, run 4):
                 # democracies without coups are pooled with each other, every other country
                 # with the world, and the prior weighs at most twice a country's own record.
                 # 10-year coup forecasts cannot be checked and are not shown (1.11.0).
                 world_cap = COUP_WORLD_CAP
-                hidden = ["10y"]
                 if (extras or {}).get("regimes"):
                     groups = {
                         c: g
@@ -104,7 +163,6 @@ def build_snapshot(
                         if g in DEMOCRACY_GROUPS
                     }
                     entry["grouping"] = "democracies without coups pooled; others: world"
-                entry["hidden_horizons"] = hidden
             for item in assess_type(history, first_years, spec.persistent_state, groups, world_cap):
                 risks[item.iso3][spec.key.value] = {
                     "question": item.question.value,
@@ -155,6 +213,8 @@ def build_snapshot(
             for c in countries
         ],
     }
+    mark_grouped(snapshot)
+    mark_status(snapshot)
     snapshot["changes"] = diff_snapshots(previous, snapshot) if previous else []
     snapshot["previous_generated_at"] = previous.get("generated_at") if previous else None
     return snapshot
