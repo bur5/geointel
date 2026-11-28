@@ -206,7 +206,7 @@ const H = {
     divergenceDown: (m: number, x: number) => `Our model rates the danger higher (${x}) than foreign ministries (${m} of 4).`,
     foreigners: 'Risks to foreigners (from ministry texts)',
     ministryNames: { us: 'US State Department', uk: 'UK FCDO', ca: 'Global Affairs Canada', au: 'Australia DFAT', de: 'German Foreign Office' } as Record<string, string>,
-    scale: 'Scale: 1 normal, 2 elevated, 3 high, 4 very high, 5 extreme (fighting in the region; only regions get it, a whole country's highest level is 4). The level follows the most severe threat; events of different severity have different thresholds.',
+    scale: 'Scale: 1 normal, 2 elevated, 3 high, 4 very high, 5 extreme (fighting in the region; only regions get it; for a whole country the highest level is 4). The level follows the most severe threat; events of different severity have different thresholds.',
   },
 };
 
