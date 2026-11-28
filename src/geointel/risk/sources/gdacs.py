@@ -68,6 +68,7 @@ def normalize(feature: Mapping) -> dict | None:
     return {
         "hazard": hazard,
         "id": f"{hazard}-{props.get('eventid')}",
+        "source": "gdacs",
         "name": str(props.get("name") or props.get("eventname") or ""),
         "alert": alert,
         "year": year,

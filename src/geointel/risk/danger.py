@@ -23,6 +23,7 @@ Rules (review rounds 2–3, model 1.2.0):
   kidnapping, crime) are listed separately from the level.
 """
 
+import re
 from collections.abc import Iterable, Mapping
 
 LEVELS = (1, 2, 3, 4, 5)
@@ -65,25 +66,59 @@ NAMES = {
     "en": {1: "Normal", 2: "Elevated", 3: "High", 4: "Very high", 5: "Extreme"},
 }
 
-# Keyword → (ru, en) for risks to foreigners mentioned by foreign ministries.
+# Pattern → (ru, en) for risks to foreigners mentioned by foreign ministries. Patterns are
+# whole-word regular expressions (1.12.0): plain substrings matched "mines" inside
+# "determines", and "crime" or "health" appear in almost every advisory, so those two tags
+# now need wording that says the risk is elevated, not just a mention.
 FOREIGNER_TAGS = (
     (
-        ("wrongful detention", "arbitrary", "detain", "detention"),
+        (
+            r"\bwrongful(ly)? detain",
+            r"\barbitrar(y|ily) (detain|detention|arrest)",
+            r"\bdetain(ed|s|ing)?\b",
+            r"\bdetention\b",
+        ),
         "detention",
         "произвольные задержания иностранцев",
         "arbitrary detention of foreigners",
     ),
-    (("terror",), "terrorism", "терроризм", "terrorism"),
-    (("kidnap", "hostage"), "kidnapping", "похищения", "kidnapping"),
-    (("crime", "criminal"), "crime", "преступность", "crime"),
-    (("unrest", "demonstration", "protest"), "unrest", "беспорядки и протесты", "civil unrest"),
-    (("health", "disease", "outbreak"), "health", "угрозы здоровью", "health risks"),
+    ((r"\bterror(ism|ist|ists)?\b",), "terrorism", "терроризм", "terrorism"),
+    ((r"\bkidnap", r"\bhostages?\b"), "kidnapping", "похищения", "kidnapping"),
     (
-        ("landmine", "unexploded", "mines"),
+        (
+            r"\b(violent|serious|high levels? of|widespread|organi[sz]ed) crime\b",
+            r"\bcrime (is|remains|rates? (is|are|remain)) (high|common|widespread|prevalent)",
+            r"\b(armed robbery|carjacking|express kidnapping)",
+        ),
+        "crime",
+        "преступность",
+        "crime",
+    ),
+    (
+        (r"\bcivil unrest\b", r"\bunrest\b", r"\bdemonstrations?\b", r"\bprotests?\b"),
+        "unrest",
+        "беспорядки и протесты",
+        "civil unrest",
+    ),
+    (
+        (
+            r"\b(disease )?outbreaks?\b",
+            r"\b(epidemic|cholera|ebola|mpox|marburg|plague)\b",
+            r"\b(limited|inadequate|poor) (medical|health ?care)",
+        ),
+        "health",
+        "угрозы здоровью",
+        "health risks",
+    ),
+    (
+        (r"\blandmines?\b", r"\bunexploded\b", r"\bmines?\b"),
         "mines",
         "мины и неразорвавшиеся боеприпасы",
         "landmines and unexploded ordnance",
     ),
+)
+_TAG_RES = tuple(
+    (re.compile("|".join(words)), key, ru, en) for words, key, ru, en in FOREIGNER_TAGS
 )
 
 
@@ -153,8 +188,8 @@ def foreigner_risks(country: Mapping) -> list[dict]:
     text = " ".join(texts).lower()
     return [
         {"key": key, "ru": ru, "en": en}
-        for words, key, ru, en in FOREIGNER_TAGS
-        if any(w in text for w in words)
+        for pattern, key, ru, en in _TAG_RES
+        if pattern.search(text)
     ]
 
 

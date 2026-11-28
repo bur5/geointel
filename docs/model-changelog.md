@@ -3,6 +3,19 @@
 Every change that can move a published probability gets a new `MODEL_VERSION`
 (`src/geointel/risk/__init__.py`), an entry here, and a before/after report.
 
+## 1.12.0 — 2026-11-28 (Fable round 4, priority-2/3 fixes)
+- Regional hazard frequencies: each hazard uses one source with that source's own start year
+  (USGS for earthquakes, NCEI for tsunamis, GDACS for cyclones, floods, droughts, fires,
+  volcanoes). Before, the window began at the earliest year of any source, which
+  understated GDACS frequencies, and GDACS earthquakes were added on top of USGS ones.
+- Events that hit several countries (cyclones, floods, tsunamis) now count in the nearest
+  region of each country; before, they were left out of regional frequencies.
+- Risks to foreigners from foreign-ministry texts: whole-word matching ("mines" no longer
+  matches "determines"); "crime" and "health" need wording that says the risk is elevated
+  (violent crime, outbreaks, poor medical care), not a bare mention.
+- Not adopted: counting a one-year lull in a conflict as continuation (time machine run 5,
+  worse on validation; see docs/backtest-rules.md).
+
 ## 1.11.0 — 2026-11-28
 - Coups: chosen on the time machine's tuning period (docs/backtest-rules.md, run 4) among five
   variants. Democracies without coups (V-Dem RoW 2–3, fewer than two coup years in 20) are
