@@ -35,20 +35,21 @@ def _mass_mobilization(client: httpx.Client) -> dict:
 
 
 def _category(client: httpx.Client, title: str) -> tuple[list[str], list[str]]:
+    from geointel.risk.sources.polcrisis import _wiki_get
+
     pages, subcats, cont = [], [], {}
     while True:
-        r = client.get(
-            ph.WIKI_API,
-            params={
+        r = _wiki_get(
+            client,
+            {
                 "action": "query",
                 "list": "categorymembers",
                 "cmtitle": title,
                 "cmlimit": "500",
                 "cmtype": "page|subcat",
-                "format": "json",
                 **cont,
             },
-        ).json()
+        )
         for m in r.get("query", {}).get("categorymembers", []):
             (subcats if m["ns"] == 14 else pages).append(m["title"])
         if "continue" not in r:
@@ -57,21 +58,24 @@ def _category(client: httpx.Client, title: str) -> tuple[list[str], list[str]]:
 
 
 def _extracts(client: httpx.Client, titles: list[str]) -> dict[str, str]:
+    from geointel.risk.sources.polcrisis import _wiki_get
+
     out = {}
     for i in range(0, len(titles), 20):
-        r = client.get(
-            ph.WIKI_API,
-            params={
+        r = _wiki_get(
+            client,
+            {
                 "action": "query",
                 "prop": "extracts",
                 "exintro": "1",
                 "explaintext": "1",
+                "exlimit": "20",
                 "titles": "|".join(titles[i : i + 20]),
-                "format": "json",
                 "redirects": "1",
             },
-        ).json()
-        for page in r.get("query", {}).get("pages", {}).values():
+        )
+        pages = r.get("query", {}).get("pages", [])
+        for page in pages.values() if isinstance(pages, dict) else pages:
             if page.get("extract"):
                 out[page["title"]] = page["extract"]
     return out
