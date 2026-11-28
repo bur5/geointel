@@ -161,3 +161,14 @@ def test_foreigner_tags_whole_words_and_elevated_crime_health():
     }
     keys = {x["key"] for x in foreigner_risks(serious)}
     assert keys == {"crime", "mines", "health", "terrorism"}
+
+
+def test_fighting_abroad_from_deaths_on_home_soil():
+    from geointel.risk.danger import fought_abroad, war_level
+
+    assert fought_abroad("USA", None)  # no GED: the fallback list
+    assert not fought_abroad("RUS", None)
+    assert fought_abroad("RUS", {"RUS": 3.0}) and not fought_abroad("RUS", {"RUS": 400.0})
+    assert not fought_abroad("USA", {"USA": 30.0})
+    assert war_level("ISR", "interstate", 2, abroad=False) == 4
+    assert war_level("ISR", "interstate", 2, abroad=True) == 2

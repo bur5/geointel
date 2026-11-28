@@ -510,8 +510,8 @@ function diasporaPeriods(series: Record<string, number>, lang: Lang) {
     return `<li>${lang === 'ru' ? ru : en}: ${sign}${formatPeople(Math.abs(d), lang)}</li>`;
   });
   if (!rows.length) return '';
-  return `<h4 class="sub">${lang === 'ru' ? 'Как менялось число уехавших' : 'Change in the number abroad'}</h4><ul class="plain small">${rows.join('')}</ul>
-    <p class="muted-text small">${lang === 'ru' ? 'Разница между оценками ООН: это чистое изменение (уехавшие минус вернувшиеся и умершие), а не число уехавших за период.' : 'Difference between UN estimates: a net change (left minus returned and died), not the number who left in the period.'}</p>`;
+  return `<h4 class="sub">${lang === 'ru' ? 'Чистое изменение числа уроженцев страны за рубежом' : 'Net change in the number of natives living abroad'}</h4><ul class="plain small">${rows.join('')}</ul>
+    <p class="muted-text small">${lang === 'ru' ? 'Разница между оценками ООН: уехавшие минус вернувшиеся и умершие за рубежом, а не число уехавших за период. При старой эмиграции смертность заметно уменьшает разницу.' : 'Difference between UN estimates: those who left minus those who returned or died abroad, not the number who left in the period. Where emigration is old, deaths shrink the difference noticeably.'}</p>`;
 }
 
 function destinationTable(dest: Record<string, Record<string, number>> | undefined, ctx: ViewContext) {
