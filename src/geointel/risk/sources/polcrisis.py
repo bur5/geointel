@@ -20,21 +20,23 @@ REIGN_LEADERS_URL = (
 )
 
 COUNTRIES_QUERY = """
-SELECT ?c ?iso3 ?type ?dissolved ?alias WHERE {
+SELECT ?c ?iso3 ?type ?dissolved WHERE {
   VALUES ?iso3 { %s }
-  ?k wdt:P298 ?iso3 .
-  {
-    BIND(?k AS ?c)
-    OPTIONAL { ?c wdt:P31 ?type . VALUES ?type { wd:Q3624078 wd:Q6256 } }
-    OPTIONAL { ?c wdt:P576 ?dissolved }
-  } UNION {
-    # the country proper inside a realm (Netherlands in the Kingdom of the Netherlands):
-    # a part with the same capital
-    { ?k wdt:P150 ?c } UNION { ?c wdt:P361 ?k }
-    ?c wdt:P31 wd:Q6256 ; wdt:P36 ?capital . ?k wdt:P36 ?capital .
-    FILTER NOT EXISTS { ?k wdt:P576 ?gone }
-    BIND(true AS ?alias)
-  }
+  ?c wdt:P298 ?iso3 .
+  OPTIONAL { ?c wdt:P31 ?type . VALUES ?type { wd:Q3624078 wd:Q6256 } }
+  OPTIONAL { ?c wdt:P576 ?dissolved }
+}
+"""
+# The country proper inside a realm (Netherlands in the Kingdom of the Netherlands): a part
+# that is itself a country and has the same capital.
+ALIASES_QUERY = """
+SELECT DISTINCT ?c ?iso3 ?alias WHERE {
+  VALUES ?iso3 { %s }
+  ?k wdt:P298 ?iso3 ; wdt:P36 ?capital .
+  FILTER NOT EXISTS { ?k wdt:P576 ?gone }
+  { ?k wdt:P150 ?c } UNION { ?c wdt:P361 ?k }
+  ?c wdt:P31 wd:Q6256 ; wdt:P36 ?capital .
+  BIND(true AS ?alias)
 }
 """
 OFFICES_QUERY = """
@@ -179,7 +181,12 @@ def fetch(work: Path) -> None:
     work.mkdir(parents=True, exist_ok=True)
     client = httpx.Client(follow_redirects=True)
     codes = sorted(universe_codes())
-    countries = _sparql(client, COUNTRIES_QUERY % " ".join(f'"{c}"' for c in codes))
+    values = " ".join(f'"{c}"' for c in codes)
+    countries = _sparql(client, COUNTRIES_QUERY % values)
+    try:
+        countries += _sparql(client, ALIASES_QUERY % values)
+    except RuntimeError as exc:
+        print(f"[wikidata] aliases skipped: {exc}")
     (work / "wd_countries.json").write_text(json.dumps(countries))
     qids = sorted({"wd:" + _qid(_value(b, "c")) for b in pick_countries(countries).values()})
     offices: list[dict] = []
@@ -482,6 +489,23 @@ def coverage(terms, offices, first_years: dict[str, int], threshold: float = 0.9
     return result
 
 
+# Dependent territories, constituent units and breakaway regions whose elections carry the
+# sovereign country in P17 but are not national elections of that country.
+TERRITORY = (
+    r"\b(greenland|faroe|aruba|cura[cç]ao|sint maarten|bermuda|gibraltar|puerto ric|guam|"
+    r"somaliland|puntland|jubaland|republika srpska|federation of bosnia|northern cyprus|"
+    r"transnistria|abkhaz|south osseti|artsakh|nagorno|kurdistan|zanzibar|bougainville|"
+    r"[aå]land|isle of man|jersey|guernsey|new caledonia|french polynesia|tokelau|cook islands|"
+    r"niue|hong kong|maca[ou]|montserrat|cayman|anguilla|turks and caicos|virgin islands|"
+    r"falkland|saint helena|wallis|mayotte|r[ée]union|martinique|guadeloupe|scottish|welsh|"
+    r"northern ireland|catalan|basque|galician|andalusian|flemish|walloon|brussels|quebec|"
+    r"ontario|bavarian|azores|madeira|sicilian|sardinian|corsican|tibet|xinjiang|chechen|"
+    r"tatarstan|bashkortostan|crimea|kosovo serb|gagauz|adjar|nakhchivan|karakalpak|"
+    r"gilgit|azad|kashmir|bangsamoro|aceh|papua(?! new)|tamil nadu|kerala|punjab|state of|"
+    r"provincial|territorial)\b"
+)
+
+
 def national_elections(elections, types, qid_to_iso3) -> list[dict]:
     """National elections (one record per Wikidata item and country).
 
@@ -512,8 +536,11 @@ def national_elections(elections, types, qid_to_iso3) -> list[dict]:
         label = _value(b, "eLabel")
         if not iso3 or not kind or when is None or _precision(b, "precision") < 10:
             continue
-        if qid in foreign_jurisdiction:
+        if qid in foreign_jurisdiction or re.search(TERRITORY, label, flags=re.IGNORECASE):
             continue
+        label_year = re.match(r"\s*(?:\w+\s+)?((?:19|20)\d\d)\b", label)
+        if label_year and abs(int(label_year.group(1)) - when.year) > 1:
+            continue  # the date in Wikidata contradicts the item's own name
         if kind != "snap" and election_kind(labels.get(type_id, ""), label) is None:
             continue
         if kind == "snap" and election_kind("", label.replace("snap", "general")) is None:
@@ -702,7 +729,8 @@ def snap_elections(elections, intros: dict[str, str] | None = None) -> list[dict
         if not 3 <= term <= 7 or count / len(usual) < 0.5:
             continue
         for item, gap in zip(rounds[1:], gaps, strict=False):
-            if lo <= item["date"] <= hi and gap < term - 1.0 and item["qid"] not in events:
+            early = gap < term - 1.0 and gap < 0.75 * term
+            if lo <= item["date"] <= hi and early and item["qid"] not in events:
                 detail = (
                     f"{item['label']}: {gap:.1f} years after the previous one "
                     f"(usual interval {term} years)"
