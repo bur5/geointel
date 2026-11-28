@@ -1,13 +1,22 @@
 from geointel.risk import anomalies
 
 
-def _country(iso3, coup):
-    return {"iso3": iso3, "risks": {"coup_attempt": {"horizons": {"1y": {"p": coup}}}}}
+def _country(iso3, coup, events=0):
+    return {
+        "iso3": iso3,
+        "risks": {
+            "coup_attempt": {
+                "horizons": {"1y": {"p": coup}},
+                "basis": {"event_years": events, "exposure_years": 36},
+            }
+        },
+    }
 
 
 def test_anomaly_checks():
     snapshot = {
-        "countries": [_country(c, 0.075) for c in ("A1", "A2", "A3", "A4", "A5")]
+        "countries": [_country(c, 0.075, i) for i, c in enumerate(("A1", "A2", "A3", "A4", "A5"))]
+        + [_country(c, 0.02) for c in ("B1", "B2", "B3", "B4", "B5")]
         + [_country("USA", 0.09), _country("NOR", 0.001)],
         "event_types": [{"key": "coup_attempt"}],
         "sources": [{"key": "ioda", "name": "IODA", "status": "failed"}],

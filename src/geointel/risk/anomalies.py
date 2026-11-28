@@ -63,19 +63,30 @@ def check(
                 }
             )
 
-    # 3. Several countries with exactly the same probability (a group where all are equal).
+    # 3. Several countries with exactly the same probability although their own records
+    # differ (a group prior that swamps each country's history, the 1.9.2 coup bug).
+    # Countries with the same record (e.g. no events in 36 years) are expected to match.
     for spec in snapshot.get("event_types", []):
         key = spec.get("key")
-        values = Counter(
-            round(p, 4) for c in countries.values() if (p := _p(c, key)) is not None and p >= 0.01
-        )
-        for value, n in values.items():
-            if n >= 5:
+        groups: dict[float, list[tuple]] = {}
+        for c in countries.values():
+            p = _p(c, key)
+            if p is None or p < 0.01:
+                continue
+            basis = ((c.get("risks") or {}).get(key) or {}).get("basis") or {}
+            groups.setdefault(round(p, 4), []).append(
+                (basis.get("event_years"), basis.get("exposure_years"))
+            )
+        for value, records in groups.items():
+            if len(records) >= 5 and len(set(records)) >= 3:
+                n = len(records)
                 found.append(
                     {
                         "kind": "identical",
-                        "ru": f"{key}: у {n} стран одинаковая вероятность за год {value:.4f}",
-                        "en": f"{key}: {n} countries share the same 1-year probability {value:.4f}",
+                        "ru": f"{key}: у {n} стран с разной историей одинаковая вероятность "
+                        f"за год {value:.4f}",
+                        "en": f"{key}: {n} countries with different records share the same "
+                        f"1-year probability {value:.4f}",
                     }
                 )
 
