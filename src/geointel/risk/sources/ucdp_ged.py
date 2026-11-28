@@ -200,3 +200,23 @@ def region_levels(
             f"{rate_en} (UCDP)",
         }
     return dict(out)
+
+
+def country_year(text: str, min_year: int = 1989) -> dict[str, dict[int, tuple[float, float]]]:
+    """ISO3 -> year -> (deaths in state-based fighting, deaths in other violence: non-state
+    and one-sided), from the annual GED file. Used by the time machine (experiment B)."""
+    acc: dict[str, dict[int, list[float]]] = defaultdict(lambda: defaultdict(lambda: [0.0, 0.0]))
+    for row in csv.DictReader(io.StringIO(text)):
+        try:
+            year = int(row.get("year") or 0)
+            deaths = float(row.get("best") or 0)
+            kind = int(row.get("type_of_violence") or STATE_BASED)
+        except (TypeError, ValueError):
+            continue
+        if year < min_year:
+            continue
+        code = resolve_country_name(str(row.get("country") or ""))
+        if not code:
+            continue
+        acc[code][year][0 if kind == STATE_BASED else 1] += deaths
+    return {c: {y: (v[0], v[1]) for y, v in years.items()} for c, years in acc.items()}
