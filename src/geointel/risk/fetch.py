@@ -94,6 +94,15 @@ def _download_first(
     raise RuntimeError("; ".join(errors))
 
 
+def _ucdp_term(client: httpx.Client) -> tuple[bytes, str, str]:
+    from geointel.risk.sources import ucdp_term
+
+    url = ucdp_term.pick_url(_get(client, ucdp_term.DOWNLOADS).text)
+    if not url:
+        raise RuntimeError("no Conflict Termination file on the UCDP downloads page")
+    return _get(client, url).content, url, url.rsplit("_Conflict", 1)[0].rsplit("_v", 1)[-1]
+
+
 def _event_id(feature: dict) -> str:
     return str((feature.get("properties") or {}).get("eventid"))
 
@@ -1127,6 +1136,7 @@ def fetch_all(raw_dir: Path, reference_year: int | None = None) -> dict:
     jobs: dict[str, tuple[str, Callable[[httpx.Client], tuple[bytes, str, str]]]] = {
         "ucdp_acd": ("ucdp_acd.bin", lambda c: _download_first(c, ucdp_acd_urls())),
         "coups": ("coups.txt", lambda c: _coups(c, coups_urls)),
+        "ucdp_term": ("ucdp_term.csv", _ucdp_term),
         "usgs": ("usgs.csv", lambda c: _download_first(c, [(usgs.query_url(), "live")])),
         "gdacs": ("gdacs.json", lambda c: _gdacs(c, year)),
         "tsunami": ("tsunami.json", lambda c: _ncei(c, year)),

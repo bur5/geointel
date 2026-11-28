@@ -453,6 +453,7 @@ def run(
     persistent: Mapping[EventType, bool],
     regime_series: Mapping[str, Mapping[int, int]] | None = None,
     include_holdout: bool = False,
+    termination: Mapping[str, list[tuple[int, int]]] | None = None,
 ) -> dict:
     periods = {k: v for k, v in PERIODS.items() if include_holdout or k != "holdout"}
     years = [y for lo, hi in periods.values() for y in range(lo, hi + 1)]
@@ -494,6 +495,11 @@ def run(
                 }
                 for name, (lo, hi) in periods.items()
             }
+    internal = histories.get(EventType.INTERNAL_ARMED_CONFLICT)
+    if termination and internal is not None:
+        out["termination_variants"] = termination_variants(
+            internal, first_years, years, periods, termination
+        )
     coups = histories.get(EventType.COUP_ATTEMPT)
     if coups is not None:
         # Variants of the coup base rate, compared on the tuning period (rules: choose on
@@ -514,6 +520,33 @@ def run(
                 corrected = offset_records(records, LAG[EventType.COUP_ATTEMPT], min(years), l2)
                 name = f"offset model on {label}" + ("" if l2 == 20.0 else f", L2 {l2:g}")
                 out["coup_variants"][name] = _by_period(corrected, periods)
+    return out
+
+
+def termination_variants(
+    history: TypeHistory,
+    first_years: Mapping[str, int | None],
+    years: list[int],
+    periods: Mapping[str, tuple[int, int]],
+    termination: Mapping[str, list[tuple[int, int]]],
+) -> dict:
+    """Internal-conflict onset: base rate vs a trained correction by how the last conflict
+    ended (UCDP Conflict Termination; Fable round 4, #5). Only episodes that ended at least
+    one year before the data cut-off are used, since an ending is coded after a quiet year."""
+    from geointel.risk.sources.ucdp_term import features
+
+    lag = LAG[EventType.INTERNAL_ARMED_CONFLICT]
+    early = list(range(1992, min(years))) + years
+    records = run_type(EventType.INTERNAL_ARMED_CONFLICT, history, first_years, True, early)
+    onset = [
+        {**r, "x": features(termination, r["iso3"], r["year"] - lag - 1)}
+        for r in records
+        if r["state"] == "onset"
+    ]
+    out = {"base rate": _by_period([r for r in onset if r["year"] >= min(years)], periods)}
+    for l2 in OFFSET_L2:
+        corrected = offset_records(onset, lag, min(years), l2)
+        out[f"ending-of-last-conflict correction, L2 {l2:g}"] = _by_period(corrected, periods)
     return out
 
 

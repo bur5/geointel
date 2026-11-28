@@ -8,7 +8,7 @@ import subprocess
 from datetime import UTC, datetime
 from pathlib import Path
 
-SOURCES = "ucdp_acd,coups,protests,usgs,tsunami,worldbank,fts,regimes"
+SOURCES = "ucdp_acd,ucdp_term,coups,protests,usgs,tsunami,worldbank,fts,regimes"
 
 
 def run(out: Path, raw_dir: Path) -> int:
@@ -32,7 +32,14 @@ def run(out: Path, raw_dir: Path) -> int:
     persistent = {spec.key: spec.persistent_state for spec in EVENT_TYPES}
     first_years = {c.iso3: c.first_year for c in universe()}
     holdout = os.environ.get("GEOINTEL_HOLDOUT_APPROVED") == "1"
-    result = backtest_base.run(wanted, first_years, persistent, regime_series, holdout)
+    termination = {}
+    term = manifest.get("ucdp_term") or {}
+    if term.get("status") == "ok":
+        from geointel.risk.sources import ucdp_term
+
+        termination = ucdp_term.episodes((raw_dir / term["file"]).read_text("utf-8-sig"))
+        print(f"[backtest] conflict endings: {len(termination)} countries, {term.get('version')}")
+    result = backtest_base.run(wanted, first_years, persistent, regime_series, holdout, termination)
     try:
         commit = subprocess.run(
             ["git", "rev-parse", "HEAD"], capture_output=True, text=True, check=False
@@ -71,6 +78,12 @@ def run(out: Path, raw_dir: Path) -> int:
                     f"[backtest] conflict [{label}] {period} {state}: n={s['n']} "
                     f"events={s['events']} brier={s['brier']} log={s['log_score']}"
                 )
+    for label, periods in (result.get("termination_variants") or {}).items():
+        for period, s in periods.items():
+            print(
+                f"[backtest] onset [{label}] {period}: n={s['n']} events={s['events']} "
+                f"BSS vs world={s['bss_vs_world']} brier={s['brier']} log={s['log_score']}"
+            )
     for period, d in result["danger"].items():
         print(f"[backtest] danger {period}: order_ok={d['order_ok']} band={d['band_level3']}")
     return 0
