@@ -173,3 +173,36 @@ def test_ged_cells_dedupe_events_across_files():
     first = ucdp_ged.cells(csv_text, 2025, seen)
     second = ucdp_ged.cells(csv_text, 2025, seen)
     assert len(first) == 1 and first[0]["type"] == 1 and second == []
+
+
+def test_multi_country_event_is_placed_in_each_country():
+    events = [
+        {
+            "hazard": "TC",
+            "source": "gdacs",
+            "year": y,
+            "countries": ["USA", "MEX"],
+            "lat": 28.0,
+            "lon": -82.0,
+        }
+        for y in range(2001, 2025, 2)
+    ]
+    regional = build_regional(INDEX, events, {}, {}, [], 2025)["USA"]
+    tc = regional["hazards"]["tropical_cyclone"]["regions"]
+    assert tc[0]["code"] == "FL" and tc[0]["years"] == 12
+
+
+def test_window_starts_at_the_source_used():
+    gdacs = [
+        {"hazard": "EQ", "source": "gdacs", "year": 2010, "countries": ["USA"], "region_code": "CA"}
+    ]
+    usgs = [
+        {"hazard": "EQ", "source": "usgs", "year": y, "countries": ["USA"], "region_code": "CA"}
+        for y in (1950, 2000)
+    ]
+    regional = build_regional(INDEX, gdacs + usgs, {}, {}, [], 2025)["USA"]
+    eq = regional["hazards"]["major_earthquake"]
+    assert eq["window"] == [1950, 2025]
+    assert eq["regions"][0]["years"] == 2  # the GDACS duplicate is not mixed in
+    only_gdacs = build_regional(INDEX, gdacs, {}, {}, [], 2025)["USA"]
+    assert only_gdacs["hazards"]["major_earthquake"]["window"] == [2010, 2025]

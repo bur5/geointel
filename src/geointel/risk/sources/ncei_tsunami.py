@@ -41,6 +41,7 @@ def normalize(item: Mapping) -> dict | None:
     return {
         "hazard": "TS",
         "id": f"TS-{row.get('id')}",
+        "source": "ncei",
         "name": str(row.get("locationname") or "").title(),
         "alert": "Red" if (deaths or 0) >= 100 else "Orange",
         "year": int(year),

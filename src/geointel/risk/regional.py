@@ -95,24 +95,45 @@ def build_regional(
     """
     events_by = defaultdict(lambda: defaultdict(lambda: defaultdict(set)))  # iso3/haz/code→years
     country_years = defaultdict(lambda: defaultdict(set))
-    first_year: dict[str, int] = {}
     tsunami_max = defaultdict(dict)
-    for e in hazard_events:
-        hazard = HAZARD_KEYS.get(e.get("hazard", ""))
-        if not hazard or not e.get("year"):
+    usable = [e for e in hazard_events if HAZARD_KEYS.get(e.get("hazard", "")) and e.get("year")]
+    # One source per hazard, with the window from that source's own start (1.12.0): mixing
+    # USGS (from 1900) with GDACS (from about 2000) under the earliest world-wide year
+    # understated GDACS frequencies. The source with the longest record is used.
+    starts: dict[tuple[str, str], int] = {}
+    for e in usable:
+        key = (HAZARD_KEYS[e["hazard"]], str(e.get("source") or ""))
+        starts[key] = min(starts.get(key, e["year"]), e["year"])
+    source_of: dict[str, str] = {}
+    first_year: dict[str, int] = {}
+    for (hazard, source), start in sorted(starts.items(), key=lambda kv: (kv[1], kv[0][1])):
+        if hazard not in source_of:
+            source_of[hazard], first_year[hazard] = source, start
+    for e in usable:
+        hazard = HAZARD_KEYS[e["hazard"]]
+        if str(e.get("source") or "") != source_of[hazard]:
             continue
-        first_year[hazard] = min(first_year.get(hazard, e["year"]), e["year"])
-        for code in e.get("countries") or []:
+        codes = list(e.get("countries") or [])
+        for code in codes:
             country_years[code][hazard].add(e["year"])
-        if e.get("region_code") and len(e.get("countries") or []) == 1:
-            iso3 = e["countries"][0]
-            events_by[iso3][hazard][e["region_code"]].add(e["year"])
+        # Events that hit several countries (cyclones, floods, tsunamis) are placed in the
+        # nearest region of each country they hit (1.12.0); before, they were skipped.
+        located: dict[str, str] = {}
+        if e.get("region_code") and len(codes) == 1:
+            located[codes[0]] = e["region_code"]
+        elif len(codes) > 1 and e.get("lat") is not None and e.get("lon") is not None:
+            for code in codes:
+                found = index.locate(code, e["lat"], e["lon"])
+                if found:
+                    located[code] = found[2]
+        for iso3, region in located.items():
+            events_by[iso3][hazard][region].add(e["year"])
             if hazard == "tsunami":
                 h = _height(e.get("severity", ""))
                 if h is not None:
-                    best = tsunami_max[iso3].get(e["region_code"])
+                    best = tsunami_max[iso3].get(region)
                     if best is None or h > best["height"]:
-                        tsunami_max[iso3][e["region_code"]] = {
+                        tsunami_max[iso3][region] = {
                             "height": h,
                             "year": e["year"],
                             "place": e.get("name", ""),

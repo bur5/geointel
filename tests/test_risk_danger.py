@@ -141,3 +141,23 @@ def test_regional_median_lifts_country_to_4_at_most():
         {"level_median": 5, "level_max": 5, "max_regions": [], "max_population_share": 0.6},
     )
     assert d["level"] == 4 and d["regional"]["median"] == 5
+
+
+def test_foreigner_tags_whole_words_and_elevated_crime_health():
+    from geointel.risk.danger import foreigner_risks
+
+    plain = {
+        "advisory": {
+            "summary": "The ministry determines and examines health and crime information "
+            "for travellers; petty crime exists as everywhere."
+        }
+    }
+    assert foreigner_risks(plain) == []
+    serious = {
+        "advisory": {
+            "summary": "Violent crime is common. Landmines remain near the border. "
+            "A cholera outbreak was reported. Terrorists may attack."
+        }
+    }
+    keys = {x["key"] for x in foreigner_risks(serious)}
+    assert keys == {"crime", "mines", "health", "terrorism"}

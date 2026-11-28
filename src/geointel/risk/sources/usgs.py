@@ -70,6 +70,7 @@ def events(text: str, start_year: int = 1990) -> list[dict]:
             {
                 "hazard": "EQ",
                 "id": f"EQ-{row.get('id')}",
+                "source": "usgs",
                 "name": row.get("place", ""),
                 "alert": "Red" if magnitude >= 7.5 else "Orange",
                 "year": year,

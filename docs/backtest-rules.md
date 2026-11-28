@@ -109,3 +109,11 @@ are always reported next to them.
   0.01397 (0.0707). By the rules the hybrid is adopted (best on tuning); it also beats 1.10 on
   validation. The offset model was close and was best on validation; it is a candidate for the
   next version, to be judged on tuning again once combined with the hybrid.
+- 2026-11-28, run 5 (conflict onset: does a one-year lull count as continuation? Fable round
+  4, item 5). Internal conflict, gap 0 / gap 1, Brier (log score): tuning onset 0.03200
+  (0.1324) / 0.03108 (0.1331), continuation 0.17975 (0.5472) / 0.18053 (0.5467); validation
+  onset 0.03177 (0.1233) / 0.03455 (0.1338), continuation 0.16608 (0.5192) / 0.19424
+  (0.5756). Interstate: tuning onset equal by log score, continuation worse with gap 1;
+  validation worse. Tuning is mixed and validation is clearly worse, so the rule is **not
+  adopted** (gap stays 0). The high Azerbaijan onset probability is better addressed by how
+  the last conflict ended (UCDP Conflict Termination), planned separately.
