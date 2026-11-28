@@ -147,3 +147,17 @@ The result of the check is logged below and printed by every daily run.
   kappa shows weak agreement. Next free option: none known; the paid option (news
   candidates from GDELT, labelled by a language model, checked by hand) needs the owner's
   approval of an exact sum.
+- 2026-11-28, **holdout 2021–2025 opened once** (model 1.16.0, commit abb5ab1; approved by the
+  owner in the `holdout` environment; result `models/holdout/2026-11-28-abb5ab1.json` on
+  risk-data). Brier skill score vs the world frequency (95% interval):
+  - internal conflict onset +0.55 (+0.40…+0.72), 16 events; continuation +0.79; vs "as last
+    year": onset +0.14 (−0.04…+0.31), continuation −0.05 (−0.13…+0.02);
+  - interstate onset −0.00 (−0.00…+0.00), 22 events: no skill;
+  - coups (hybrid) +0.024 (+0.007…+0.047), 36 events; the 1.10 grouping scored +0.027 and the
+    world prior cap 2× +0.025 on these years, all within each other's intervals;
+  - earthquakes +0.42, tsunami +0.36, humanitarian onset +0.41, continuation +0.80;
+  - economic crisis +0.08 (+0.04…+0.12);
+  - mass protests: no truth after 2020, not scored.
+  Danger level: share of country-years with a war by level 1–4 = 2.1%, 1.4%, 8.1%, 87.9%;
+  levels 2–4 in order, **level 1 above level 2** (5 of 239 vs 6 of 437; intervals overlap);
+  level 3 from a probability 8.1% (3.3–13.0%), inside the promised 5–20%.
